@@ -9,8 +9,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 
-data_folder = r'./Andor/ODT Align 3'
-examNum = 3 #Only look at the last several results.
+
+data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+
+# Set the date and the folder name
+date = r'/2023/07-2023/07 Jul 2023'
+data_folder = r'/Andor/ODT Align'
+
+data_folder = data_location + date + data_folder
+
+
+examNum = 5 #Only look at the last several results.
 do_plot = True
 
 t_exp = 10e-6
@@ -33,8 +42,8 @@ columnend = -1
 
 rowstart = 100
 rowend =220
-columnstart = 175
-columnend = 375
+columnstart = 150
+columnend = 350
 
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
@@ -60,6 +69,8 @@ widths_y = []
 
 if do_plot == True:
     fig, axs = plt.subplots(imgNo,3, figsize=(3.5*3, 2*imgNo))
+    if imgNo == 1:
+        axs = axs.reshape(1,3)
     fig.tight_layout()
     plt.subplots_adjust(hspace=0.14, wspace=0.12)
 
