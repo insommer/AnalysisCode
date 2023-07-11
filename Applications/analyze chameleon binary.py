@@ -22,8 +22,15 @@ from ImageAnalysis import ImageAnalysisCode
 import numpy as np
 import matplotlib.pyplot as plt
 
+data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 
-data_folder =  './FLIR/odt align'
+# Set the date and the folder name
+date = r'/2023/07-2023/10 Jul 2023'
+data_folder = r'/FLIR/ODT Align'
+
+data_folder = data_location + date + data_folder
+
+# data_folder =  './FLIR/odt align'
 t_exp = 10e-6
 picturesPerIteration = 3
 # t0 = 40e-6

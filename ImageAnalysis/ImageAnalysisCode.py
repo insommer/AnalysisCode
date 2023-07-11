@@ -514,7 +514,8 @@ def ShowImagesTranspose(images, uniformscale=False):
     
     plt.rcParams.update({'font.size' : 8})
     
-    fig, axs = plt.subplots(picturesPerIteration, iterations, figsize=(2.65*iterations, 2*picturesPerIteration), sharex=True, sharey=True)
+    fig, axs = plt.subplots(picturesPerIteration, iterations, figsize=(2.65*iterations, 2*picturesPerIteration), 
+                            sharex=True, sharey=True, squeeze = False)
     plt.subplots_adjust(hspace=0.02, wspace=0.02)
     
     for it in range(iterations):
