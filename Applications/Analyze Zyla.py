@@ -13,7 +13,7 @@ from scipy.ndimage import rotate
 data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 
 # Set the date and the folder name
-date = r'/2023/07-2023/07 Jul 2023'
+date = r'/2023/07-2023/10 Jul 2023'
 data_folder = r'/Andor/ODT Align'
 
 data_folder = data_location + date + data_folder
@@ -40,10 +40,10 @@ columnstart = 0
 columnend = -1
 
 
-rowstart = 100
-rowend =220
-columnstart = 150
-columnend = 350
+# rowstart = 100
+# rowend =220
+# columnstart = 150
+# columnend = 350
 
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
@@ -60,7 +60,7 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
 # plt.imshow(images_array[0][0]-images_array[0][1])
 
 imgNo = len(columnDensities)
-angle_deg= 1 #rotates ccw
+angle_deg= 2 #rotates ccw
 
 AtomNumberList=[]
 widths_x = []
@@ -68,9 +68,7 @@ widths_y = []
 
 
 if do_plot == True:
-    fig, axs = plt.subplots(imgNo,3, figsize=(3.5*3, 2*imgNo))
-    if imgNo == 1:
-        axs = axs.reshape(1,3)
+    fig, axs = plt.subplots(imgNo,3, figsize=(3.5*3, 2*imgNo), squeeze = False)
     fig.tight_layout()
     plt.subplots_adjust(hspace=0.14, wspace=0.12)
 
@@ -104,20 +102,32 @@ for ind in range(imgNo):
     # print(popt1)
     
     if popt0 is not None:
-        print("RMS cloud size x: {:.2f} um".format(popt0[2]/units.um))
-        print("RMS cloud size y: {:.2f} um".format(popt1[2]/units.um))
+        width_x = popt0[2]/units.um
+        width_y = popt1[2]/units.um
+        print("RMS cloud size x: {:.2f} um".format(width_x))
+        print("RMS cloud size y: {:.2f} um".format(width_y))
     
-        widths_x.append(popt0[2])
-        widths_y.append(popt1[2])
+        widths_x.append(width_x)
+        widths_y.append(width_y)
 
 print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumberList)))
     
-print("Mean RMS width x: {:.2f} +/- {:.2f} um".format(np.mean(widths_x)/units.um, np.std(widths_x)/units.um))
-print("Mean RMS width y: {:.2f} +/- {:.2f} um".format(np.mean(widths_y)/units.um, np.std(widths_y)/units.um))
+print("Mean RMS width x: {:.2f} +/- {:.2f} um".format(np.mean(widths_x), np.std(widths_x)))
+print("Mean RMS width y: {:.2f} +/- {:.2f} um".format(np.mean(widths_y), np.std(widths_y)))
 
-plt.figure()
-plt.plot(widths_y)
-plt.ylabel('widths_y')
+
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()  
+
+ax1.plot(widths_y, 'tab:orange')
+ax1.set_ylabel('Y Widths ($\mu$m)', color='tab:orange')
+ax1.tick_params(axis="y", labelcolor='tab:orange')
+
+ax2.plot(AtomNumberList, 'tab:green')
+ax2.set_ylabel('Atom Number', color='tab:green')
+ax2.tick_params(axis="y", labelcolor='tab:green')
+
+
 #Temperature fit
 # popt, pcov = ImageAnalysisCode.thermometry1D(params, rotated_columnDensities, tof_array, thermometry_axis="y", 
 #                                              do_plot = True, save_folder = data_folder)
