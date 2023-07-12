@@ -10,17 +10,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-path = r'./FLIR/Camera Position Check.raw'
+
+
+data_location = r'C:/Users/Sommer Lab/Documents/Data'
+
+# Set the date and the folder name
+date = r'/2023/07-2023/12 Jul 2023'
+data_folder = r'/Parellel Check'
+
+filename = r'/After Chamber Mirror Position 2.raw'
+
+# camera 1 for Point Grey Chameleon, 2 for Basler dart
+camera = 2
+
+path = data_location + date + data_folder + filename
+
+# path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)
-img = np.fromfile(path, dtype = np.uint16)
-width = 1288
-height = 964
-pixelsize_um=3.75#microns
+
+if camera == 1:
+    img = np.fromfile(path, dtype = np.uint16)
+    width = 1288
+    height = 964
+    pixelsize_um=3.75#microns
+
+elif camera == 2:
+    img = np.fromfile(path, dtype = np.uint8)
+    width = 3840
+    height = 2160
+    pixelsize_um=2
+
+
 img_array = np.reshape(img, (height, width))
-rowstart = 300
-rowend = -100
-columnstart = 100
-columnend = -100
+rowstart = 0
+rowend = -1
+columnstart = 0
+columnend = -1
 height = height + rowend - rowstart
 width = width + columnend - columnstart
 img_array = img_array[rowstart:rowend, columnstart:columnend]
@@ -65,6 +90,8 @@ popt2,pcov2 = fitgaussian(yvalues, slice_vs_y, y0*pixelsize_um, plot_title = "sl
 
 print("X radius = {} um".format(popt[2]))
 print("Y radius = {} um".format(popt2[2]))
+
+print("X center = {} um".format(popt[1]))
 
 plt.show()
 plt.figure()
