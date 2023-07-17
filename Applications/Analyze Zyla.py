@@ -12,15 +12,27 @@ from scipy.ndimage import rotate
 
 data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 
-# Set the date and the folder name
-date = r'/2023/07-2023/10 Jul 2023'
+####################################
+#Set the date and the folder name
+####################################
+date = r'/2023/07-2023/17 Jul 2023'
 data_folder = r'/Andor/ODT Align'
 
 data_folder = data_location + date + data_folder
 
-
+####################################
+#Parameter Setting
+####################################
 examNum = 5 #Only look at the last several results.
+examFrom = None
 do_plot = True
+
+if examFrom is None:
+    examFrom = -examNum
+    
+examUntil = examFrom + examNum
+if examUntil == 0:
+    examUntil = None
 
 t_exp = 10e-6
 picturesPerIteration = 3
@@ -40,15 +52,18 @@ columnstart = 0
 columnend = -1
 
 
-# rowstart = 100
-# rowend =220
-# columnstart = 150
-# columnend = 350
-
+rowstart = 100
+rowend =220
+columnstart = 150
+columnend = 350
+# rowstart = 200
+# rowend =-300
+# columnstart = 0
+# columnend = -1
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
-images_array = images_array[-examNum: ]
+images_array = images_array[examFrom: examUntil]
 
 # ImageAnalysisCode.ShowImagesTranspose(images_array)
 
@@ -68,8 +83,7 @@ widths_y = []
 
 
 if do_plot == True:
-    fig, axs = plt.subplots(imgNo,3, figsize=(3.5*3, 2*imgNo), squeeze = False)
-    fig.tight_layout()
+    fig, axs = plt.subplots(imgNo,3, figsize=(3.2*3, 2*imgNo), squeeze = False)
     plt.subplots_adjust(hspace=0.14, wspace=0.12)
 
 for ind in range(imgNo):
@@ -110,17 +124,18 @@ for ind in range(imgNo):
         widths_x.append(width_x)
         widths_y.append(width_y)
 
+
+fig.tight_layout()
 print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumberList)))
     
 print("Mean RMS width x: {:.2f} +/- {:.2f} um".format(np.mean(widths_x), np.std(widths_x)))
 print("Mean RMS width y: {:.2f} +/- {:.2f} um".format(np.mean(widths_y), np.std(widths_y)))
 
-
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()  
 
 ax1.plot(widths_y, 'tab:orange')
-ax1.set_ylabel('Y Widths ($\mu$m)', color='tab:orange')
+ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
 ax1.tick_params(axis="y", labelcolor='tab:orange')
 
 ax2.plot(AtomNumberList, 'tab:green')
