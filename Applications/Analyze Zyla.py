@@ -15,16 +15,16 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/17 Jul 2023'
-data_folder = r'/Andor/ODT Align'
+date = r'/2023/07-2023/18 Jul 2023'
+data_folder = r'/Andor/ODT Align_1'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-examNum = 5 #Only look at the last several results.
-examFrom = None
+examNum = 5 #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 if examFrom is None:
@@ -52,10 +52,10 @@ columnstart = 0
 columnend = -1
 
 
-rowstart = 100
-rowend =220
-columnstart = 150
-columnend = 350
+rowstart = 150
+rowend = 320
+columnstart = 160
+columnend = 420
 # rowstart = 200
 # rowend =-300
 # columnstart = 0

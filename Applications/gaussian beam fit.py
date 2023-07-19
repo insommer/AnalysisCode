@@ -14,16 +14,21 @@ from scipy.optimize import curve_fit
 
 data_location = r'C:/Users/Sommer Lab/Documents/Data'
 
-# Set the date and the folder name
-date = r'/2023/07-2023/12 Jul 2023'
-data_folder = r'/Parellel Check'
-
-filename = r'/After Chamber Mirror Position 2.raw'
-
-# camera 1 for Point Grey Chameleon, 2 for Basler dart
-camera = 2
+####################################
+#Set the date, the folder name, and the file name
+####################################
+date = r'/2023/07-2023/18 Jul 2023'
+data_folder = r'/'
+filename = r'/Beam Location - Low Power - 1 OD.raw'
 
 path = data_location + date + data_folder + filename
+
+####################################
+#Choose the camera, 1 for Point Grey Chameleon, 2 for Basler dart
+####################################
+camera = 2
+
+
 
 # path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)
@@ -32,13 +37,13 @@ if camera == 1:
     img = np.fromfile(path, dtype = np.uint16)
     width = 1288
     height = 964
-    pixelsize_um=3.75#microns
+    pixelsize_um = 3.75#microns
 
 elif camera == 2:
     img = np.fromfile(path, dtype = np.uint8)
     width = 3840
     height = 2160
-    pixelsize_um=2
+    pixelsize_um = 2
 
 
 img_array = np.reshape(img, (height, width))
@@ -92,6 +97,7 @@ print("X radius = {} um".format(popt[2]))
 print("Y radius = {} um".format(popt2[2]))
 
 print("X center = {} um".format(popt[1]))
+print("Y center = {} um".format(popt2[1]))
 
 plt.show()
 plt.figure()
