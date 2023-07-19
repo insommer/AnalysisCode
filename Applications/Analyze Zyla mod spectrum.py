@@ -10,7 +10,16 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-data_folder = './Andor/trap mod 100ms wait tmod 50ms amplitude 0.5V_1' 
+data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+
+####################################
+#Set the date and the folder name
+####################################
+date = r'/2023/07-2023/18 Jul 2023'
+data_folder = r'/Andor/trap mod 100ms wait tmod 50ms amp 0.5V_2'
+
+data_folder = data_location + date + data_folder
+
 t_exp = 10e-6
 picturesPerIteration = 3
 sec=1
@@ -20,50 +29,86 @@ if os.path.exists(data_folder+"/freq_kHz.txt"):
     freq_kHz = np.loadtxt(data_folder+"/freq_kHz.txt")
 else:
     List = '''
-2
-2.4
-2.8
-3.2
-3.6
-4
-4.4
-4.8
-5.2
-5.6
-6
-6.4
-6.8
-7.2
-7.6
-8
-8.4
-8.8
-9.2
-9.6
-10
-10.4
-10.8
-11.2
-11.6
-12
-12.4
-12.8
-13.2
-13.6
-14
-14.4
-14.8
 15.2
 15.6
+10.8
+11.2
+10.4
+4
+6.4
+8.4
+11.6
+14.8
+2
+10
+3.2
+7.6
+2.4
+12
+9.2
+8
+6
+11.6
+6.4
+6.8
+10.4
+12.8
+8.8
+5.6
+14
+10
+10.8
+14.8
+2.8
+8.4
+8.8
+12.4
+15.2
+4.4
+7.2
+9.2
+14
+12.4
+12.8
+13.6
+14.4
 16
+9.6
+13.2
+4.8
+8
+14.4
+9.6
+2
+4.4
+2.8
+2.4
+12
+6.8
+5.2
+16
+3.6
+4
+5.6
+11.2
+4.8
+15.6
+13.6
+5.2
+3.6
+7.6
+6
+13.2
+3.2
+7.2
     '''
     freq_kHz = np.array(List.split('\n')[1:-1], dtype='float')
-    np.savetxt(data_folder+"/freq_kHz.txt", freq_kHz, fmt='%.2f')
+    np.savetxt(data_folder+"/freq_kHz.txt", freq_kHz)
 
-rowstart = 100
-rowend =220
-columnstart = 175
-columnend = 375
+rowstart = 150
+rowend = 320
+columnstart = 160
+columnend = 420
 
 
 # rowstart = 0
@@ -92,7 +137,7 @@ for ind in range(imgNo):
     if ind < 10:
         do_plot = True
     else:
-        do_plot = True
+        do_plot = False
     #preview:
     dx=params.camera.pixelsize_meters/params.magnification
     popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = do_plot, title="",
@@ -108,18 +153,32 @@ for ind in range(imgNo):
         print("{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
         atom_numbers.append(AtomNumberY)
         sizes.append(wy)
-plt.figure(figsize=(7,3))
-plt.subplot(1,2,1)
-plt.plot(freq_kHz, atom_numbers, 'x')
-plt.xlabel("freq (kHz)")
-plt.ylabel("Amplitude")
-plt.subplot(1,2,2)
-plt.plot(freq_kHz, sizes, 'x')
-plt.xlabel("freq (kHz)")
-plt.ylabel("cloud size (m)")
+
+
+freq_kz_unique = np.unique(freq_kHz)
+
+atom_numbers_array = np.array(atom_numbers)
+atom_numbers_avg = [ atom_numbers_array[freq_kHz==ii].mean() for ii in freq_kz_unique ]
+atom_numbers_std = [ atom_numbers_array[freq_kHz==ii].std() for ii in freq_kz_unique ]
+
+cloudsize_array = np.array(sizes)
+cloudsize_avg = [ np.nanmean(cloudsize_array[freq_kHz==ii]) for ii in freq_kz_unique ]
+cloudsize_std = [ np.nanstd(cloudsize_array[freq_kHz==ii]) for ii in freq_kz_unique ]
+
+fig, axs = plt.subplots(1, 2, figsize=(7,3))
+axs[0].errorbar(freq_kz_unique, atom_numbers_avg, atom_numbers_std)
+axs[0].set_xlabel("freq (kHz)")
+axs[0].set_ylabel("Amplitude")
+
+axs[1].errorbar(freq_kz_unique, cloudsize_avg, cloudsize_std)
+axs[1].set_xlabel("freq (kHz)")
+axs[1].set_xlabel("cloud size (m)")
+
 plt.tight_layout()
 plt.savefig(data_folder+"/spectrum.png")
 plt.show()
+
+
 
 #Temperature fit
 # popt, pcov = ImageAnalysisCode.thermometry1D(params, rotated_columnDensities, tof_array, thermometry_axis="y", 
