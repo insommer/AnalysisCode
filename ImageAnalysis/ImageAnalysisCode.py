@@ -800,8 +800,8 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
     bg_mask = np.full(xdata.shape, True)
     bg_mask[25: -25] = False
     
-    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=2 )
-    bg = p[0] * xdata**2 + p[1] * xdata + p[2]    
+    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
+    bg = np.polyval(p, xdata)
     signal = array1D - bg
         
     #initial guess:
@@ -814,6 +814,7 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
           
     if doplot:
         ax.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
+        # ax.plot(xdata*xscale_factor, bg*yscale_factor, '.')
         
     try:
         popt, pcov = curve_fit(Gaussian, xdata, signal, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
