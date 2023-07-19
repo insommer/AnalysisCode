@@ -24,22 +24,38 @@ import matplotlib.pyplot as plt
 
 data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 
-# Set the date and the folder name
-date = r'/2023/07-2023/10 Jul 2023'
-data_folder = r'/FLIR/ODT Align'
+####################################
+#Set the date and the folder name
+####################################
+date = r'/2023/07-2023/18 Jul 2023'
+data_folder = r'/FLIR/ODT Align_1'
 
 data_folder = data_location + date + data_folder
 
+####################################
+#Parameter Setting
+####################################
+examNum = 5 #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
+do_plot = True
+
+if examFrom is None:
+    examFrom = -examNum
+    
+examUntil = examFrom + examNum
+if examUntil == 0:
+    examUntil = None
+    
 # data_folder =  './FLIR/odt align'
 t_exp = 10e-6
 picturesPerIteration = 3
 # t0 = 40e-6
 
 
-rowstart = 37#243#450
-rowend = 161#560
-columnstart = 108#600
-columnend = 234#900
+rowstart = 55#243#450
+rowend = 180#560
+columnstart = 90#600
+columnend = 220#900
 #config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
 binsize=4
 
@@ -48,6 +64,7 @@ params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration=
 # images_array = ImageAnalysisCode.loadSeriesRAW(params = params, picturesPerIteration=picturesPerIteration, data_folder = data_folder)
 images_array = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
                                                binsize=binsize, file_encoding = 'binary')
+images_array = images_array[examFrom: examUntil]
 
 
 
@@ -66,8 +83,8 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 subtract_burntin=0, preventNAN_and_INF=True)
 
 
-centerx = 680
-centery = 390
+centerx = 640
+centery = 470
 radius = 240
 columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
                                                   radius=radius/binsize)
