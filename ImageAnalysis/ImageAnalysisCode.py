@@ -794,22 +794,32 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
                            xscale_factor=1, legend=False, yscale_factor=1):
     
     if xdata is None:
-        xdata = np.arange(np.shape(array1D)[0])*dx     
+        xdata = np.arange( len(array1D) )*dx  
+        
+    #Fit and subtract the background
+    bg_mask = np.full(xdata.shape, True)
+    bg_mask[25: -25] = False
+    
+    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=2 )
+    bg = p[0] * xdata**2 + p[1] * xdata + p[2]    
+    signal = array1D - bg
+        
     #initial guess:
-    offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
-    amp_g = np.max(array1D-offset_g)
-    center_g = xdata[np.argmax(array1D)]
-    w_g =(max(xdata)-min(xdata))/10.0
-    guess = [amp_g, center_g, w_g,offset_g]
-    #      
+    offset_g = 0
+    amp_g = signal.max()
+    center_g = xdata[ signal.argmax() ]    
+    w_g = xdata[ signal > 0.6*signal.max() ].ptp()
+    
+    guess = [amp_g, center_g, w_g, offset_g]
+          
     if doplot:
         ax.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
         
     try:
-        popt, pcov = curve_fit(Gaussian, xdata, array1D, p0=[amp_g, center_g, w_g,offset_g], bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
+        popt, pcov = curve_fit(Gaussian, xdata, signal, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
         if doplot:
-            ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt)*yscale_factor, label="{} fit".format(label))
-            # ax.plot(xdata*xscale_factor, Gaussian(xdata,*guess)*yscale_factor, label="{} guess".format(label))
+            ax.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
+            
     except Exception as e:
         print(e)
         return None  
