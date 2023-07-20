@@ -730,12 +730,6 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
                   xlabel="", ylabel="", xscale_factor=1, legend=False,
                   yscale_factor=1):
     
-    
-    
-    
-    
-    
-    
     datalength = len(array1D)
     signalcenter = array1D.argmax()
     datacenter = int(datalength/2)
@@ -747,27 +741,29 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
     #Fit and subtract the background
     # bg_mask = array1D < np.median(array1D)
     bg_mask = np.full(xdata.shape, True)
-    center_mask = bg_mask.copy()
-    bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
-    center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
+    bg_mask[100:-100] = False
+    # center_mask = bg_mask.copy()
+    # bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
+    # center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
     
-    bg_mask = bg_mask * center_mask
-    bg_mask[:mask_hw] = True
-    bg_mask[-mask_hw:] = True
+    # bg_mask = bg_mask * center_mask
+    # bg_mask[:mask_hw] = True
+    # bg_mask[-mask_hw:] = True
     
     p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
-    bg = np.polyval(p, xdata)
+    bg = np.polyval([0], xdata)
     signal = array1D - bg
         
     #initial guess:
-    offset_g = 0
+    # offset_g = 0
+    offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
     amp_g = signal.max()
     center_g = xdata[ signal.argmax() ]    
-    w_g = min(xdata[ signal > 0.6*signal.max() ].ptp(), mask_hw*dx)
+    w_g = min(xdata[ signal > 0.6*signal.max() ].ptp()/2, mask_hw*dx)
     
     guess = [amp_g, center_g, w_g, offset_g]
     
-    #initial guess:
+    # initial guess:
     # offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
     # amp_g = np.max(array1D-offset_g)
     # center_g = xdata[np.argmax(array1D)]
@@ -785,6 +781,7 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
         if doplot:
             plt.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
             plt.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=1)
+            plt.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
     except Exception as e:
         print(e)
         return None  
@@ -840,23 +837,24 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
     #Fit and subtract the background
     # bg_mask = array1D < np.median(array1D)
     bg_mask = np.full(xdata.shape, True)
-    center_mask = bg_mask.copy()
-    bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
-    center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
+    bg_mask[100:-100] = False
+    # center_mask = bg_mask.copy()
+    # bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
+    # center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
     
-    bg_mask = bg_mask * center_mask
-    bg_mask[:mask_hw] = True
-    bg_mask[-mask_hw:] = True
+    # bg_mask = bg_mask * center_mask
+    # bg_mask[:mask_hw] = True
+    # bg_mask[-mask_hw:] = True
     
-    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=5 )
-    bg = np.polyval(p, xdata)
+    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
+    bg = np.polyval([0], xdata)
     signal = array1D - bg
         
     #initial guess:
     offset_g = 0
     amp_g = signal.max()
     center_g = xdata[ signal.argmax() ]    
-    w_g = xdata[ signal > 0.6*signal.max() ].ptp()
+    w_g = xdata[ signal > 0.6*signal.max() ].sum() * dx
     
     guess = [amp_g, center_g, w_g, offset_g]
           
@@ -1129,7 +1127,7 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
     for index, density2D in enumerate(columnDensities):
         density1D = integrate1D(density2D, dx=dx, free_axis=thermometry_axis)
         xdata = np.arange(np.shape(density1D)[0])*dx
-        popt_gauss  = fitgaussian1D(density1D,xdata)
+        popt_gauss  = fitgaussian1D(density1D,xdata,doplot=True,xlabel=thermometry_axis, ylabel="density")
         if popt_gauss is not None: #fit succeeded
             if popt_gauss[2] >0 or not reject_negative_width:
                 w = abs(popt_gauss[2])
@@ -1148,7 +1146,7 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
         pcov = None
         
     if (do_plot):
-        #plot the widths vs. position along x direction
+        #plot the widths vs. time
         if newfig:
             plt.figure()
         plt.rcParams.update({'font.size': 14})

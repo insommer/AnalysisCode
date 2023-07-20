@@ -15,15 +15,15 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/14 Jul 2023'
-data_folder = r'/Andor/ODT Align'
+date = r'/2023/07-2023/20 Jul 2023'
+data_folder = r'/Andor/D1 with FB coils on'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-examNum = 10 #The number of runs to exam.
+examNum = 100 #The number of runs to exam.
 examFrom = 0#Set to None if you want to check the last several runs. 
 do_plot = True
 
