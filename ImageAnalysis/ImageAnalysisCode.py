@@ -730,14 +730,50 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
                   xlabel="", ylabel="", xscale_factor=1, legend=False,
                   yscale_factor=1):
     
+    
+    
+    
+    
+    
+    
+    datalength = len(array1D)
+    signalcenter = array1D.argmax()
+    datacenter = int(datalength/2)
+    mask_hw = int(datalength/8)
+    
     if xdata is None:
-        xdata = np.arange(np.shape(array1D)[0])*dx     
+        xdata = np.arange( datalength )*dx  
+        
+    #Fit and subtract the background
+    # bg_mask = array1D < np.median(array1D)
+    bg_mask = np.full(xdata.shape, True)
+    center_mask = bg_mask.copy()
+    bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
+    center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
+    
+    bg_mask = bg_mask * center_mask
+    bg_mask[:mask_hw] = True
+    bg_mask[-mask_hw:] = True
+    
+    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
+    bg = np.polyval(p, xdata)
+    signal = array1D - bg
+        
     #initial guess:
-    offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
-    amp_g = np.max(array1D-offset_g)
-    center_g = xdata[np.argmax(array1D)]
-    w_g =(max(xdata)-min(xdata))/10.0
-    guess = [amp_g, center_g, w_g,offset_g]
+    offset_g = 0
+    amp_g = signal.max()
+    center_g = xdata[ signal.argmax() ]    
+    w_g = min(xdata[ signal > 0.6*signal.max() ].ptp(), mask_hw*dx)
+    
+    guess = [amp_g, center_g, w_g, offset_g]
+    
+    #initial guess:
+    # offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
+    # amp_g = np.max(array1D-offset_g)
+    # center_g = xdata[np.argmax(array1D)]
+    # w_g =(max(xdata)-min(xdata))/10.0
+    # guess = [amp_g, center_g, w_g,offset_g]
+ 
     #      
     if doplot:
         if newfig:
@@ -745,10 +781,10 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
         plt.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
         
     try:
-        popt, pcov = curve_fit(Gaussian, xdata, array1D, p0=[amp_g, center_g, w_g,offset_g], bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
+        popt, pcov = curve_fit(Gaussian, xdata, signal, p0=guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
         if doplot:
-            plt.plot(xdata*xscale_factor, Gaussian(xdata,*popt)*yscale_factor, label="{} fit".format(label))
-            # plt.plot(xdata*xscale_factor, Gaussian(xdata,*guess)*yscale_factor, label="{} guess".format(label))
+            plt.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
+            plt.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=1)
     except Exception as e:
         print(e)
         return None  
@@ -793,14 +829,26 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
     
+    datalength = len(array1D)
+    signalcenter = array1D.argmax()
+    datacenter = int(datalength/2)
+    mask_hw = int(datalength/8)
+    
     if xdata is None:
-        xdata = np.arange( len(array1D) )*dx  
+        xdata = np.arange( datalength )*dx  
         
     #Fit and subtract the background
+    # bg_mask = array1D < np.median(array1D)
     bg_mask = np.full(xdata.shape, True)
-    bg_mask[25: -25] = False
+    center_mask = bg_mask.copy()
+    bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
+    center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
     
-    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
+    bg_mask = bg_mask * center_mask
+    bg_mask[:mask_hw] = True
+    bg_mask[-mask_hw:] = True
+    
+    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=5 )
     bg = np.polyval(p, xdata)
     signal = array1D - bg
         
@@ -814,7 +862,7 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
           
     if doplot:
         ax.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
-        # ax.plot(xdata*xscale_factor, bg*yscale_factor, '.')
+        ax.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=1)
         
     try:
         popt, pcov = curve_fit(Gaussian, xdata, signal, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
