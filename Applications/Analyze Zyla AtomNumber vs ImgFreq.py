@@ -38,7 +38,7 @@ else:
 250
     '''
     freq_kHz = np.array(List.split('\n')[1:-1], dtype='float')
-    np.savetxt(list_file, freq_kHz, fmt='%.2f')
+    np.savetxt(list_file, freq_kHz)
 
 rowstart =0#550
 rowend =-1#710

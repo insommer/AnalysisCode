@@ -10,7 +10,18 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-data_folder = './Andor/lifetime' 
+data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+
+####################################
+#Set the date and the folder name
+####################################
+date = r'/2023/07-2023/07 Jul 2023'
+data_folder = r'/Andor/lifetime'
+
+data_folder = data_location + date + data_folder
+
+
+# data_folder = './Andor/lifetime' 
 t_exp = 10e-6
 picturesPerIteration = 3
 sec=1
@@ -37,8 +48,8 @@ else:
 4600
     '''
     times = np.array(List.split('\n')[1:-1], dtype='float')
-    np.savetxt(list_file, times)#, fmt='%.2f')
-
+    np.savetxt(list_file, times)
+    
 
 # times = np.loadtxt(data_folder+'/wait_ms.txt')*ms
 

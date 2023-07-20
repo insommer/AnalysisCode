@@ -15,8 +15,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/18 Jul 2023'
-data_folder = r'/Andor/trap mod 100ms wait tmod 50ms amp 0.5V_2'
+date = r'/2023/07-2023/19 Jul 2023'
+data_folder = r'/Andor/trap mod 100ms wait tmod 50ms amp 0.5V_9'
 
 data_folder = data_location + date + data_folder
 
@@ -29,78 +29,114 @@ if os.path.exists(data_folder+"/freq_kHz.txt"):
     freq_kHz = np.loadtxt(data_folder+"/freq_kHz.txt")
 else:
     List = '''
-15.2
-15.6
-10.8
-11.2
-10.4
-4
-6.4
-8.4
-11.6
 14.8
-2
-10
-3.2
-7.6
-2.4
-12
-9.2
-8
-6
+7.2
 11.6
-6.4
-6.8
+10
+8.4
 10.4
 12.8
-8.8
+6
 5.6
-14
-10
-10.8
-14.8
-2.8
-8.4
 8.8
-12.4
-15.2
-4.4
-7.2
-9.2
-14
-12.4
-12.8
-13.6
-14.4
 16
-9.6
-13.2
-4.8
-8
+14.8
+5.6
+5.2
+9.2
+13.6
+11.2
+8.4
 14.4
-9.6
+15.2
+12
+12
 2
 4.4
-2.8
-2.4
-12
-6.8
-5.2
-16
-3.6
+8.8
 4
-5.6
+3.6
 11.2
+6
+2.8
+2
+14.8
+6.8
+10
 4.8
+4.4
+9.2
+5.2
+7.6
+12.4
+6.8
+9.6
+8
+9.6
+14
+9.6
+4
+12.4
+14.4
+6.4
 15.6
+2.8
 13.6
+6.4
+2.4
+4.8
+4
+7.6
+16
+5.6
+8.8
+2.8
+14.4
+2.4
+4.8
+2
+10.8
+15.2
+2.4
+7.2
+8.4
+10
+3.2
+10.4
+11.2
+9.2
+12.8
+13.2
+12.8
+6.8
+6
+11.6
 5.2
 3.6
 7.6
-6
+3.6
+10.4
+4.4
+14
 13.2
-3.2
 7.2
+8
+16
+15.6
+12
+3.2
+14
+12.4
+10.8
+10.8
+3.2
+8
+15.6
+13.6
+6.4
+15.2
+11.6
+13.2
     '''
     freq_kHz = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(data_folder+"/freq_kHz.txt", freq_kHz)
@@ -165,14 +201,19 @@ cloudsize_array = np.array(sizes)
 cloudsize_avg = [ np.nanmean(cloudsize_array[freq_kHz==ii]) for ii in freq_kz_unique ]
 cloudsize_std = [ np.nanstd(cloudsize_array[freq_kHz==ii]) for ii in freq_kz_unique ]
 
-fig, axs = plt.subplots(1, 2, figsize=(7,3))
-axs[0].errorbar(freq_kz_unique, atom_numbers_avg, atom_numbers_std)
-axs[0].set_xlabel("freq (kHz)")
-axs[0].set_ylabel("Amplitude")
+fig, ax = plt.subplots(1, 1, figsize=(4,3))
+ax.errorbar(freq_kz_unique, atom_numbers_avg, atom_numbers_std)
+ax.set_xlabel("freq (kHz)")
+ax.set_ylabel("Amplitude")
 
-axs[1].errorbar(freq_kz_unique, cloudsize_avg, cloudsize_std)
-axs[1].set_xlabel("freq (kHz)")
-axs[1].set_xlabel("cloud size (m)")
+# fig, axs = plt.subplots(1, 2, figsize=(7,3))
+# axs[0].errorbar(freq_kz_unique, atom_numbers_avg, atom_numbers_std)
+# axs[0].set_xlabel("freq (kHz)")
+# axs[0].set_ylabel("Amplitude")
+
+# axs[1].errorbar(freq_kz_unique, cloudsize_avg, cloudsize_std)
+# axs[1].set_xlabel("freq (kHz)")
+# axs[1].set_xlabel("cloud size (m)")
 
 plt.tight_layout()
 plt.savefig(data_folder+"/spectrum.png")

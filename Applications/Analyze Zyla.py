@@ -15,16 +15,16 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/18 Jul 2023'
-data_folder = r'/Andor/ODT Align_1'
+date = r'/2023/07-2023/14 Jul 2023'
+data_folder = r'/Andor/ODT Align'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-examNum = 5 #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
+examNum = 10 #The number of runs to exam.
+examFrom = 0#Set to None if you want to check the last several runs. 
 do_plot = True
 
 if examFrom is None:
@@ -46,20 +46,16 @@ units=SIUnits()
 # tof_array = np.loadtxt('./ODT/Andor/TOF/TOF_list_ms.txt')*ms
 
 
-rowstart = 0
-rowend =-1
-columnstart = 0
-columnend = -1
+rowstart = 10
+rowend =-10
+columnstart = 10
+columnend = -10
 
 
-rowstart = 150
-rowend = 320
-columnstart = 160
-columnend = 420
-# rowstart = 200
-# rowend =-300
-# columnstart = 0
-# columnend = -1
+# rowstart = 180
+# rowend = 290
+# columnstart = 180
+# columnend = 390
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)

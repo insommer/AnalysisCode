@@ -99,9 +99,10 @@ print("Y radius = {} um".format(popt2[2]))
 print("X center = {} um".format(popt[1]))
 print("Y center = {} um".format(popt2[1]))
 
-plt.show()
+# plt.show()
 plt.figure()
 plt.imshow(img_array)
+plt.show()
 
 #x0,y0 = 461,488
 

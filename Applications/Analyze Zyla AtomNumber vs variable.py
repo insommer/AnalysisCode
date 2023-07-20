@@ -61,7 +61,7 @@ else:
 8
 '''
     variable_array = np.array(List.split('\n')[1:-1], dtype='float')
-    np.savetxt(list_file, variable_array, fmt='%.4f')
+    np.savetxt(list_file, variable_array)
 
 rowstart = 0
 rowend = -1

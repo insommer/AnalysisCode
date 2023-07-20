@@ -27,8 +27,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/18 Jul 2023'
-data_folder = r'/FLIR/ODT Align_1'
+date = r'/2023/07-2023/19 Jul 2023'
+data_folder = r'/FLIR/ODT Align'
 
 data_folder = data_location + date + data_folder
 
