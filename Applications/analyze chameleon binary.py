@@ -27,8 +27,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/19 Jul 2023'
-data_folder = r'/FLIR/ODT Align'
+date = r'/2023/08-2023/04 Aug 2023'
+data_folder = r'/FLIR/odt align_6'
 
 data_folder = data_location + date + data_folder
 
@@ -36,7 +36,7 @@ data_folder = data_location + date + data_folder
 #Parameter Setting
 ####################################
 examNum = 5 #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
+examFrom = None#Set to None if you want to check the last several runs. 
 do_plot = True
 
 if examFrom is None:
@@ -52,10 +52,16 @@ picturesPerIteration = 3
 # t0 = 40e-6
 
 
-rowstart = 55#243#450
-rowend = 180#560
-columnstart = 90#600
-columnend = 220#900
+rowstart = 80
+rowend = 225
+columnstart = 130
+columnend = 320
+
+# rowstart = 0
+# rowend = -1
+# columnstart = 0
+# columnend = -1
+
 #config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
 binsize=4
 
@@ -83,9 +89,9 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 subtract_burntin=0, preventNAN_and_INF=True)
 
 
-centerx = 640
-centery = 470
-radius = 240
+centerx = 920
+centery = 600
+radius = 280
 columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
                                                   radius=radius/binsize)
 
@@ -106,7 +112,7 @@ plt.show()
 center_x_array = np.zeros(len(images_array))
 center_y_array = np.zeros(len(images_array))
 
-for count, x in enumerate(columnDensities):       
+for count, x in enumerate(columnDensities):
     widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count],title = "Vertical Column Density",\
                                                                         vmax = None, do_plot = 1, save_column_density=0,\
                                                                             column_density_xylim=(columnstart, columnend, rowstart, rowend))

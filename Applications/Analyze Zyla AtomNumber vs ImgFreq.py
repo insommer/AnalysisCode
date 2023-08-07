@@ -10,13 +10,22 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-data_folder = './cMOT freq scan_2' 
+data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+
+####################################
+#Set the date and the folder name
+####################################
+date = r'/2023/07-2023/31 Jul 2023'
+data_folder = r'/Andor/RF_spec_225.5-228.3'
+
+data_folder = data_location + date + data_folder
+
 t_exp = 10e-6
 picturesPerIteration = 3
 sec=1
 ms = 1e-3*sec
 
-variable="img freq (MHz)"
+variable="freq (MHz)"
 
 list_file_name = variable+".txt"
 list_file = os.path.join(data_folder, list_file_name)
@@ -25,25 +34,43 @@ if os.path.exists(list_file):
     freq_kHz = np.loadtxt(list_file)
 else:
     List = '''
-210
-214
-218
-222
+225.5
+225.6
+225.7
+225.8
+225.9
 226
-230
-234
-238
-242
-246
-250
+226.1
+226.2
+226.3
+226.4
+226.5
+226.6
+226.7
+226.8
+226.9
+227
+227.1
+227.2
+227.3
+227.4
+227.5
+227.6
+227.7
+227.8
+227.9
+228
+228.1
+228.2
+228.3
     '''
     freq_kHz = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(list_file, freq_kHz)
 
 rowstart =0#550
-rowend =-1#710
+rowend =-200#710
 columnstart = 0#550#550
-columnend = -1#800#800
+columnend = -500#800#800
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
@@ -58,7 +85,11 @@ print("Number_of_atoms = "+str(Number_of_atoms/1e6))
 
 imgNo = len(columnDensities)
 angle_deg= 0 #rotates ccw
-atom_numbers=[]
+atom_numbers_x=[]
+atom_numbers_y=[]
+amplitudes_x=[]
+amplitudes_y=[]
+atom_counts =[]
 sizes = []
 for ind in range(imgNo):
     rotated_ = rotate(columnDensities[ind][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
@@ -72,35 +103,55 @@ for ind in range(imgNo):
     #     do_plot = True
     #preview:
     dx=params.camera.pixelsize_meters/params.magnification
-    popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = do_plot, title="column density",
+    try:
+        popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = do_plot, title="column density",
                                                   ylabel1D="1d density (atoms/m)", xlabel1D="distance (m)")
-    if popt1 is None:
+    except:
+        popt0, popt1 = None, None
+        
+    if popt1 is None or popt0 is None or popt0[0]>1e10 or popt1[0]>1e10:
         sizes.append(np.nan)
-        atom_numbers.append(np.nan)
+        atom_numbers_x.append(np.nan)
+        atom_numbers_y.append(np.nan)
+        amplitudes_x.append(np.nan)
+        amplitudes_y.append(np.nan)
     else:
-        wy = abs(popt1[2])
-        AtomNumberY = popt1[0]* wy*(2*np.pi)**0.5 
+        #popt0 is x fit
+        #popt1 is y fit
+        fit_w_x = abs(popt0[2])
+        fit_w_y = abs(popt1[2])
+        AtomNumberX = popt0[0]* fit_w_x*(2*np.pi)**0.5 
+        AtomNumberY = popt1[0]* fit_w_y*(2*np.pi)**0.5 
         # AtomNumberY = popt1[0]
-        print("{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
-        atom_numbers.append(AtomNumberY)
-        sizes.append(wy)
+        print("{}. Atom Number from gauss fit (X) = {:.2e}".format(ind, AtomNumberX))
+        atom_numbers_x.append(AtomNumberX)
+        atom_numbers_y.append(AtomNumberY)
+        amplitudes_x.append(popt0[0])
+        amplitudes_y.append(popt1[0])
+        sizes.append(fit_w_x)
+    count = np.sum(rotated_)*dx*dx
+    atom_counts.append(count)
 
-for ind in range(imgNo):
-    plt.figure()
-    plt.imshow(ratio_array[ind])
-    # plt.imshow(images_array[ind][0])
-    plt.colorbar()
+# for ind in range(imgNo):
+#     plt.figure()
+#     plt.imshow(ratio_array[ind])
+#     # plt.imshow(images_array[ind][0])
+#     plt.colorbar()
     
         
 plt.figure(figsize=(8,4))
 plt.subplot(1,2,1)
-plt.plot(freq_kHz, atom_numbers, 'x')
+plt.plot(freq_kHz, atom_numbers_x, 'x',label="x")
+plt.plot(freq_kHz, atom_numbers_y, 'o',label="y")
+# plt.plot(freq_kHz, atom_counts, '.-',label="count")
 plt.xlabel(variable)
 plt.ylabel("Atom Number")
 plt.subplot(1,2,2)
-plt.plot(freq_kHz, sizes, 'x')
+plt.plot(freq_kHz, amplitudes_x, 'x',label="x")
+plt.plot(freq_kHz, amplitudes_y, 'o',label="y")
 plt.xlabel(variable)
-plt.ylabel("cloud size (m)")
+plt.ylabel("fit amplitude")
+plt.legend()
 plt.tight_layout()
 plt.savefig(data_folder+"/Atom number vs "+variable+ ".png")
 plt.show()

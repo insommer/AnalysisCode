@@ -15,8 +15,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/19 Jul 2023'
-data_folder = r'/Andor/trap mod 100ms wait tmod 50ms amp 0.5V_9'
+date = r'/2023/07-2023/25 Jul 2023'
+data_folder = r'/Andor/trap mod 100ms wait tmod 50ms amp 0.5V_Lens Moved Forward for 15 mm'
 
 data_folder = data_location + date + data_folder
 
@@ -29,114 +29,78 @@ if os.path.exists(data_folder+"/freq_kHz.txt"):
     freq_kHz = np.loadtxt(data_folder+"/freq_kHz.txt")
 else:
     List = '''
-14.8
-7.2
-11.6
-10
-8.4
-10.4
+2.8
 12.8
-6
-5.6
-8.8
-16
-14.8
-5.6
-5.2
-9.2
+10.8
 13.6
-11.2
-8.4
-14.4
-15.2
-12
-12
-2
-4.4
-8.8
-4
-3.6
-11.2
 6
 2.8
 2
+8
+10
+8
 14.8
-6.8
-10
-4.8
-4.4
-9.2
-5.2
-7.6
-12.4
-6.8
-9.6
-8
-9.6
-14
-9.6
-4
-12.4
-14.4
-6.4
-15.6
-2.8
-13.6
-6.4
-2.4
-4.8
-4
-7.6
-16
+13.2
 5.6
-8.8
-2.8
-14.4
-2.4
-4.8
-2
-10.8
-15.2
-2.4
 7.2
-8.4
-10
-3.2
-10.4
-11.2
-9.2
-12.8
-13.2
-12.8
+16
 6.8
-6
-11.6
-5.2
 3.6
+4
+8.8
+5.6
 7.6
+9.6
 3.6
+13.2
+8.8
+11.2
+5.2
+12
+12.8
+14
+6.8
+3.2
 10.4
 4.4
-14
-13.2
-7.2
-8
-16
-15.6
-12
-3.2
-14
-12.4
-10.8
-10.8
-3.2
-8
-15.6
-13.6
-6.4
-15.2
 11.6
-13.2
+14.4
+4
+5.2
+2
+9.2
+7.6
+10.8
+2.4
+10
+15.6
+8.4
+3.2
+4.8
+10.4
+9.6
+12.4
+11.6
+8.4
+13.6
+4.8
+15.2
+14.4
+4.4
+12.4
+2.4
+15.6
+9.2
+15.2
+14.8
+6.4
+12
+7.2
+6
+16
+6.4
+14
+11.2
     '''
     freq_kHz = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(data_folder+"/freq_kHz.txt", freq_kHz)
@@ -162,7 +126,7 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 subtract_burntin=0, preventNAN_and_INF=False)
 
 imgNo = len(columnDensities)
-angle_deg= 1 #rotates ccw
+angle_deg= 2 #rotates ccw
 atom_numbers=[]
 sizes = []
 for ind in range(imgNo):
@@ -176,8 +140,19 @@ for ind in range(imgNo):
         do_plot = False
     #preview:
     dx=params.camera.pixelsize_meters/params.magnification
-    popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = do_plot, title="",
+    popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind], dx=dx, 
+                                                  do_plot = do_plot, title='',
                                                   ylabel1D="1d density (atoms/m)", xlabel1D="distance (m)")
+    
+    
+    
+    # popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
+    #                                               do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
+    #                                               subtract_bg = subtract_bg, signal_feature = signal_feature,
+    #                                               title="1D density",
+    #                                               ylabel1D="1d density (atoms/$\mu$m)", xlabel1D="position ($\mu$m)",
+    #                                               title2D="column density",
+    #                                               xscale_factor=1/units.um, yscale_factor=units.um)
     
     if popt1 is None:
         sizes.append(np.nan)
