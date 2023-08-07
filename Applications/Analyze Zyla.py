@@ -15,17 +15,22 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/20 Jul 2023'
-data_folder = r'/Andor/D1 with FB coils on'
+date = r'/2023/08-2023/04 Aug 2023'
+data_folder = r'/Andor/ODT Align_6'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-examNum = 100 #The number of runs to exam.
-examFrom = 0#Set to None if you want to check the last several runs. 
+examNum = 10 #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
+subtract_bg = True
+signal_feature = 'narrow'
 do_plot = True
+uniformscale = True
+
+pictureToHide = []
 
 if examFrom is None:
     examFrom = -examNum
@@ -47,19 +52,22 @@ units=SIUnits()
 
 
 rowstart = 10
-rowend =-10
+rowend = -10
 columnstart = 10
 columnend = -10
 
 
-# rowstart = 180
-# rowend = 290
-# columnstart = 180
-# columnend = 390
+# rowstart = 350
+# rowend = 750
+# columnstart = 600
+# columnend = 1200
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
 images_array = images_array[examFrom: examUntil]
+
+if len(pictureToHide) > 0:
+    images_array = np.delete(images_array, pictureToHide, 0)
 
 # ImageAnalysisCode.ShowImagesTranspose(images_array)
 
@@ -81,6 +89,13 @@ widths_y = []
 if do_plot == True:
     fig, axs = plt.subplots(imgNo,3, figsize=(3.2*3, 2*imgNo), squeeze = False)
     plt.subplots_adjust(hspace=0.14, wspace=0.12)
+    
+if uniformscale:
+    vmax = columnDensities.max()
+    vmin = columnDensities.min()
+else:
+    vmax = None
+    vmin = None
 
 for ind in range(imgNo):
     rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
@@ -94,24 +109,21 @@ for ind in range(imgNo):
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
-                                                  title="1D density",
-                                                  ylabel1D="1d density (atoms/$\mu$m)", xlabel1D="position ($\mu$m)",
-                                                  title2D="column density",
+                                                  subtract_bg = subtract_bg, signal_feature = signal_feature, 
+                                                  vmax = vmax, vmin = vmin,
+                                                  title="1D density", title2D="column density",
+                                                  xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um)
-    
-    # popt0, popt1 = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = True, title="1D density",
-    #                                               ylabel1D="1d density (atoms/$\mu$m)", xlabel1D="position ($\mu$m)",
-    #                                               title2D="column density",
-    #                                               xscale_factor=1/units.um, yscale_factor=units.um)
-    
-    
-    wy = abs(popt1[2])
-    AtomNumberY = popt1[0]* wy*(2*np.pi)**0.5 
-    AtomNumberList.append(AtomNumberY)
-    print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
-    # print(popt1)
-    
-    if popt0 is not None:
+        
+    if popt0 is not None and popt1 is not None:
+        wx = abs(popt0[2])
+        AtomNumberX = popt0[0]* wx*(2*np.pi)**0.5 
+        
+        wy = abs(popt1[2])
+        AtomNumberY = popt1[0]* wy*(2*np.pi)**0.5 
+        
+        AtomNumberList.append(AtomNumberY)
+        print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
         width_x = popt0[2]/units.um
         width_y = popt1[2]/units.um
         print("RMS cloud size x: {:.2f} um".format(width_x))
@@ -121,7 +133,8 @@ for ind in range(imgNo):
         widths_y.append(width_y)
 
 
-fig.tight_layout()
+# fig.tight_layout()
+
 print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumberList)))
     
 print("Mean RMS width x: {:.2f} +/- {:.2f} um".format(np.mean(widths_x), np.std(widths_x)))
@@ -130,15 +143,18 @@ print("Mean RMS width y: {:.2f} +/- {:.2f} um".format(np.mean(widths_y), np.std(
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()  
 
-ax1.plot(widths_y, 'tab:orange')
+xx = np.arange(len(widths_y))
+
+ax1.plot(xx, widths_y, '.-', color='tab:orange')
 ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
 ax1.tick_params(axis="y", labelcolor='tab:orange')
 
-ax2.plot(AtomNumberList, 'tab:green')
+ax2.plot(xx, AtomNumberList, '.-', color='tab:green')
 ax2.set_ylabel('Atom Number', color='tab:green')
 ax2.tick_params(axis="y", labelcolor='tab:green')
 
-
+fig.tight_layout()
+plt.show()
 #Temperature fit
 # popt, pcov = ImageAnalysisCode.thermometry1D(params, rotated_columnDensities, tof_array, thermometry_axis="y", 
 #                                              do_plot = True, save_folder = data_folder)
