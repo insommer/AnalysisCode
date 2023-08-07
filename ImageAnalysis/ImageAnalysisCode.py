@@ -873,7 +873,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
     amp_g = data.max()
     center_g = xdata[ data.argmax() ]    
-    w_g = ( data > 0.6*data.max() ).sum() * dx
+    w_g = ( data > 0.6*data.max() ).sum() * dx / 2
     
     guess = [amp_g, center_g, w_g, offset_g]
     
@@ -889,6 +889,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
             ax.plot(xdata*xscale_factor, originalData*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
             ax.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=0.3)
+            # ax.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
         else:
             ax.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))

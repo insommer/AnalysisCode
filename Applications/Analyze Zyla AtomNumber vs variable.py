@@ -115,44 +115,40 @@ for ind in range(imgNo):
         ycenter.append(popt1[1])
 
 #Calculate the average and std for the results.        
-variable_set = list(set(variable_array))
-variable_set.sort()
-# variable_set.remove(4)
-# variable_set.remove(219)
-# variable_set.remove(1.3)
+variable_unique = np.unique(variable_array)
 
 sizes_array = np.array(sizes)
-sizes_avg = [ sizes_array[variable_array==ii].mean() for ii in variable_set ]
-sizes_std = [ sizes_array[variable_array==ii].std() for ii in variable_set ]
+sizes_avg = [ sizes_array[variable_array==ii].mean() for ii in variable_unique ]
+sizes_std = [ sizes_array[variable_array==ii].std() for ii in variable_unique ]
 
 atom_numbers_array = np.array(atom_numbers)
-atom_numbers_avg = [ atom_numbers_array[variable_array==ii].mean() for ii in variable_set ]
-atom_numbers_std = [ atom_numbers_array[variable_array==ii].std() for ii in variable_set ]
+atom_numbers_avg = [ atom_numbers_array[variable_array==ii].mean() for ii in variable_unique ]
+atom_numbers_std = [ atom_numbers_array[variable_array==ii].std() for ii in variable_unique ]
 
 ycenter_array = np.array(ycenter)
-ycenter_avg = [ ycenter_array[variable_array==ii].mean() for ii in variable_set ]
-ycenter_std = [ ycenter_array[variable_array==ii].std() for ii in variable_set ]
+ycenter_avg = [ ycenter_array[variable_array==ii].mean() for ii in variable_unique ]
+ycenter_std = [ ycenter_array[variable_array==ii].std() for ii in variable_unique ]
 
 #plotting
 plt.figure(figsize=(15,4))
 plt.subplot(1,3,1)
-plt.errorbar(variable_set, atom_numbers_avg, atom_numbers_std)
-# plt.plot(variable_set, atom_numbers_avg)
+plt.errorbar(variable_unique, atom_numbers_avg, atom_numbers_std)
+# plt.plot(variable_unique, atom_numbers_avg)
 # plt.plot(variable_array, atom_numbers, 'x')
 
 plt.xlabel(variable)
 plt.ylabel("Atom Number")
 
 plt.subplot(1,3,2)
-plt.errorbar(variable_set, sizes_avg, sizes_std)
-# plt.plot(variable_set, sizes_avg)
+plt.errorbar(variable_unique, sizes_avg, sizes_std)
+# plt.plot(variable_unique, sizes_avg)
 # plt.plot(variable_array, sizes, 'x')
 plt.xlabel(variable)
 plt.ylabel("cloud size (m)")
 
 plt.subplot(1,3,3)
-plt.errorbar(variable_set, ycenter_avg, ycenter_std)
-# plt.plot(variable_set, ycenter_avg)
+plt.errorbar(variable_unique, ycenter_avg, ycenter_std)
+# plt.plot(variable_unique, ycenter_avg)
 # plt.plot(variable_array, ycenter, 'x')
 plt.xlabel(variable)
 plt.ylabel("ycenter (m)")

@@ -165,7 +165,6 @@ for ind in range(imgNo):
         atom_numbers.append(AtomNumberY)
         sizes.append(wy)
 
-
 freq_kz_unique = np.unique(freq_kHz)
 
 atom_numbers_array = np.array(atom_numbers)
