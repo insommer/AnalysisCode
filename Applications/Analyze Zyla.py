@@ -23,7 +23,8 @@ data_folder = data_location + date + data_folder
 ####################################
 #Parameter Setting
 ####################################
-examNum = 10 #The number of runs to exam.
+repetition = 1 #The number of identical runs to be averaged. 
+examNum = 3 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 subtract_bg = True
 signal_feature = 'narrow'
@@ -32,8 +33,24 @@ uniformscale = True
 
 pictureToHide = []
 
+rowstart = 10
+rowend = -10
+columnstart = 10
+columnend = -10
+
+# rowstart = 80
+# rowend = -200
+# columnstart = 150
+# columnend = 410
+
+#%%
+
+examNum = examNum * repetition
+
 if examFrom is None:
     examFrom = -examNum
+else:
+    examFrom = examFrom * repetition
     
 examUntil = examFrom + examNum
 if examUntil == 0:
@@ -47,20 +64,6 @@ class SIUnits:
     m = 1.0
     um = 1e-6*m
 units=SIUnits()
-
-# tof_array = np.loadtxt('./ODT/Andor/TOF/TOF_list_ms.txt')*ms
-
-
-rowstart = 10
-rowend = -10
-columnstart = 10
-columnend = -10
-
-
-# rowstart = 350
-# rowend = 750
-# columnstart = 600
-# columnend = 1200
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
@@ -81,10 +84,9 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
 imgNo = len(columnDensities)
 angle_deg= 2 #rotates ccw
 
-AtomNumberList=[]
+AtomNumbers=[]
 widths_x = []
 widths_y = []
-
 
 if do_plot == True:
     fig, axs = plt.subplots(imgNo,3, figsize=(3.2*3, 2*imgNo), squeeze = False)
@@ -122,7 +124,7 @@ for ind in range(imgNo):
         wy = abs(popt1[2])
         AtomNumberY = popt1[0]* wy*(2*np.pi)**0.5 
         
-        AtomNumberList.append(AtomNumberY)
+        AtomNumbers.append(AtomNumberY)
         print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
         width_x = popt0[2]/units.um
         width_y = popt1[2]/units.um
@@ -132,24 +134,50 @@ for ind in range(imgNo):
         widths_x.append(width_x)
         widths_y.append(width_y)
 
+fig.tight_layout()
 
-# fig.tight_layout()
-
-print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumberList)))
+print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumbers)))
     
 print("Mean RMS width x: {:.2f} +/- {:.2f} um".format(np.mean(widths_x), np.std(widths_x)))
 print("Mean RMS width y: {:.2f} +/- {:.2f} um".format(np.mean(widths_y), np.std(widths_y)))
 
+
 fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()  
+ax2 = ax1.twinx()
+
+if repetition > 1:
+    widths_y = np.array(widths_y).reshape(repetition, -1)
+    AtomNumbers = np.array(AtomNumbers).reshape(repetition, -1)
+    
+    widths_y_std = widths_y.std(axis=0)
+    AtomNumbers_std = AtomNumbers.std(axis=0)
+    
+    widths_y = widths_y.mean(axis=0)
+    AtomNumbers = AtomNumbers.mean(axis=0)
+else:
+    widths_y_std = None
+    AtomNumbers_std = None
 
 xx = np.arange(len(widths_y))
+
+ax1.errorbar(xx, widths_y, widths_y_std, fmt='-o', capsize=5, color='tab:orange')
+ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
+ax1.tick_params(axis="y", labelcolor='tab:orange')
+
+ax2.errorbar(xx, AtomNumbers, AtomNumbers_std, fmt='-o', capsize=5, color='tab:green')
+ax2.set_ylabel('Atom Number', color='tab:green')
+ax2.tick_params(axis="y", labelcolor='tab:green')
+
+
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+
 
 ax1.plot(xx, widths_y, '.-', color='tab:orange')
 ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
 ax1.tick_params(axis="y", labelcolor='tab:orange')
 
-ax2.plot(xx, AtomNumberList, '.-', color='tab:green')
+ax2.plot(xx, AtomNumbers, '.-', color='tab:green')
 ax2.set_ylabel('Atom Number', color='tab:green')
 ax2.tick_params(axis="y", labelcolor='tab:green')
 
