@@ -73,7 +73,6 @@ rowend =180
 columnstart = 234
 columnend = 586
 
-
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
 
