@@ -9,27 +9,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 
-
 data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/08-2023/04 Aug 2023'
-data_folder = r'/Andor/ODT Align_6'
+date = r'/2023/08-2023/07 Aug 2023'
+data_folder = r'/Andor/ODT Second Path Tuning'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-repetition = 1 #The number of identical runs to be averaged. 
-examNum = 3 #The number of runs to exam.
+repetition = 5 #The number of identical runs to be averaged. 
+examNum = 10 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 subtract_bg = True
 signal_feature = 'narrow'
 do_plot = True
-uniformscale = True
+uniformscale = 1
 
 pictureToHide = []
 
@@ -38,12 +37,13 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-# rowstart = 80
-# rowend = -200
-# columnstart = 150
-# columnend = 410
+# rowstart = 30
+# rowend = 430
+# columnstart = 300
+# columnend = 780
 
-#%%
+####################################
+####################################
 
 examNum = examNum * repetition
 
@@ -146,43 +146,46 @@ fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()
 
 if repetition > 1:
-    widths_y = np.array(widths_y).reshape(repetition, -1)
-    AtomNumbers = np.array(AtomNumbers).reshape(repetition, -1)
+    widths_y = np.array(widths_y).reshape(-1, repetition)
+    AtomNumbers = np.array(AtomNumbers).reshape(-1, repetition)
     
-    widths_y_std = widths_y.std(axis=0)
-    AtomNumbers_std = AtomNumbers.std(axis=0)
+    widths_y_std = widths_y.std(axis=1)
+    AtomNumbers_std = AtomNumbers.std(axis=1)
     
-    widths_y = widths_y.mean(axis=0)
-    AtomNumbers = AtomNumbers.mean(axis=0)
+    widths_y = widths_y.mean(axis=1)
+    AtomNumbers = AtomNumbers.mean(axis=1)
 else:
     widths_y_std = None
     AtomNumbers_std = None
 
 xx = np.arange(len(widths_y))
 
-ax1.errorbar(xx, widths_y, widths_y_std, fmt='-o', capsize=5, color='tab:orange')
+ax1.errorbar(xx, widths_y, widths_y_std, capsize=5, color='tab:orange')
+ax1.plot(xx, widths_y, '.', color='tab:orange')
 ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
 ax1.tick_params(axis="y", labelcolor='tab:orange')
 
-ax2.errorbar(xx, AtomNumbers, AtomNumbers_std, fmt='-o', capsize=5, color='tab:green')
-ax2.set_ylabel('Atom Number', color='tab:green')
-ax2.tick_params(axis="y", labelcolor='tab:green')
-
-
-fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
-
-
-ax1.plot(xx, widths_y, '.-', color='tab:orange')
-ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
-ax1.tick_params(axis="y", labelcolor='tab:orange')
-
+ax2.errorbar(xx, AtomNumbers, AtomNumbers_std, capsize=5, color='tab:green')
 ax2.plot(xx, AtomNumbers, '.-', color='tab:green')
 ax2.set_ylabel('Atom Number', color='tab:green')
 ax2.tick_params(axis="y", labelcolor='tab:green')
 
+
+# fig, ax1 = plt.subplots()
+# ax2 = ax1.twinx()
+
+# ax1.plot(xx, widths_y, '.-', color='tab:orange')
+# ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
+# ax1.tick_params(axis="y", labelcolor='tab:orange')
+
+# ax2.plot(xx, AtomNumbers, '.-', color='tab:green')
+# ax2.set_ylabel('Atom Number', color='tab:green')
+# ax2.tick_params(axis="y", labelcolor='tab:green')
+
 fig.tight_layout()
 plt.show()
+
+
 #Temperature fit
 # popt, pcov = ImageAnalysisCode.thermometry1D(params, rotated_columnDensities, tof_array, thermometry_axis="y", 
 #                                              do_plot = True, save_folder = data_folder)
