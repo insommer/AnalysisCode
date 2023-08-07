@@ -725,6 +725,36 @@ def integrate1D(array2D, dx=1, free_axis="y"):
 def Gaussian(x, amp, center, w, offset):
     #amp = N/(w*(2*np.pi)**0.5)
     return amp*np.exp(-.5*(x-center)**2/w**2) + offset
+
+def fitbg(data, signal_feature='narrow'): 
+       
+    datalength = len(data)
+    signalcenter = data.argmax()
+    datacenter = int(datalength/2)    
+    xdata = np.arange(datalength)
+    
+    if signal_feature == 'wide':
+        mask_hw = int(datalength/3)
+        bg_mask = np.full(xdata.shape, True)
+        bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False  
+        
+        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=2 )        
+        
+    else:
+        mask_hw = int(datalength/8)
+        bg_mask = np.full(xdata.shape, True)
+        center_mask = bg_mask.copy()
+        bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False  
+        center_mask[datacenter - mask_hw : datacenter + mask_hw] = False        
+        bg_mask = bg_mask * center_mask
+        bg_mask[:mask_hw] = True
+        bg_mask[-mask_hw:] = True
+        
+        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=5 )
+    
+    return np.polyval(p, xdata)
+    
+    
     
 def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title="", newfig=True, 
                   xlabel="", ylabel="", xscale_factor=1, legend=False,
@@ -749,17 +779,18 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
     # bg_mask = bg_mask * center_mask
     # bg_mask[:mask_hw] = True
     # bg_mask[-mask_hw:] = True
-    
-    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
-    bg = np.polyval([0], xdata)
-    signal = array1D - bg
-        
+    if True:
+        p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=0 )
+        bg = np.polyval([0], xdata)
+        signal = array1D - bg
+    else:
+        signal=array1D
     #initial guess:
     # offset_g = 0
     offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
     amp_g = signal.max()
     center_g = xdata[ signal.argmax() ]    
-    w_g = min(xdata[ signal > 0.6*signal.max() ].ptp()/2, mask_hw*dx)
+    w_g = ( signal > 0.6*signal.max() ).sum() * dx
     
     guess = [amp_g, center_g, w_g, offset_g]
     
@@ -794,24 +825,25 @@ def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title=""
     return popt
 
 def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="", vmax=None, 
-                 xscale_factor=1, yscale_factor=1, legend=False, title2D=""):
+                 xscale_factor=1, yscale_factor=1, legend=False, title2D="", new_figure=True,num_rows=1,row=0):
     if do_plot:
         plt.rcParams.update({'font.size' : 10})
-        plt.figure(figsize=(8,2))
+        if new_figure:
+            plt.figure(figsize=(8,1.9*num_rows))
         #plt.title(title)
         
     popts=[]
     for ind, ax in enumerate(["x","y"]):
         array1D = integrate1D(array,dx, free_axis=ax)
         if do_plot:
-            plt.subplot(1,3,ind+2)
+            plt.subplot(num_rows,3,ind+2 + 3*row)
         ylabel= ylabel1D if ind==0 else ""
         popt= fitgaussian1D(array1D, dx=dx, doplot=do_plot, label=ax, title=title+" vs "+ax, newfig=False,
                             xlabel=xlabel1D, ylabel=ylabel, xscale_factor=xscale_factor, 
                             yscale_factor=yscale_factor, legend=legend)
         popts.append(popt) 
     if do_plot:
-        plt.subplot(1,3,1)
+        plt.subplot(num_rows,3,1+3*row)
         plt.imshow(array, cmap = 'jet',vmin=0,vmax=vmax)
         #plt.colorbar()
         plt.xlabel("pixels")
@@ -821,56 +853,46 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
         
     return popts[0], popts[1]
 
-def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None, 
+def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
+                           subtract_bg = False, signal_feature = 'narrow',
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
     
-    datalength = len(array1D)
-    signalcenter = array1D.argmax()
-    datacenter = int(datalength/2)
-    mask_hw = int(datalength/8)
+    if subtract_bg:
+        bg = fitbg(data, signal_feature=signal_feature) 
+        originalData = data.copy()
+        data = data - bg  
+    
+    datalength = len(data)
     
     if xdata is None:
         xdata = np.arange( datalength )*dx  
         
-    #Fit and subtract the background
-    # bg_mask = array1D < np.median(array1D)
-    bg_mask = np.full(xdata.shape, True)
-    bg_mask[100:-100] = False
-    # center_mask = bg_mask.copy()
-    # bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
-    # center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
-    
-    # bg_mask = bg_mask * center_mask
-    # bg_mask[:mask_hw] = True
-    # bg_mask[-mask_hw:] = True
-    
-    p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=3 )
-    bg = np.polyval([0], xdata)
-    signal = array1D - bg
-        
     #initial guess:
-    offset_g = 0
-    amp_g = signal.max()
-    center_g = xdata[ signal.argmax() ]    
-    w_g = xdata[ signal > 0.6*signal.max() ].sum() * dx
+    offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
+    amp_g = data.max()
+    center_g = xdata[ data.argmax() ]    
+    w_g = ( data > 0.6*data.max() ).sum() * dx
     
     guess = [amp_g, center_g, w_g, offset_g]
-          
-    if doplot:
-        ax.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
-        ax.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=1)
-        
+    
     try:
-        popt, pcov = curve_fit(Gaussian, xdata, signal, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
-        if doplot:
-            ax.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
-            
+        popt, pcov = curve_fit(Gaussian, xdata, data, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )
+        
     except Exception as e:
         print(e)
         return None  
+          
     if doplot:
+        if subtract_bg:                
+            ax.plot(xdata*xscale_factor, originalData*yscale_factor, '.', label="{} data".format(label))
+            ax.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
+            ax.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=0.3)
+        else:
+            ax.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
+            ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))
+            
         ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
         ax.tick_params('y', direction='in', pad=-5)
         plt.setp(ax.get_yticklabels(), ha='left')
@@ -889,16 +911,25 @@ def fitgaussian1D_June2023(array1D , xdata=None, dx=1, doplot = False, ax=None,
 
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
 def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1, 
-                  add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
-                  title="",xlabel1D="",ylabel1D="", vmax=None, 
-                 xscale_factor=1, yscale_factor=1, legend=False, title2D=""):
+                  subtract_bg = False, signal_feature = 'narrow',
+                  vmax = None, vmin = None,
+                  title="", title2D="", 
+                  xlabel1D="",ylabel1D="",
+                  xscale_factor=1, yscale_factor=1, legend=False):
     # if do_plot:
     #     plt.rcParams.update({'font.size' : 10})
     #     fig = plt.figure(figsize=(8,2))
     
+    add_title = False
+    add_xlabel=False
+    add_ylabel=False
+    no_xticklabel=True
+    
+    print('{}, {}'.format(vmin, vmax))
+    
     if do_plot:
         plt.rcParams.update({'font.size' : 8})
-        ax[0].imshow(array, cmap = 'jet',vmin=0,vmax=vmax)
+        ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
                 
         if Ind == 0:
             ax[0].set_title(title2D)
@@ -918,6 +949,7 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1,
         array1D = integrate1D(array,dx, free_axis=axis)
         ylabel= ylabel1D if ind==0 else ""
         popt= fitgaussian1D_June2023(array1D, dx=dx, doplot=do_plot, ax=ax[ind+1], 
+                                     subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                      add_title = add_title, add_xlabel=add_xlabel, add_ylabel=add_ylabel, no_xticklabel=no_xticklabel,
                                      label=axis, title=title+" vs "+axis, newfig=False,
                             xlabel=xlabel1D, ylabel=ylabel, xscale_factor=xscale_factor, 
