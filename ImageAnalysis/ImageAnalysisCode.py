@@ -756,66 +756,49 @@ def fitbg(data, signal_feature='narrow'):
     
     
     
-def fitgaussian1D(array1D , xdata=None, dx=1, doplot = False, label="", title="", newfig=True, 
+def fitgaussian1D(data , xdata=None, dx=1, doplot = False, 
+                  subtract_bg=True, signal_feature='narrow', 
+                  label="", title="", newfig=True, 
                   xlabel="", ylabel="", xscale_factor=1, legend=False,
                   yscale_factor=1):
     
-    datalength = len(array1D)
-    signalcenter = array1D.argmax()
-    datacenter = int(datalength/2)
-    mask_hw = int(datalength/8)
+    if subtract_bg:
+        bg = fitbg(data, signal_feature=signal_feature) 
+        originalData = data.copy()
+        data = data - bg  
+    
+    datalength = len(data)
     
     if xdata is None:
         xdata = np.arange( datalength )*dx  
         
-    #Fit and subtract the background
-    # bg_mask = array1D < np.median(array1D)
-    bg_mask = np.full(xdata.shape, True)
-    bg_mask[100:-100] = False
-    # center_mask = bg_mask.copy()
-    # bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False
-    # center_mask[datacenter - mask_hw : datacenter + mask_hw] = False
-    
-    # bg_mask = bg_mask * center_mask
-    # bg_mask[:mask_hw] = True
-    # bg_mask[-mask_hw:] = True
-    if True:
-        p = np.polyfit( xdata[bg_mask], array1D[bg_mask], deg=0 )
-        bg = np.polyval([0], xdata)
-        signal = array1D - bg
-    else:
-        signal=array1D
     #initial guess:
-    # offset_g = 0
-    offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
-    amp_g = signal.max()
-    center_g = xdata[ signal.argmax() ]    
-    w_g = ( signal > 0.6*signal.max() ).sum() * dx
+    offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
+    amp_g = data.max()
+    center_g = xdata[ data.argmax() ]    
+    w_g = ( data > 0.6*data.max() ).sum() * dx / 2
     
     guess = [amp_g, center_g, w_g, offset_g]
     
-    # initial guess:
-    # offset_g = min(np.mean(array1D[0:4]), np.mean(array1D[-5:-1]))
-    # amp_g = np.max(array1D-offset_g)
-    # center_g = xdata[np.argmax(array1D)]
-    # w_g =(max(xdata)-min(xdata))/10.0
-    # guess = [amp_g, center_g, w_g,offset_g]
+    try:
+        popt, pcov = curve_fit(Gaussian, xdata, data, p0=guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )
+    except Exception as e:
+        print(e)
+        return None  
  
     #      
     if doplot:
         if newfig:
-            plt.figure()
-        plt.plot(xdata*xscale_factor, array1D*yscale_factor, '.', label="{} data".format(label))
-        
-    try:
-        popt, pcov = curve_fit(Gaussian, xdata, signal, p0=guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )    
-        if doplot:
+            plt.figure()            
+        if subtract_bg:                
+            plt.plot(xdata*xscale_factor, originalData*yscale_factor, '.', label="{} data".format(label))
             plt.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
-            plt.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=1)
-            plt.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
-    except Exception as e:
-        print(e)
-        return None  
+            plt.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=0.3)
+            # ax.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
+        else:
+            plt.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
+            plt.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))
+
     if doplot:
         plt.title(title)
         plt.xlabel(xlabel)
@@ -867,7 +850,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     datalength = len(data)
     
     if xdata is None:
-        xdata = np.arange( datalength )*dx  
+        xdata = np.arange( datalength ) * dx  
         
     #initial guess:
     offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
@@ -925,8 +908,6 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1,
     add_xlabel=False
     add_ylabel=False
     no_xticklabel=True
-    
-    print('{}, {}'.format(vmin, vmax))
     
     if do_plot:
         plt.rcParams.update({'font.size' : 8})
@@ -1160,7 +1141,7 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
     for index, density2D in enumerate(columnDensities):
         density1D = integrate1D(density2D, dx=dx, free_axis=thermometry_axis)
         xdata = np.arange(np.shape(density1D)[0])*dx
-        popt_gauss  = fitgaussian1D(density1D,xdata,doplot=True,xlabel=thermometry_axis, ylabel="density")
+        popt_gauss  = fitgaussian1D(density1D,xdata,dx=dx, doplot=True, xlabel=thermometry_axis, ylabel="density")
         if popt_gauss is not None: #fit succeeded
             if popt_gauss[2] >0 or not reject_negative_width:
                 w = abs(popt_gauss[2])
