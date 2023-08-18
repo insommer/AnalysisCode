@@ -27,8 +27,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/08-2023/04 Aug 2023'
-data_folder = r'/FLIR/odt align_6'
+date = r'/2023/08-2023/08 Aug 2023'
+data_folder = r'/FLIR/odt align'
 
 data_folder = data_location + date + data_folder
 
@@ -91,7 +91,7 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
 
 centerx = 920
 centery = 600
-radius = 280
+radius = 250
 columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
                                                   radius=radius/binsize)
 
