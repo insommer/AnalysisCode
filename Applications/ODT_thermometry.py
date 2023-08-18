@@ -15,8 +15,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/20 Jul 2023'
-data_folder = r'/Andor/Test TOF'
+date = r'/2023/08-2023/08 Aug 2023'
+data_folder = r'/Andor/Themometry'
 
 data_folder = data_location + date + data_folder
 
@@ -39,14 +39,12 @@ if os.path.exists(list_file):
 else:
     List = '''
 0
+0.1
+0.2
+0.3
+0.4
 0.5
-1
-1.5
-2
-2.5
-3
-3.5
-4
+0.6
     '''
     tof_array = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(list_file, tof_array)
@@ -56,7 +54,7 @@ else:
 rowstart = 10
 rowend =-10
 columnstart = 10
-columnend = -50
+columnend = -10
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
