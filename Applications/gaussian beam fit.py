@@ -17,18 +17,16 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data'
 ####################################
 #Set the date, the folder name, and the file name
 ####################################
-date = r'/2023/07-2023/18 Jul 2023'
+date = r'/2023/08-2023/09 Aug 2023'
 data_folder = r'/'
-filename = r'/Beam Location - Low Power - 1 OD.raw'
+filename = r'/Laser focus profile between two paths.raw'
 
 path = data_location + date + data_folder + filename
 
 ####################################
 #Choose the camera, 1 for Point Grey Chameleon, 2 for Basler dart
 ####################################
-camera = 2
-
-
+camera = 1.2
 
 # path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)
@@ -38,6 +36,12 @@ if camera == 1:
     width = 1288
     height = 964
     pixelsize_um = 3.75#microns
+    
+if camera == 1.2:
+    img = np.fromfile(path, dtype = np.uint16)
+    width = 2048
+    height = 1536
+    pixelsize_um = 3.45#microns
 
 elif camera == 2:
     img = np.fromfile(path, dtype = np.uint8)
@@ -65,7 +69,7 @@ sum_vs_y = np.sum(img_array,1)
 x0 = np.argmax(sum_vs_x)
 y0 = np.argmax(sum_vs_y)
 
-print(x0,y0)
+# print(x0,y0)
 
 #slices
 slice_vs_x = img_array[y0,:]

@@ -14,21 +14,21 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/08-2023/07 Aug 2023'
-data_folder = r'/Andor/ODT Second Path Tuning'
+date = r'/2023/08-2023/08 Aug 2023'
+data_folder = r'/Andor/ODT Align'
 
 data_folder = data_location + date + data_folder
 
 ####################################
 #Parameter Setting
 ####################################
-repetition = 5 #The number of identical runs to be averaged. 
-examNum = 10 #The number of runs to exam.
+repetition = 1 #The number of identical runs to be averaged. 
+examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 subtract_bg = True
-signal_feature = 'narrow'
+signal_feature = 'wide'
 do_plot = True
-uniformscale = 1
+uniformscale = 0
 
 pictureToHide = []
 
@@ -37,10 +37,10 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-# rowstart = 30
-# rowend = 430
-# columnstart = 300
-# columnend = 780
+# rowstart = 75
+# rowend = 200
+# columnstart = 170
+# columnend = 400
 
 ####################################
 ####################################
@@ -107,7 +107,8 @@ for ind in range(imgNo):
     rotated_columnDensities[ind] = rotated_
 
     #preview:
-    dx=params.camera.pixelsize_meters/params.magnification    
+    dx=params.camera.pixelsize_meters/params.magnification  
+    print(dx)
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
@@ -160,7 +161,7 @@ else:
 
 xx = np.arange(len(widths_y))
 
-ax1.errorbar(xx, widths_y, widths_y_std, capsize=5, color='tab:orange')
+ax1.errorbar(xx, widths_y, widths_y_std, capsize=8, color='tab:orange')
 ax1.plot(xx, widths_y, '.', color='tab:orange')
 ax1.set_ylabel('Y Widths (µm)', color='tab:orange')
 ax1.tick_params(axis="y", labelcolor='tab:orange')
