@@ -841,7 +841,7 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
     return popts[0], popts[1]
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
-                           subtract_bg = False, signal_feature = 'narrow',
+                           subtract_bg = True, signal_feature = 'wide',
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
@@ -898,15 +898,12 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     return popt
 
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
-def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1, 
-                  subtract_bg = False, signal_feature = 'narrow',
-                  vmax = None, vmin = None,
+def fitgaussian2D(array, dx=1, do_plot = False, ax=None, Ind=0, imgNo=1, 
+                  subtract_bg = True, signal_feature = 'wide',
+                  vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
                   xscale_factor=1, yscale_factor=1, legend=False):
-    # if do_plot:
-    #     plt.rcParams.update({'font.size' : 10})
-    #     fig = plt.figure(figsize=(8,2))
     
     add_title = False
     add_xlabel=False
@@ -914,7 +911,12 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1,
     no_xticklabel=True
     
     if do_plot:
-        plt.rcParams.update({'font.size' : 8})
+        if ax is None:
+            _, ax = plt.subplots(1,3, figsize=(8,2))
+            plt.rcParams.update({'font.size' : 10})
+        else:
+            plt.rcParams.update({'font.size' : 8})
+            
         ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
                 
         if Ind == 0:
@@ -932,16 +934,15 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=[0,0,0], Ind=-1, imgNo=1,
         
     popts=[]
     for ind, axis in enumerate(["x","y"]):
-        array1D = integrate1D(array,dx, free_axis=axis)
-        ylabel= ylabel1D if ind==0 else ""
+        array1D = integrate1D(array,dx, free_axis=axis)        
         popt= fitgaussian1D_June2023(array1D, dx=dx, doplot=do_plot, ax=ax[ind+1], 
                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                      add_title = add_title, add_xlabel=add_xlabel, add_ylabel=add_ylabel, no_xticklabel=no_xticklabel,
                                      label=axis, title=title+" vs "+axis, newfig=False,
-                            xlabel=xlabel1D, ylabel=ylabel, xscale_factor=xscale_factor, 
+                            xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
                             yscale_factor=yscale_factor, legend=legend)
         popts.append(popt) 
-        
+        plt.tight_layout()
     return popts[0], popts[1]
 
 
