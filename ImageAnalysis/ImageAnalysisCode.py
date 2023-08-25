@@ -16,6 +16,7 @@ import glob
 from scipy.optimize import curve_fit
 import os
 import PIL
+import datetime
 
 class AndorZyla: # Andor Zyla 5.5  
     def __init__(self):
@@ -104,7 +105,10 @@ class ExperimentParams:
             f = 125.00 # in mm
             cos_theta = f/np.sqrt(aperture_radius**2+f**2)
             self.solid_angle = 2*np.pi*(1-cos_theta)
-            
+
+def GetDataLocation(date, DataPath='C:/Users/Sommer Lab/Documents/Data/'):
+    return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+    
 
 def LoadConfigFile(dataFolder=".", configFileName='config.cfg',encoding="utf-8"): 
     config_file = dataFolder + "//" + configFileName

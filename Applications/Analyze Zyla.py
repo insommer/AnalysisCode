@@ -9,15 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 
-data_location = r'C:/Users/Sommer Lab/Documents/Data/'
-
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/08-2023/08 Aug 2023'
+
+date = '8/8/2023'
 data_folder = r'/Andor/ODT Align'
 
-data_folder = data_location + date + data_folder
+data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
 
 ####################################
 #Parameter Setting
