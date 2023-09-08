@@ -10,15 +10,13 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-data_location = r'C:/Users/Sommer Lab/Documents/Data/'
-
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/08-2023/08 Aug 2023'
-data_folder = r'/Andor/Themometry'
+date = '9/7/2023'
+data_folder = r'/Andor/Thermometry_High PD 2.45 to 0.25 V Evap Time 100 msp'
 
-data_folder = data_location + date + data_folder
+data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
 
 # data_folder = './lens 54mm wait 200ms TOF' 
 t_exp = 10e-6
@@ -38,12 +36,26 @@ if os.path.exists(list_file):
     print("Loaded")
 else:
     List = '''
-0
-0.1
-0.2
-0.3
 0.4
+0.4
+0
+0.2
+0.2
+0.1
+0.1
+0
+0.3
+0.3
+0.1
 0.5
+0.5
+0.3
+0.5
+0.4
+0
+0.6
+0.6
+0.2
 0.6
     '''
     tof_array = np.array(List.split('\n')[1:-1], dtype='float')

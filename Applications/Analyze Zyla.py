@@ -13,7 +13,7 @@ from scipy.ndimage import rotate
 #Set the date and the folder name
 ####################################
 
-date = '8/8/2023'
+date = '9/8/2023'
 data_folder = r'/Andor/ODT Align'
 
 data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
@@ -22,10 +22,10 @@ data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 5 #The number of runs to exam.
+examNum = 10 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 subtract_bg = True
-signal_feature = 'wide'
+signal_feature = 'narrow'
 do_plot = True
 uniformscale = 0
 

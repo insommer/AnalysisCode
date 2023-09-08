@@ -87,7 +87,7 @@ for ind in range(imgNo):
 dx=params.camera.pixelsize_meters/params.magnification
 AtomNumbers = []
 for ind in range(imgNo):
-    poptx, popty = ImageAnalysisCode.fitgaussian2(rotated_columnDensities[ind],dx=dx, do_plot = True, title=str(ind),
+    poptx, popty = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind],dx=dx, do_plot = True, title=str(ind),
                                               ylabel1D="1d density (atoms/m)", xlabel1D="distance (microns)",
                                               xscale_factor=1e6)
 

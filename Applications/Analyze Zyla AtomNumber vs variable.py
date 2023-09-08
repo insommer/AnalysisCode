@@ -15,8 +15,8 @@ data_location = r'C:/Users/Sommer Lab/Documents/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/18 Jul 2023'
-data_foldername = 'piezoY (V)_wait 50ms'
+date = r'/2023/09-2023/07 Sep 2023'
+data_foldername = 'Evap Time (ms)_High PD 2.45 V Unchanged Evap Time 2 50 ms'
 
 data_folder = './Andor/'+ data_foldername
 data_folder = data_location + date + data_folder
@@ -37,28 +37,36 @@ if os.path.exists(list_file):
     variable_array = np.loadtxt(list_file)
 else:
     List = '''
-5
-10
-9
-7
-2
-4
-0
-6
-1
-3
-8
-5
-10
-9
-7
-2
-4
-0
-6
-1
-3
-8
+50
+100
+350
+300
+450
+100
+200
+350
+250
+300
+450
+300
+50
+250
+400
+400
+450
+100
+50
+250
+150
+150
+500
+400
+500
+150
+200
+500
+200
+350
 '''
     variable_array = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(list_file, variable_array)
@@ -68,10 +76,10 @@ rowend = -1
 columnstart = 0
 columnend = -1#300
 
-rowstart =63
-rowend =180
-columnstart = 234
-columnend = 586
+rowstart =100
+rowend = -130
+columnstart = 100
+columnend = -100
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
