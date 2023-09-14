@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '8/8/2023'
+date = '9/12/2023'
 data_folder = r'/FLIR/odt align'
 
 data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
@@ -33,7 +33,7 @@ data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
 ####################################
 #Parameter Setting
 ####################################
-examNum = 5 #The number of runs to exam.
+examNum = 6 #The number of runs to exam.
 examFrom = None#Set to None if you want to check the last several runs. 
 do_plot = True
 
