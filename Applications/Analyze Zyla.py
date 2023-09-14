@@ -13,16 +13,8 @@ import pandas as pd
 ####################################
 #Set the date and the folder name
 ####################################
-
 date = '9/12/2023'
 data_folder = r'/Andor/ODT Align_1'
-
-
-dataLocation = ImageAnalysisCode.GetDataLocation(date)
-data_folder = dataLocation + data_folder
-variableLog_folder = dataLocation + r'/Variable Logs'
-
-variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 
 ####################################
 #Parameter Setting
@@ -35,6 +27,8 @@ signal_feature = 'narrow'
 do_plot = True
 uniformscale = 1
 
+variableFilterList = None
+# variableFilterList = ['wait>0' , 'VerticalBiasCurrent==3'] # NO SPACE around the operator!
 variablesToDisplay = ['wait', 'cMOT coil', 'VerticalBiasCurrent']
 
 pictureToHide = []
@@ -52,17 +46,10 @@ columnend = -10
 
 ####################################
 ####################################
-
-examNum = examNum * repetition
-
-if examFrom is None:
-    examFrom = -examNum
-else:
-    examFrom = examFrom * repetition
-    
-examUntil = examFrom + examNum
-if examUntil == 0:
-    examUntil = None
+dataLocation = ImageAnalysisCode.GetDataLocation(date)
+data_folder = dataLocation + data_folder
+variableLog_folder = dataLocation + r'/Variable Logs'
+examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 t_exp = 10e-6
 picturesPerIteration = 3
@@ -73,10 +60,25 @@ class SIUnits:
     um = 1e-6*m
 units=SIUnits()
 
+variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
-images_array, times = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
+images_array, times = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder,
+                                                          variableLog=variableLog)
+
 images_array = images_array[examFrom: examUntil]
 times = times[examFrom: examUntil]
+
+print(images_array.shape)
+
+if variableFilterList is not None:
+    filteredList = []
+    for ii, tt in enumerate(times):
+        if not ImageAnalysisCode.VariableFilter(variableLog.loc[tt], variableFilterList):
+            filteredList.append(ii)
+    images_array = np.delete(images_array, filteredList, 0)
+    times = np.delete(times, filteredList, 0)
+
+print(images_array.shape)
 
 if len(pictureToHide) > 0:
     images_array = np.delete(images_array, pictureToHide, 0)
@@ -90,6 +92,8 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
 # plt.figure()
 # plt.imshow(np.array(images_array[0][0]-images_array[0][2],dtype=np.float64)/(images_array[0][1]-images_array[0][2]),vmin=0,vmax=1.1)
 # plt.imshow(images_array[0][0]-images_array[0][1])
+
+
 
 imgNo = len(columnDensities)
 angle_deg= 2 #rotates ccw
@@ -105,6 +109,9 @@ if do_plot == True:
 if uniformscale:
     vmax = columnDensities.max()
     vmin = columnDensities.min()
+else:
+    vmax = None
+    vmin = None
 
 for ind in range(imgNo):
     rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
@@ -119,14 +126,20 @@ for ind in range(imgNo):
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
                                                   subtract_bg = subtract_bg, signal_feature = signal_feature, 
-                                                  vmax = None, vmin = 0,
+                                                  vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um)
     
-    displayedVariables = ImageAnalysisCode.GetVariables(variablesToDisplay, times[ind], variableLog)    
-    axs[ind,0].text(0,1, displayedVariables.to_string(), fontsize=5, ha='left', va='top', transform=axs[ind,0].transAxes, 
-                    bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1)))
+    # displayedVariables = variableLog.loc[times[ind]][variablesToDisplay]
+    
+    if variablesToDisplay is not None:
+        variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+        axs[ind,0].text(0,1, 
+                        variableLog.loc[times[ind]][variablesToDisplay].to_string(), 
+                        fontsize=5, ha='left', va='top', transform=axs[ind,0].transAxes, 
+                        bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+    
         
     if popt0 is not None and popt1 is not None:
         wx = abs(popt0[2])

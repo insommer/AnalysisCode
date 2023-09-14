@@ -109,6 +109,19 @@ class ExperimentParams:
 
 def GetDataLocation(date, DataPath='C:/Users/Sommer Lab/Documents/Data/'):
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+
+def GetExamRange(examNum, examFrom=None, repetition=1):
+    examNum = examNum * repetition
+
+    if examFrom is None:
+        examFrom = -examNum
+    else:
+        examFrom = examFrom * repetition
+        
+    examUntil = examFrom + examNum
+    if examUntil == 0:
+        examUntil = None
+    return examFrom, examUntil
     
 
 def LoadConfigFile(dataFolder=".", configFileName='config.cfg',encoding="utf-8"): 
@@ -309,19 +322,32 @@ def LoadVariableLog(path):
             next(f)
             for line in f:
                 key, val = line.strip().split(' = ')
-                variable_dict[key] = float(val)
+                variable_dict[key.replace(' ', '_')] = float(val)
                 
         variable_list.append(variable_dict)
         
-    return pd.DataFrame(variable_list)
+    return pd.DataFrame(variable_list).set_index('time')
     
-def GetVariables(variables, timestamp, variableLog):
-    variableSeries = variableLog[ variableLog.time < datetime.datetime.fromtimestamp(timestamp) ].iloc[-1]
+# def GetVariables(variables, timestamp, variableLog):
+#     variableSeries = variableLog[ variableLog.time < timestamp ].iloc[-1]
     
-    return variableSeries[variables]
-    
+#     return variableSeries[variables]
 
-def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= ""):
+
+def VariableFilter(variableLogItem, variableFilterList):    
+    
+    # return all( [ eval( 'variableLogItem.' + ii ) for ii in variableFilterList ] )
+        
+    satisfy = []                                                
+    for ii in variableFilterList:
+        # print(eval('variableLogItem.'+ii ))
+        satisfy.append( eval( 'variableLogItem.'+ii ) )
+        
+    return all(satisfy)
+
+
+def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
+                      variableLog=None):
         """
         Parameters
         ----------
@@ -371,7 +397,13 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         
         times = []
         for x in range(number_of_pics): 
+            
             filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
+            
+            if x % picturesPerIteration == 0 and variableLog is not None:
+                timestamp = datetime.datetime.fromtimestamp( os.path.getctime(filename) )
+                times.append(variableLog[ variableLog.index <= timestamp ].iloc[-1].name)   
+            
             file = open(filename,"rb")
             content = file.read()
             data_array = np.frombuffer(content, dtype=data_type)
@@ -382,8 +414,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             image_array_corrected[x*number_of_pixels: (x+1)*number_of_pixels] = data_array_corrected
             #print("max value after background subtraction = "+str(np.max(image_array_corrected)))
             
-            if x % picturesPerIteration == 0:
-                times.append(os.path.getctime(filename)) 
+
             
         # reshape the total_image_array_corrected into a 4D array
         # outermost dimension's size is equal to the number of iterations, 
@@ -391,7 +422,11 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         # 3rd dimensions size is equal to the height of the images
         #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
         images = np.reshape(image_array_corrected,(number_of_iterations, picturesPerIteration, height, width))
-        return images, times
+        
+        if variableLog is None:
+            return images
+        else:
+            return images, times
     
 def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_folder = ".",  background_file_name= ""):
         """
