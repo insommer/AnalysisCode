@@ -8,28 +8,37 @@ from ImageAnalysis import ImageAnalysisCode
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
+import pandas as pd
 
 ####################################
 #Set the date and the folder name
 ####################################
 
-date = '9/8/2023'
-data_folder = r'/Andor/ODT Align'
+date = '9/12/2023'
+data_folder = r'/Andor/ODT Align_1'
 
-data_folder = ImageAnalysisCode.GetDataLocation(date) + data_folder
+
+dataLocation = ImageAnalysisCode.GetDataLocation(date)
+data_folder = dataLocation + data_folder
+variableLog_folder = dataLocation + r'/Variable Logs'
+
+variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 10 #The number of runs to exam.
+examNum = 6 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 subtract_bg = True
-signal_feature = 'narrow'
+signal_feature = 'narrow' 
 do_plot = True
-uniformscale = 0
+uniformscale = 1
+
+variablesToDisplay = ['wait', 'cMOT coil', 'VerticalBiasCurrent']
 
 pictureToHide = []
+# pictureToHide = list(range(0,10,2))
 
 rowstart = 10
 rowend = -10
@@ -65,11 +74,13 @@ class SIUnits:
 units=SIUnits()
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
-images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
+images_array, times = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
 images_array = images_array[examFrom: examUntil]
+times = times[examFrom: examUntil]
 
 if len(pictureToHide) > 0:
     images_array = np.delete(images_array, pictureToHide, 0)
+    times = np.delete(times, pictureToHide, 0)
 
 # ImageAnalysisCode.ShowImagesTranspose(images_array)
 
@@ -94,9 +105,6 @@ if do_plot == True:
 if uniformscale:
     vmax = columnDensities.max()
     vmin = columnDensities.min()
-else:
-    vmax = None
-    vmin = None
 
 for ind in range(imgNo):
     rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
@@ -106,16 +114,19 @@ for ind in range(imgNo):
     rotated_columnDensities[ind] = rotated_
 
     #preview:
-    dx=params.camera.pixelsize_meters/params.magnification  
-    print(dx)
+    dx=params.camera.pixelsize_meters/params.magnification
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
                                                   subtract_bg = subtract_bg, signal_feature = signal_feature, 
-                                                  vmax = vmax, vmin = vmin,
+                                                  vmax = None, vmin = 0,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um)
+    
+    displayedVariables = ImageAnalysisCode.GetVariables(variablesToDisplay, times[ind], variableLog)    
+    axs[ind,0].text(0,1, displayedVariables.to_string(), fontsize=5, ha='left', va='top', transform=axs[ind,0].transAxes, 
+                    bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1)))
         
     if popt0 is not None and popt1 is not None:
         wx = abs(popt0[2])
@@ -130,7 +141,8 @@ for ind in range(imgNo):
         width_y = popt1[2]/units.um
         print("RMS cloud size x: {:.2f} um".format(width_x))
         print("RMS cloud size y: {:.2f} um".format(width_y))
-    
+        print("x center: {:.2f} um".format(popt0[1]/units.um))
+        print("y center: {:.2f} um".format(popt1[1]/units.um))
         widths_x.append(width_x)
         widths_y.append(width_y)
 

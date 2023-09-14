@@ -17,6 +17,7 @@ from scipy.optimize import curve_fit
 import os
 import PIL
 import datetime
+import pandas as pd
 
 class AndorZyla: # Andor Zyla 5.5  
     def __init__(self):
@@ -293,6 +294,32 @@ def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_na
         #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
         images = np.reshape(image_array_corrected,(params.number_of_iterations, params.picturesPerIteration, params.height, params.width))
         return images
+    
+def LoadVariableLog(path):
+    filenames = os.listdir(path)
+    filenames.sort()
+    
+    variable_list = []
+    
+    for filename in filenames:
+        variable_dict = {}
+        variable_dict['time'] = datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
+        # print(parameter_dict['time'])
+        with open( path + '/' + filename) as f:
+            next(f)
+            for line in f:
+                key, val = line.strip().split(' = ')
+                variable_dict[key] = float(val)
+                
+        variable_list.append(variable_dict)
+        
+    return pd.DataFrame(variable_list)
+    
+def GetVariables(variables, timestamp, variableLog):
+    variableSeries = variableLog[ variableLog.time < datetime.datetime.fromtimestamp(timestamp) ].iloc[-1]
+    
+    return variableSeries[variables]
+    
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= ""):
         """
@@ -341,6 +368,8 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         image_array =           np.zeros(shape = (number_of_pixels * number_of_pics))
         image_array_corrected = np.zeros(shape = (number_of_pixels * number_of_pics))
         spool_number = '0000000000'
+        
+        times = []
         for x in range(number_of_pics): 
             filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
             file = open(filename,"rb")
@@ -353,13 +382,16 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             image_array_corrected[x*number_of_pixels: (x+1)*number_of_pixels] = data_array_corrected
             #print("max value after background subtraction = "+str(np.max(image_array_corrected)))
             
+            if x % picturesPerIteration == 0:
+                times.append(os.path.getctime(filename)) 
+            
         # reshape the total_image_array_corrected into a 4D array
         # outermost dimension's size is equal to the number of iterations, 
         # 2nd outer dimensions size is number of pictures per iteration
         # 3rd dimensions size is equal to the height of the images
         #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
         images = np.reshape(image_array_corrected,(number_of_iterations, picturesPerIteration, height, width))
-        return images
+        return images, times
     
 def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_folder = ".",  background_file_name= ""):
         """
@@ -769,7 +801,11 @@ def fitgaussian1D(data , xdata=None, dx=1, doplot = False,
     if subtract_bg:
         bg = fitbg(data, signal_feature=signal_feature) 
         originalData = data.copy()
-        data = data - bg  
+        data = data - bg
+        
+        offset_g = 0
+    else:
+        offset_g = offset_g = min( data[:10].mean(), data[-10:].mean() )
     
     datalength = len(data)
     
@@ -777,7 +813,6 @@ def fitgaussian1D(data , xdata=None, dx=1, doplot = False,
         xdata = np.arange( datalength )*dx  
         
     #initial guess:
-    offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
     amp_g = data.max()
     center_g = xdata[ data.argmax() ]    
     w_g = ( data > 0.6*data.max() ).sum() * dx / 2
@@ -849,7 +884,11 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     if subtract_bg:
         bg = fitbg(data, signal_feature=signal_feature) 
         originalData = data.copy()
-        data = data - bg  
+        data = data - bg        
+        
+        offset_g = 0
+    else:
+        offset_g = offset_g = min( data[:10].mean(), data[-10:].mean() )
     
     datalength = len(data)
     
@@ -857,7 +896,6 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
         xdata = np.arange( datalength ) * dx  
         
     #initial guess:
-    offset_g = offset_g = min( data[0:4].min(), data[-5:-1].min() )
     amp_g = data.max()
     center_g = xdata[ data.argmax() ]    
     w_g = ( data > 0.6*data.max() ).sum() * dx / 2
