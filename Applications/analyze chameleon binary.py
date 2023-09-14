@@ -37,12 +37,10 @@ examNum = 6 #The number of runs to exam.
 examFrom = None#Set to None if you want to check the last several runs. 
 do_plot = True
 
-if examFrom is None:
-    examFrom = -examNum
-    
-examUntil = examFrom + examNum
-if examUntil == 0:
-    examUntil = None
+####################################
+####################################
+
+examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom)
     
 # data_folder =  './FLIR/odt align'
 t_exp = 10e-6
