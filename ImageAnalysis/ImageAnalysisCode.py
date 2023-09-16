@@ -216,12 +216,20 @@ def rebin2(arr, bins):
 # n_params is the number of embedded image information fields which are checked, values between 0 to 10, default 0 
 # zero is black, maxval is white
 
-def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, file_encoding = 'binary'):
-    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))
-    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, binsize, file_encoding = file_encoding)
+def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
+                  file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):
+    examFrom *= picturesPerIteration
+    if examUntil is not None:
+        examUntil *= picturesPerIteration
+        
+    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
+    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
+                        binsize, file_encoding = file_encoding, 
+                        return_fileTime = return_fileTime)
 
 
-def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize=1, file_encoding = 'binary'):
+def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize=1, 
+                 file_encoding = 'binary', return_fileTime=0):
     number_of_pics = len(file_names)
     number_of_iterations = int(number_of_pics/picturesPerIteration)
 
@@ -239,9 +247,14 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
 # 2nd outer dimensions size is number of pictures per iteration
 # 3rd dimensions size is equal to the height of the images  
     image_array = np.zeros((number_of_iterations, picturesPerIteration, rows//binsize, cols//binsize))
+    fileTime = []
     for iteration in range(number_of_iterations):
-        for picture in range(picturesPerIteration):
+        for picture in range(picturesPerIteration):              
             x = iteration*picturesPerIteration + picture
+            
+            if picture == 0 and return_fileTime:
+                fileTime.append( datetime.datetime.fromtimestamp(os.path.getctime(file_names[x])) )
+                
             if x > 0:
                 data_array_corrected = loadPGM(file_names[x], file_encoding = file_encoding)
             else:
@@ -254,7 +267,11 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
                 data_array_corrected = rebin2(data_array_corrected, (binsize, binsize))
             
             image_array[iteration, picture,:,:] = data_array_corrected
-    return image_array
+    
+    if return_fileTime:
+        return image_array, fileTime
+    else:
+        return image_array
 
 
 # to load a series of non-spooled Andor .dat images into a 4D numpy array
@@ -334,20 +351,30 @@ def LoadVariableLog(path):
 #     return variableSeries[variables]
 
 
-def VariableFilter(variableLogItem, variableFilterList):    
+def VariableFilter(timestamps, variableLog, variableFilterList):    
     
     # return all( [ eval( 'variableLogItem.' + ii ) for ii in variableFilterList ] )
+    
+    filteredList = []
+    for ii, tt in enumerate(timestamps):        
+        satisfy = []                                                
+        for jj in variableFilterList:
+            # print(eval('variableLogItem.'+ii ))
+            satisfy.append( eval('variableLog.loc[tt].' + jj.replace(' ','_')) ) 
+            
+        if not all(satisfy):
+            filteredList.append(ii)
         
-    satisfy = []                                                
-    for ii in variableFilterList:
-        # print(eval('variableLogItem.'+ii ))
-        satisfy.append( eval( 'variableLogItem.'+ii ) )
-        
-    return all(satisfy)
+    return filteredList
+
+def Filetime2Logtime(timestamps, variableLog):
+    for ii, t in enumerate(timestamps):
+        timestamps[ii] = variableLog[ variableLog.index <= t ].iloc[-1].name
+    return timestamps
 
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
-                      variableLog=None):
+                      return_fileTime=0):
         """
         Parameters
         ----------
@@ -395,14 +422,13 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         image_array_corrected = np.zeros(shape = (number_of_pixels * number_of_pics))
         spool_number = '0000000000'
         
-        times = []
+        fileTime = []
         for x in range(number_of_pics): 
             
             filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
             
-            if x % picturesPerIteration == 0 and variableLog is not None:
-                timestamp = datetime.datetime.fromtimestamp( os.path.getctime(filename) )
-                times.append(variableLog[ variableLog.index <= timestamp ].iloc[-1].name)   
+            if x % picturesPerIteration == 0 and return_fileTime:
+                fileTime.append( datetime.datetime.fromtimestamp(os.path.getctime(filename)) )
             
             file = open(filename,"rb")
             content = file.read()
@@ -423,10 +449,10 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
         images = np.reshape(image_array_corrected,(number_of_iterations, picturesPerIteration, height, width))
         
-        if variableLog is None:
-            return images
+        if return_fileTime:
+            return images, fileTime
         else:
-            return images, times
+            return images
     
 def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_folder = ".",  background_file_name= ""):
         """
@@ -563,7 +589,9 @@ def ShowImages(images):
     plt.tight_layout()
     plt.show()
     
-def ShowImagesTranspose(images, uniformscale=False):
+def ShowImagesTranspose(images, logTime, variableLog,
+                        variablesToDisplay=None, variableFilterList=None,
+                        showTimestamp=False, uniformscale=False):
     """
     Draws a grid of images
 
@@ -576,9 +604,13 @@ def ShowImagesTranspose(images, uniformscale=False):
 
     """
     
-    # images = np.concatenate([images,images], axis=0 )    
+    if variableFilterList is not None:        
+        filterList = VariableFilter(logTime, variableLog, variableFilterList)
+        images = np.delete(images, filterList, 0)
+        logTime = np.delete(logTime, filterList, 0)
+        
     iterations, picturesPerIteration, _, _ = images.shape
-    
+        
     if uniformscale:
         imax = images.max()
         imin = images.min()
@@ -595,11 +627,20 @@ def ShowImagesTranspose(images, uniformscale=False):
             if uniformscale:                
                 axs[pic, it].imshow(images[it,pic], cmap='gray', vmin = imin, vmax= imax)
             else:
-                axs[pic, it].imshow(images[it,pic], cmap='gray')                
+                axs[pic, it].imshow(images[it,pic], cmap='gray')
                 
-            axs[pic, it].text(10, 10, "iter #{}, pic #{}".format(it, pic), ha='left', va='top', bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1)) )
-          
- 
+            if variablesToDisplay is None:
+                axs[pic, it].text(0, 0, "iter #{}, pic #{}".format(it, pic), ha='left', va='top', 
+                                  bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1), alpha=0.7) )
+            else:
+                variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+                axs[pic, it].text(0,0, 
+                                variableLog.loc[logTime[it]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
+                                fontsize=5, ha='left', va='top',
+                                bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+                
+    fig.tight_layout()    
+            
 
 # simple, no analysis, list of pics => normalized
 def ImageTotals(images):
@@ -1019,7 +1060,8 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=None, Ind=0, imgNo=1,
     return popts[0], popts[1]
 
 
-def fitgaussian(array, do_plot = False, vmax = None,title="", save_column_density = False, column_density_xylim = None):#xstart, xend, ystart, yend): 
+def fitgaussian(array, do_plot = False, vmax = None,title="", 
+                save_column_density = False, column_density_xylim = None): 
     #np.sum(array, axis = 0) sums over rows, axis = 1 sums over columns
     rows = np.linspace(0, len(array), len(array))
     cols = np.linspace(0, len(array[0]), len(array[0]))
