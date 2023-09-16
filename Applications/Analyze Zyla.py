@@ -13,26 +13,29 @@ import pandas as pd
 ####################################
 #Set the date and the folder name
 ####################################
-date = '9/12/2023'
-data_folder = r'/Andor/ODT Align_1'
+date = '9/15/2023'
+data_folder = r'/Andor/ODT Align'
 
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 6 #The number of runs to exam.
+examNum = 9 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-subtract_bg = True
-signal_feature = 'narrow' 
+plotPWindow = 5
 do_plot = True
 uniformscale = 1
 
-variableFilterList = None
-# variableFilterList = ['wait>0' , 'VerticalBiasCurrent==3'] # NO SPACE around the operator!
-variablesToDisplay = ['wait', 'cMOT coil', 'VerticalBiasCurrent']
+variablesToDisplay = ['FLIR Pulse','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
-pictureToHide = []
+variableFilterList = None
+variableFilterList = ['wait==0'] # NO SPACE around the operator!
+
+pictureToHide = None
 # pictureToHide = list(range(0,10,2))
+
+subtract_bg = True
+signal_feature = 'wide' 
 
 rowstart = 10
 rowend = -10
@@ -60,29 +63,25 @@ class SIUnits:
     um = 1e-6*m
 units=SIUnits()
 
-variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
-images_array, times = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder,
-                                                          variableLog=variableLog)
+images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder, 
+                                                               return_fileTime=1)
 
+variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
+logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
+    
 images_array = images_array[examFrom: examUntil]
-times = times[examFrom: examUntil]
-
-print(images_array.shape)
+logTime = logTime[examFrom: examUntil]
 
 if variableFilterList is not None:
-    filteredList = []
-    for ii, tt in enumerate(times):
-        if not ImageAnalysisCode.VariableFilter(variableLog.loc[tt], variableFilterList):
-            filteredList.append(ii)
+    
+    filteredList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
     images_array = np.delete(images_array, filteredList, 0)
-    times = np.delete(times, filteredList, 0)
+    logTime = np.delete(logTime, filteredList, 0)
 
-print(images_array.shape)
-
-if len(pictureToHide) > 0:
+if pictureToHide is not None:
     images_array = np.delete(images_array, pictureToHide, 0)
-    times = np.delete(times, pictureToHide, 0)
+    logTime = np.delete(logTime, pictureToHide, 0)
 
 # ImageAnalysisCode.ShowImagesTranspose(images_array)
 
@@ -102,10 +101,6 @@ AtomNumbers=[]
 widths_x = []
 widths_y = []
 
-if do_plot == True:
-    fig, axs = plt.subplots(imgNo,3, figsize=(3.2*3, 2*imgNo), squeeze = False)
-    plt.subplots_adjust(hspace=0.14, wspace=0.12)
-    
 if uniformscale:
     vmax = columnDensities.max()
     vmin = columnDensities.min()
@@ -114,6 +109,15 @@ else:
     vmin = None
 
 for ind in range(imgNo):
+    
+    plotInd = ind % plotPWindow
+    if do_plot == True and plotInd == 0:
+        # if ind//plotPWindow>0:
+        #     fig.tight_layout()
+        plotNo = min(plotPWindow, imgNo-ind)
+        fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
+        plt.subplots_adjust(hspace=0.14, wspace=0.12)
+        
     rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
     # rotated_=columnDensities[ind]
     if ind==0: #first time
@@ -124,21 +128,19 @@ for ind in range(imgNo):
     dx=params.camera.pixelsize_meters/params.magnification
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
-                                                  do_plot = do_plot, ax=axs[ind], Ind=ind, imgNo=imgNo,
+                                                  do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
                                                   subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                                   vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um)
     
-    # displayedVariables = variableLog.loc[times[ind]][variablesToDisplay]
-    
     if variablesToDisplay is not None:
         variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
-        axs[ind,0].text(0,1, 
-                        variableLog.loc[times[ind]][variablesToDisplay].to_string(), 
-                        fontsize=5, ha='left', va='top', transform=axs[ind,0].transAxes, 
-                        bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+        axs[plotInd,0].text(0,1, 
+                        variableLog.loc[logTime[plotInd]][variablesToDisplay].to_string(), 
+                        fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
+                        bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
     
         
     if popt0 is not None and popt1 is not None:
