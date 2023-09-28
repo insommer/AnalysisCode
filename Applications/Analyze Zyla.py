@@ -9,33 +9,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import pandas as pd
+import os
 
 ####################################
 #Set the date and the folder name
 ####################################
-date = '9/15/2023'
-data_folder = r'/Andor/ODT Align'
+date = '9/26/2023'
+data_folder = r'/Andor/Test_1'
 
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 9 #The number of runs to exam.
+examNum = 7 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
-uniformscale = 1
+uniformscale = 0
 
 variablesToDisplay = ['FLIR Pulse','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
 variableFilterList = None
-variableFilterList = ['wait==0'] # NO SPACE around the operator!
+# variableFilterList = ['wait==30'] # NO SPACE around the operator!
 
 pictureToHide = None
-# pictureToHide = list(range(0,10,2))
+# pictureToHide = [8] # list(range(0,10,2))
 
 subtract_bg = True
-signal_feature = 'wide' 
+signal_feature = 'narrow' 
 
 rowstart = 10
 rowend = -10
@@ -67,21 +68,21 @@ params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration=
 images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder, 
                                                                return_fileTime=1)
 
+images_array = images_array[examFrom: examUntil]
+fileTime = fileTime[examFrom: examUntil]
+
 variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
     
-images_array = images_array[examFrom: examUntil]
-logTime = logTime[examFrom: examUntil]
-
-if variableFilterList is not None:
-    
+if variableFilterList is not None and variableLog is not None:    
     filteredList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
     images_array = np.delete(images_array, filteredList, 0)
     logTime = np.delete(logTime, filteredList, 0)
 
 if pictureToHide is not None:
     images_array = np.delete(images_array, pictureToHide, 0)
-    logTime = np.delete(logTime, pictureToHide, 0)
+    if logTime is not None:
+        logTime = np.delete(logTime, pictureToHide, 0)
 
 # ImageAnalysisCode.ShowImagesTranspose(images_array)
 
@@ -100,13 +101,14 @@ angle_deg= 2 #rotates ccw
 AtomNumbers=[]
 widths_x = []
 widths_y = []
+centers_y = []
 
 if uniformscale:
     vmax = columnDensities.max()
     vmin = columnDensities.min()
 else:
     vmax = None
-    vmin = None
+    vmin = 0
 
 for ind in range(imgNo):
     
@@ -135,10 +137,10 @@ for ind in range(imgNo):
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um)
     
-    if variablesToDisplay is not None:
+    if variablesToDisplay is not None and variableLog is not None:
         variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
         axs[plotInd,0].text(0,1, 
-                        variableLog.loc[logTime[plotInd]][variablesToDisplay].to_string(), 
+                        variableLog.loc[logTime[ind]][variablesToDisplay].to_string(), 
                         fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
                         bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
     
@@ -154,10 +156,12 @@ for ind in range(imgNo):
         print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
         width_x = popt0[2]/units.um
         width_y = popt1[2]/units.um
+        center_y = popt1[1]/units.um
         print("RMS cloud size x: {:.2f} um".format(width_x))
         print("RMS cloud size y: {:.2f} um".format(width_y))
         print("x center: {:.2f} um".format(popt0[1]/units.um))
-        print("y center: {:.2f} um".format(popt1[1]/units.um))
+        print("y center: {:.2f} um".format(center_y))
+        centers_y.append(center_y)
         widths_x.append(width_x)
         widths_y.append(width_y)
 
@@ -210,6 +214,16 @@ ax2.tick_params(axis="y", labelcolor='tab:green')
 # ax2.tick_params(axis="y", labelcolor='tab:green')
 
 fig.tight_layout()
+plt.rcParams.update({'font.size': 12})
+plt.figure(figsize=(5,4))
+plt.plot(centers_y, AtomNumbers,'o')
+plt.xlabel(r"Trap Position ($\mu$m)")
+plt.ylabel("Atom Number")
+plt.tight_layout()
+plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+#Save the numbers:
+np.savetxt(data_folder+"/AtomNumbers.txt",AtomNumbers)
+np.savetxt(data_folder+"/centers_y.txt", centers_y)
 plt.show()
 
 
