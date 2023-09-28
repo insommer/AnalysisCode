@@ -223,6 +223,7 @@ def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_n
         examUntil *= picturesPerIteration
         
     file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
+    
     return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
                         binsize, file_encoding = file_encoding, 
                         return_fileTime = return_fileTime)
@@ -326,6 +327,9 @@ def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_na
         return images
     
 def LoadVariableLog(path):
+    if not os.path.exists(path):
+        return None
+        
     filenames = os.listdir(path)
     filenames.sort()
     
@@ -367,10 +371,19 @@ def VariableFilter(timestamps, variableLog, variableFilterList):
         
     return filteredList
 
-def Filetime2Logtime(timestamps, variableLog):
-    for ii, t in enumerate(timestamps):
-        timestamps[ii] = variableLog[ variableLog.index <= t ].iloc[-1].name
-    return timestamps
+def Filetime2Logtime(fileTime, variableLog, timeLim=10):
+    if variableLog is None:
+        return None
+    
+    logTimes = []
+    for ii, t in enumerate(fileTime):
+        logTime = variableLog[ variableLog.index <= t ].iloc[-1].name
+        logTimes.append(logTime)
+        
+        dt = (t - logTime).total_seconds()
+        if dt > timeLim:
+            print('Warning! The log is {:.2f} s earlier than the data file!'.format(dt))
+    return logTimes
 
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
@@ -589,7 +602,7 @@ def ShowImages(images):
     plt.tight_layout()
     plt.show()
     
-def ShowImagesTranspose(images, logTime, variableLog,
+def ShowImagesTranspose(images, logTime=None, variableLog=None,
                         variablesToDisplay=None, variableFilterList=None,
                         showTimestamp=False, uniformscale=False):
     """
@@ -629,7 +642,7 @@ def ShowImagesTranspose(images, logTime, variableLog,
             else:
                 axs[pic, it].imshow(images[it,pic], cmap='gray')
                 
-            if variablesToDisplay is None:
+            if variablesToDisplay is None or variableLog is None:
                 axs[pic, it].text(0, 0, "iter #{}, pic #{}".format(it, pic), ha='left', va='top', 
                                   bbox=dict(boxstyle="square",ec=(0,0,0), fc=(1,1,1), alpha=0.7) )
             else:
