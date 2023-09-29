@@ -14,12 +14,15 @@ import os
 ####################################
 #Set the date and the folder name
 ####################################
+data_path=r"Z:\ats317group\Data"
+# data_path=r'C:/Users/Sommer Lab/Documents/Data/'
 date = '9/28/2023'
-data_folder = [r'/Andor/MOT and ODT Movement', r'/Andor/MOT and ODT Movement_3',
-               r'/Andor/MOT and ODT Movement data_1', r'/Andor/MOT and ODT Movement data', 
-               r'/Andor/MOT and ODT Movement data_2', r'/Andor/MOT and ODT Movement data_4',
-               r'/Andor/ODT Position 5']
-
+# data_folder = [r'/Andor/MOT and ODT Movement', r'/Andor/MOT and ODT Movement_3',
+#                r'/Andor/MOT and ODT Movement data_1', r'/Andor/MOT and ODT Movement data', 
+#                r'/Andor/MOT and ODT Movement data_2', r'/Andor/MOT and ODT Movement data_4',
+                # r'/Andor/ODT Position 5']
+data_folder=[r'/Andor/ODT Position 5']           
+# data_folder = ["/spool test"]
 ####################################
 #Parameter Setting
 ####################################
@@ -34,7 +37,7 @@ variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent'
 showTimestamp = False
 
 variableFilterList = None
-variableFilterList = ['wait==30', 'VerticalBiasCurrent==3'] # NO SPACE around the operator!
+# variableFilterList = ['wait==30', 'VerticalBiasCurrent==3'] # NO SPACE around the operator!
 
 pictureToHide = None
 # pictureToHide = [8] # list(range(0,10,2))
@@ -54,7 +57,7 @@ columnend = 900
 
 ####################################
 ####################################
-dataLocation = ImageAnalysisCode.GetDataLocation(date)
+dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
 data_folder = [ dataLocation + f for f in data_folder ]
 variableLog_folder = dataLocation + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
