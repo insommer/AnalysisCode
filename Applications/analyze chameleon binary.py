@@ -25,8 +25,8 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '9/26/2023'
-data_folder = r'/FLIR/Test 4'
+date = '9/28/2023'
+data_folder = r'/FLIR/MOT and ODT Movement_2'
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date)
 data_folder = dataLocation + data_folder
@@ -35,16 +35,16 @@ variableLog_folder = dataLocation + r'/Variable Logs'
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 5 #The number of runs to exam.
+examNum = 99 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 variablesToDisplay = None
-variablesToDisplay = ['FLIR Pulse', 'CamBiasCurrent', 'ZSBiasCurrent']
+variablesToDisplay = ['wait', 'CamBiasCurrent', 'ZSBiasCurrent']
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
 variableFilterList = None
-# variableFilterList = ['FLIR Pulse%5==0'] # NO SPACE around the operator!
+variableFilterList = ['wait==30', 'ZSBiasCurrent==6'] # NO SPACE around the operator!
 
 ####################################
 ####################################
@@ -95,12 +95,17 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart, columnend = columnend, 
                 subtract_burntin=0, preventNAN_and_INF=True)
 
+if variableFilterList is not None:        
+    filterList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
+    columnDensities = np.delete(columnDensities, filterList, 0)
+    logTime = np.delete(logTime, filterList, 0)
+
 
 centerx = 250 * binsize
-centery = 155 * binsize
-radius = 300
-columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
-                                                  radius=radius/binsize)
+centery = 120 * binsize
+radius = 210
+# columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
+#                                                   radius=radius/binsize)
 
 plt.figure()
 plt.imshow(ratio_array[0], vmin = 0, cmap = 'gray') #vmax = 1.5
@@ -119,9 +124,18 @@ plt.show()
 center_x_array = np.zeros(len(images_array))
 center_y_array = np.zeros(len(images_array))
 
-for count, x in enumerate(columnDensities):
+for count, img in enumerate(columnDensities):
+    
+    # Xdistribution = images_array[count, 1].sum(axis=0)
+    # Ydistribution = images_array[count, 1].sum(axis=1)
+    
+    sutter_widthx, sutter_center_x, sutter_widthy, sutter_center_y = ImageAnalysisCode.fitgaussian(images_array[count, 1], 
+                                                                                                   title='shutter fitting', do_plot=0)
+    _, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
+                                                      radius=radius/binsize)
+    
     widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count],title = "Vertical Column Density",\
-                                                                        vmax = None, do_plot = 1, save_column_density=0,
+                                                                        vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend))
     center_x_array[count] = center_x
     center_y_array[count] = center_y

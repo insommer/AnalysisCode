@@ -337,7 +337,9 @@ def LoadVariableLog(path):
     
     for filename in filenames:
         variable_dict = {}
-        variable_dict['time'] = datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
+        variable_dict['time'] = datetime.datetime.fromtimestamp(os.path.getctime( os.path.join(path,filename) ))
+        
+        # datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
         # print(parameter_dict['time'])
         with open( path + '/' + filename) as f:
             next(f)
@@ -405,7 +407,8 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         Format: images[iterationNumber, pictureNumber, row, col]
     
         """
-        
+        if not os.path.exists(data_folder):
+            raise Exception("Data folder not found:"+str(data_folder))
         #Load meta data
         metadata = LoadConfigFile(data_folder, "acquisitionmetadata.ini",encoding="utf-8-sig")
         height =int( metadata["data"]["AOIHeight"])
@@ -1066,8 +1069,8 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=None, Ind=0, imgNo=1,
                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                      add_title = add_title, add_xlabel=add_xlabel, add_ylabel=add_ylabel, no_xticklabel=no_xticklabel,
                                      label=axis, title=title+" vs "+axis, newfig=False,
-                            xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
-                            yscale_factor=yscale_factor, legend=legend)
+                                     xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
+                                     yscale_factor=yscale_factor, legend=legend)
         popts.append(popt) 
         plt.tight_layout()
     return popts[0], popts[1]
@@ -1393,24 +1396,21 @@ def fit_2bodyloss(xdata, ydata ,dx=1, doplot = False, label="", title="",
 
 
 def CircularMask(array, centerx = None, centery = None, radius = None):
-    if len(np.shape(array)) == 3: 
-        rows, cols = np.shape(array[0])
-    if len(np.shape(array)) == 4:
-        rows, cols = np.shape(array[0][0])
+    rows, cols = array.shape[-2:]
+    
     if centerx == None:
         centerx = int(cols/2)
     if centery == None:
         centery = int(rows/2)
     if radius == None:
         radius = min(centerx, centery, cols-centerx, rows-centery)
-    y,x = np.ogrid[-centery:rows-centery, -centerx:cols-centerx]
+    y, x = np.ogrid[-centery:rows-centery, -centerx:cols-centerx]
     mask = x*x + y*y <= radius*radius
-    for x in array:
-        if len(np.shape(array)) == 3:
-            x[~mask] = 0
-        if len(np.shape(array)) == 4:
-            x[0][~mask] = 0
-    return array
+    
+    arraycopy = array.copy()
+    arraycopy[..., ~mask] = 0
+    
+    return arraycopy, arraycopy.max()
 
 
 
