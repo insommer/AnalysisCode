@@ -337,7 +337,11 @@ def LoadVariableLog(path):
     
     for filename in filenames:
         variable_dict = {}
-        variable_dict['time'] = datetime.datetime.fromtimestamp(os.path.getctime( os.path.join(path,filename) ))
+        fullpath = os.path.join(path,filename)
+        ctime = os.path.getctime(fullpath)
+        mtime = os.path.getmtime(fullpath)
+        time0 = ctime if ctime < mtime else mtime
+        variable_dict['time'] = datetime.datetime.fromtimestamp(time0)
         
         # datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
         # print(parameter_dict['time'])
@@ -767,7 +771,8 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
 
     """
     iteration, picsPerIteration, rows, cols = np.shape(abs_img_data)
-    
+    if iteration==0:
+        raise Exception("No images to analyze")
     ratio_array = np.zeros((iteration, rows, cols), dtype=np.float64)
     columnDensities = np.zeros((iteration, rows, cols))
     N_abs = np.zeros((iteration))
