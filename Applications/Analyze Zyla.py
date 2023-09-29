@@ -14,15 +14,13 @@ import os
 ####################################
 #Set the date and the folder name
 ####################################
-data_path=r"Z:\ats317group\Data"
-# data_path=r'C:/Users/Sommer Lab/Documents/Data/'
-date = '9/28/2023'
+data_path =r"Z:\ats317group\Data"
+date = '9/29/2023'
 # data_folder = [r'/Andor/MOT and ODT Movement', r'/Andor/MOT and ODT Movement_3',
 #                r'/Andor/MOT and ODT Movement data_1', r'/Andor/MOT and ODT Movement data', 
 #                r'/Andor/MOT and ODT Movement data_2', r'/Andor/MOT and ODT Movement data_4',
-                # r'/Andor/ODT Position 5']
-data_folder=[r'/Andor/ODT Position 5']           
-# data_folder = ["/spool test"]
+#                r'/Andor/ODT Position 5']
+data_folder = [r'/Andor/ODT position 5']
 ####################################
 #Parameter Setting
 ####################################
