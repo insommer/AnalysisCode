@@ -254,7 +254,7 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
             x = iteration*picturesPerIteration + picture
             
             if picture == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp(os.path.getctime(file_names[x])) )
+                fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(file_names[x]), 2 ) ) )
                 
             if x > 0:
                 data_array_corrected = loadPGM(file_names[x], file_encoding = file_encoding)
@@ -337,11 +337,7 @@ def LoadVariableLog(path):
     
     for filename in filenames:
         variable_dict = {}
-        fullpath = os.path.join(path,filename)
-        ctime = os.path.getctime(fullpath)
-        mtime = os.path.getmtime(fullpath)
-        time0 = ctime if ctime < mtime else mtime
-        variable_dict['time'] = datetime.datetime.fromtimestamp(time0)
+        variable_dict['time'] = datetime.datetime.fromtimestamp( round(os.path.getctime(os.path.join(path,filename)),2) )
         
         # datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
         # print(parameter_dict['time'])
@@ -448,7 +444,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
             
             if x % picturesPerIteration == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp(os.path.getctime(filename)) )
+                fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(filename), 2) ) )
             
             file = open(filename,"rb")
             content = file.read()
@@ -771,8 +767,7 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
 
     """
     iteration, picsPerIteration, rows, cols = np.shape(abs_img_data)
-    if iteration==0:
-        raise Exception("No images to analyze")
+    
     ratio_array = np.zeros((iteration, rows, cols), dtype=np.float64)
     columnDensities = np.zeros((iteration, rows, cols))
     N_abs = np.zeros((iteration))
