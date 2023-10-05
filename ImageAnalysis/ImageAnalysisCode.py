@@ -1079,7 +1079,6 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
                                      xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
                                      yscale_factor=yscale_factor, legend=legend)
         popts.append(popt) 
-        plt.tight_layout()
     return popts[0], popts[1]
 
 
@@ -1269,13 +1268,18 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
         vmin = 0
         
     for ind in range(imgNo):        
-        plotInd = ind % plotPWindow
-        if do_plot == True and plotInd == 0:
-            # if ind//plotPWindow>0:
-            #     fig.tight_layout()
-            plotNo = min(plotPWindow, imgNo-ind)
-            fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
-            plt.subplots_adjust(hspace=0.14, wspace=0.12)
+        if not do_plot:
+            axs = [None] 
+            plotInd = 0
+            plotNo = None
+        else:
+            plotInd = ind % plotPWindow
+            if plotInd == 0:
+                # if ind//plotPWindow>0:
+                #     fig.tight_layout()
+                plotNo = min(plotPWindow, imgNo-ind)
+                fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
+                plt.subplots_adjust(hspace=0.14, wspace=0.12)
             
         rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
         # rotated_=columnDensities[ind]
@@ -1287,7 +1291,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
         dx=params.camera.pixelsize_meters/params.magnification
         
         popt0, popt1 = fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
-                                                      do_plot = do_plot, ax=None, Ind=None, imgNo=None,
+                                                      do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
                                                       subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                                       vmax = vmax, vmin = vmin,
                                                       title="1D density", title2D="column density",
