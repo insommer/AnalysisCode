@@ -111,6 +111,9 @@ def GetDataLocation(date, DataPath='C:/Users/Sommer Lab/Documents/Data/'):
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
 
 def GetExamRange(examNum, examFrom=None, repetition=1):
+    if examNum is None:
+        return None, None
+    
     examNum = examNum * repetition
 
     if examFrom is None:
@@ -1061,6 +1064,8 @@ def fitgaussian2D(array, dx=1, do_plot = False, ax=None, Ind=0, imgNo=1,
             add_ylabel = True
         if no_xticklabel == True:
             ax[0].set_xticklabels([])
+    else:
+        ax = [None] * 3
         
     popts=[]
     for ind, axis in enumerate(["x","y"]):

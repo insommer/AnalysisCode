@@ -70,7 +70,7 @@ def AnalyzeZyla(date,
                 data_folders, 
                 data_path='C:/Users/Sommer Lab/Documents/Data/', 
                 repetition=1, 
-                examNum=99, 
+                examNum='all', 
                 examFrom1=None, 
                 plotPWindow=3, do_plot=True, uniformscale=0, 
                 variablesToDisplay= variablesToDisplay,
@@ -79,18 +79,16 @@ def AnalyzeZyla(date,
                 subtract_bg=True, 
                 signal_feature='narrow', 
                 rowstart=0, rowend=-1, 
-                columnstart=0, columnend=-1):
+                columnstart=0, columnend=-1,
+                picturesPerIteration = 3):
     
     dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
     data_folders = [ dataLocation + f for f in data_folders ]
     variableLog_folder = dataLocation + r'/Variable Logs'
     examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom1, repetition)
     
-    t_exp = 10e-6
-    picturesPerIteration = 3
-    ms = 1e-3
     
-    params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+    params = ImageAnalysisCode.ExperimentParams(t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
     images_array = None
     log("Loading spooling series...")
     for ff in data_folders:
@@ -137,6 +135,7 @@ def AnalyzeZyla(date,
     AtomNumbers=[]
     widths_x = []
     widths_y = []
+    centers_x = []
     centers_y = []
     
     if uniformscale:
@@ -181,31 +180,32 @@ def AnalyzeZyla(date,
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
         
             
-        if popt0 is not None and popt1 is not None:
-                    
-            amp_x, center_x, width_x, _ = popt0/units.um
-            amp_y, center_y, width_y, _ = popt1/units.um
-            
-            # guess = [amp_g, center_g, w_g, offset_g]
-            
-            
-            # wx = abs(popt0[2])
-            AtomNumberX = amp_x * width_x * (2*np.pi)**0.5 * units.um *units.um
-            
-            # wy = abs(popt1[2])
-            AtomNumberY = amp_y * width_y * (2*np.pi)**0.5 *units.um *units.um
-            
-            AtomNumbers.append(AtomNumberY)
-            print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
-            # width_x = popt0[2]/units.um
-            
-            print("RMS cloud size x: {:.2f} um".format(width_x))
-            print("RMS cloud size y: {:.2f} um".format(width_y))
-            print("x center: {:.2f} um".format(popt0[1]/units.um))
-            print("y center: {:.2f} um".format(center_y))
-            centers_y.append(center_y)
-            widths_x.append(width_x)
-            widths_y.append(width_y)
+    if popt0 is not None and popt1 is not None:
+                
+        amp_x, center_x, width_x, _ = popt0/units.um
+        amp_y, center_y, width_y, _ = popt1/units.um
+        
+        # guess = [amp_g, center_g, w_g, offset_g]
+        
+        
+        # wx = abs(popt0[2])
+        AtomNumberX = amp_x * width_x * (2*np.pi)**0.5 * units.um * units.um
+        
+        # wy = abs(popt1[2])
+        AtomNumberY = amp_y * width_y * (2*np.pi)**0.5 * units.um * units.um
+        
+        AtomNumbers.append(AtomNumberY)
+        print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
+        # width_x = popt0[2]/units.um
+        
+        print("RMS cloud size x: {:.2f} um".format(width_x))
+        print("RMS cloud size y: {:.2f} um".format(width_y))
+        print("x center: {:.2f} um".format(center_x))
+        print("y center: {:.2f} um".format(center_y))
+        centers_x.append(center_x)
+        centers_y.append(center_y)
+        widths_x.append(width_x)
+        widths_y.append(width_y)
     
     fig.tight_layout()
     
