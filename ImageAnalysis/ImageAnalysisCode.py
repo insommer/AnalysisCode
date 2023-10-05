@@ -18,6 +18,8 @@ import os
 import PIL
 import datetime
 import pandas as pd
+from scipy.ndimage import rotate
+
 
 class AndorZyla: # Andor Zyla 5.5  
     def __init__(self):
@@ -1031,7 +1033,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     return popt
 
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
-def fitgaussian2D(array, dx=1, do_plot = False, ax=None, Ind=0, imgNo=1, 
+def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1, 
                   subtract_bg = True, signal_feature = 'wide',
                   vmax = None, vmin = 0,
                   title="", title2D="", 
@@ -1197,8 +1199,126 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     return widthx, center_x, widthy, center_y
 
     # return np.nan, np.nan, np.nan, np.nan
+    
+
+def CalculateFromZyla(dayFolderPath, dataFolders, 
+                variableLog=None,                
+                repetition=1, 
+                examNum=None, examFrom=None, 
+                do_plot=False, plotPWindow=5, uniformscale=0, 
+                variablesToDisplay= None, variableFilterList=None, showTimestamp=False, pictureToHide=None,
+                subtract_bg=True, signal_feature='narrow', 
+                rowstart=10, rowend=-10, 
+                columnstart=10, columnend=-10,
+                angle_deg= 2, #rotates ccw
+                picturesPerIteration = 3, lengthFactor=1e-6):    
+    
+    dataFolderPaths = [ os.path.join(dayFolderPath, f) for f in dataFolders ]
+    examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
+    
+    params = ExperimentParams(t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+    images_array = None
+    NoOfRuns = []
+    
+    for ff in dataFolderPaths:
+        if images_array is None:
+            images_array, fileTime = LoadSpooledSeries(params = params, data_folder = ff, 
+                                                                       return_fileTime=1)
+            NoOfRuns.append(len(fileTime))
+        else:
+            _images_array, _fileTime = LoadSpooledSeries(params = params, data_folder = ff, 
+                                                                           return_fileTime=1)
+            images_array = np.concatenate([images_array, _images_array], axis=0)
+            fileTime = fileTime + _fileTime
+            NoOfRuns.append(len(_fileTime))
+                
+    images_array = images_array[examFrom: examUntil]
+    fileTime = fileTime[examFrom: examUntil]
+    
+    dataFolderindex = []
+    [ dataFolderindex.extend([dataFolders[ii]] * NoOfRuns[ii]) for ii in range(len(NoOfRuns)) ]
+    dataFolderindex = dataFolderindex[examFrom: examUntil]
+    
+    logTime = Filetime2Logtime(fileTime, variableLog)
         
+    if variableFilterList is not None and variableLog is not None:    
+        filteredList = VariableFilter(logTime, variableLog, variableFilterList)
+        images_array = np.delete(images_array, filteredList, 0)
+        dataFolderindex = np.delete(dataFolderindex, filteredList, 0)
+        logTime = np.delete(logTime, filteredList, 0)
+            
+    if pictureToHide is not None:
+        images_array = np.delete(images_array, pictureToHide, 0)
+        dataFolderindex = np.delete(dataFolderindex, pictureToHide, 0)
+        if logTime is not None:
+            logTime = np.delete(logTime, pictureToHide, 0)
+    
+    # ImageAnalysisCode.ShowImagesTranspose(images_array)
+    Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = absImagingSimple(images_array, 
+                    firstFrame=0, correctionFactorInput=1.0,  
+                    subtract_burntin=0, preventNAN_and_INF=True)
         
+    imgNo = len(columnDensities)
+    results = []    
+    
+    if uniformscale:
+        vmax = columnDensities.max()
+        vmin = columnDensities.min()
+    else:
+        vmax = None
+        vmin = 0
+        
+    for ind in range(imgNo):        
+        plotInd = ind % plotPWindow
+        if do_plot == True and plotInd == 0:
+            # if ind//plotPWindow>0:
+            #     fig.tight_layout()
+            plotNo = min(plotPWindow, imgNo-ind)
+            fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
+            plt.subplots_adjust(hspace=0.14, wspace=0.12)
+            
+        rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
+        # rotated_=columnDensities[ind]
+        if ind==0: #first time
+            rotated_columnDensities =np.zeros((imgNo, *np.shape(rotated_)))
+        rotated_columnDensities[ind] = rotated_
+    
+        #preview:
+        dx=params.camera.pixelsize_meters/params.magnification
+        
+        popt0, popt1 = fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
+                                                      do_plot = do_plot, ax=None, Ind=None, imgNo=None,
+                                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
+                                                      vmax = vmax, vmin = vmin,
+                                                      title="1D density", title2D="column density",
+                                                      xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
+                                                      xscale_factor=1/lengthFactor, yscale_factor=lengthFactor)
+        
+        if variablesToDisplay is not None and variableLog is not None:
+            variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+            axs[plotInd,0].text(0,1, 
+                            variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
+                            fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
+                            bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+                
+        if popt0 is None:
+            center_x, width_x, atomNumberX = [np.nan] * 3
+        else:            
+            amp_x, center_x, width_x, _ = popt0
+            atomNumberX = amp_x * width_x * (2*np.pi)**0.5            
+        if popt1 is None:
+            center_y, width_y, atomNumberY = [np.nan] * 3
+        else:                    
+            amp_y, center_y, width_y, _ = popt1
+            atomNumberY = amp_y * width_y * (2*np.pi)**0.5   
+        results.append([center_y, width_y, atomNumberY, center_x, width_x, atomNumberX])
+            
+    df = pd.DataFrame( results, index=logTime, 
+                      columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX'])
+    df.index.set_names('time', inplace=True)
+    df.insert(0, 'Folder', dataFolderindex)
+    
+    return df
     
 
 def temperature_model(t, w0, T):
