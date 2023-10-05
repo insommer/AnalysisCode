@@ -37,7 +37,7 @@ data_folder1 = [r'/Andor/ODT position 9']
 # do_plot = True
 # uniformscale = 0
 
-variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
+variablesToDisplay = ['IterationNum'] #['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
 # showTimestamp = False
 
 # variableFilterList = None
@@ -70,7 +70,7 @@ def AnalyzeZyla(date,
                 data_folders, 
                 data_path='C:/Users/Sommer Lab/Documents/Data/', 
                 repetition=1, 
-                examNum='all', 
+                examNum=None, 
                 examFrom1=None, 
                 plotPWindow=3, do_plot=True, uniformscale=0, 
                 variablesToDisplay= variablesToDisplay,
@@ -137,6 +137,8 @@ def AnalyzeZyla(date,
     widths_y = []
     centers_x = []
     centers_y = []
+    variableDicts = variableLog.to_dict('index')
+    dataDicts = []
     
     if uniformscale:
         vmax = columnDensities.max()
@@ -146,6 +148,9 @@ def AnalyzeZyla(date,
         vmin = 0
     log("Running gaussian fits...")
     for ind in range(imgNo):
+        log("gauss fit for index {}".format(ind))
+        
+        currentDataDict = variableDicts[logTime[ind]]
         
         plotInd = ind % plotPWindow
         if do_plot == True and plotInd == 0:
@@ -178,34 +183,50 @@ def AnalyzeZyla(date,
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
                             fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
-        
             
-    if popt0 is not None and popt1 is not None:
+            
+        if popt0 is not None and popt1 is not None:
                 
-        amp_x, center_x, width_x, _ = popt0/units.um
-        amp_y, center_y, width_y, _ = popt1/units.um
-        
-        # guess = [amp_g, center_g, w_g, offset_g]
-        
-        
-        # wx = abs(popt0[2])
-        AtomNumberX = amp_x * width_x * (2*np.pi)**0.5 * units.um * units.um
-        
-        # wy = abs(popt1[2])
-        AtomNumberY = amp_y * width_y * (2*np.pi)**0.5 * units.um * units.um
-        
-        AtomNumbers.append(AtomNumberY)
-        print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
-        # width_x = popt0[2]/units.um
-        
-        print("RMS cloud size x: {:.2f} um".format(width_x))
-        print("RMS cloud size y: {:.2f} um".format(width_y))
-        print("x center: {:.2f} um".format(center_x))
-        print("y center: {:.2f} um".format(center_y))
-        centers_x.append(center_x)
-        centers_y.append(center_y)
-        widths_x.append(width_x)
-        widths_y.append(width_y)
+            amp_x, center_x, width_x, _ = popt0/units.um
+            amp_y, center_y, width_y, _ = popt1/units.um
+            
+            # guess = [amp_g, center_g, w_g, offset_g]
+            
+            
+            # wx = abs(popt0[2])
+            AtomNumberX = amp_x * width_x * (2*np.pi)**0.5 * units.um * units.um
+            
+            # wy = abs(popt1[2])
+            AtomNumberY = amp_y * width_y * (2*np.pi)**0.5 * units.um * units.um
+            
+            AtomNumbers.append(AtomNumberY)
+            print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
+            # width_x = popt0[2]/units.um
+            
+            print("RMS cloud size x: {:.2f} um".format(width_x))
+            print("RMS cloud size y: {:.2f} um".format(width_y))
+            print("x center: {:.2f} um".format(center_x))
+            print("y center: {:.2f} um".format(center_y))
+            centers_x.append(center_x)
+            centers_y.append(center_y)
+            widths_x.append(width_x)
+            widths_y.append(width_y)
+            currentDataDict['AtomNumber_yfit']=AtomNumberY
+            currentDataDict['center_x']=center_x
+            currentDataDict['center_y']=center_y
+            currentDataDict['width_x']=width_x
+            currentDataDict['width_y']=width_y
+        else:
+            log("fit failed for index {}".format(ind),2)
+        dataDicts.append(currentDataDict)
+    
+    # runDataFrame = pd.DataFrame()
+    
+    # runDataFrame['AtomNumber_yfit']=AtomNumbers
+    # runDataFrame['centers_x']=centers_x
+    # runDataFrame['widths_x']=widths_x
+    # runDataFrame['centers_y']=centers_y
+    # runDataFrame['widths_y']=widths_y
     
     fig.tight_layout()
     
@@ -243,7 +264,7 @@ def AnalyzeZyla(date,
     ax2.set_ylabel('Atom Number', color='tab:green')
     ax2.tick_params(axis="y", labelcolor='tab:green')
     
-    
+    return dataDicts
 
 
 
