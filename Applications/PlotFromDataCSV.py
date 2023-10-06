@@ -45,3 +45,4 @@ for ii in (iterateVariable):
 plt.legend()
 ax.set(xlabel=xVariable, ylabel=yVariable)
 fig.tight_layout()
+plt.show()
