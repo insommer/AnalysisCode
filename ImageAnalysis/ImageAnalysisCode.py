@@ -1329,8 +1329,44 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
 
 
 
-def PlotFromDataCSV(filePath, xVariable, yVariable, iterateVariable=None, 
+def PlotFromDataCSV(filePath, xVariable, yVariable, 
+                    groupby=None, iterateVariable=None, 
                     filterlist=None, filterLogic='and'):
+    '''
+    Parameters
+    ----------
+    filePath : str
+        The path to the data file. The file should be a .csv file that can be 
+        read in to a pd dataframe.
+    xVariable : str
+        The name of the variable to be plotted as the x axis. It should be the 
+        name of a column of the dataframe.
+    yVariable : str
+        The name of the variable to be plotted as the y axis. It should be the 
+        name of a column of the dataframe.
+    groupby : str, default: None
+        The name of a dataframe column. It is assigned, the data points will be
+        averaged based on the values of this column, and the plot will be an
+        errorbar plot.
+    iterateVariable : str, default: None
+        The name of a dataframe column. It is assigned, the plot will be divided
+        into different groups based on the values of this column.
+    filterlist : list of strings, default: None
+        A list of the filter condition. Each conditon should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator.
+    filterLogic : string, default: 'and'
+        'and' or 'or', the logic operation between different filters.
+
+    Raises
+    ------
+    FileNotFoundError
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    '''
 
     
     if not os.path.exists(filePath):
@@ -1351,20 +1387,34 @@ def PlotFromDataCSV(filePath, xVariable, yVariable, iterateVariable=None,
                     masklist[0] |= mask
         df = df[ masklist[0] ]
     
-    if iterateVariable is None:
-        iterable = [None]
+    columnlist = [xVariable, yVariable]
+    
+    if iterateVariable:
+        iterable = df[iterateVariable].unique()
+        columnlist.append(iterateVariable)
     else:
-        iterable = df[iterateVariable]
-        iterable = iterable.unique()
+        iterable = [None]
+        
+    if groupby:
+        columnlist.append(groupby)
+    
     
     fig, ax = plt.subplots(figsize=(8,5))
     for ii in iterable:
         if ii is None:
-            dfSelect = df
+            dfii = df[columnlist]
         else:
-            dfSelect = df[ (df[iterateVariable]==ii) ] 
-        plt.plot( dfSelect[xVariable], dfSelect[yVariable], '.', 
-                 label = '{} = {}'.format(iterateVariable, ii))
+            dfii = df[columnlist][ (df[iterateVariable]==ii) ]
+            
+        if groupby:
+            dfiimean = dfii.groupby(groupby).mean()
+            dfiistd = dfii.groupby(groupby).std()
+            plt.errorbar(dfiimean[xVariable], dfiimean[yVariable],
+                         dfiistd[yVariable], dfiistd[xVariable], capsize=3,
+                         label = '{} = {}'.format(iterateVariable, ii))
+        else:
+            plt.plot( dfii[xVariable], dfii[yVariable], '.', 
+                     label = '{} = {}'.format(iterateVariable, ii))
     
     ax.set(xlabel=xVariable, ylabel=yVariable)
     fig.tight_layout()
