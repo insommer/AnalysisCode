@@ -1341,14 +1341,15 @@ def PlotFromDataCSV(filePath, xVariable, yVariable, iterateVariable=None,
     if filterlist:
         masklist = []
         for fil in filterlist:
-            masklist.append[eval( 'df.' + fil.replace(' ', '_') )]
+            masklist.append(eval( 'df.' + fil.replace(' ', '_') ))
             
-        for mask in masklist[1:]:
-            if filterLogic == 'and':
-                masklist[0] &= mask
-            elif filterLogic == 'or':
-                masklist[0] |= mask
-        df = df[ mask ]
+        if len(masklist) > 1:
+            for mask in masklist[1:]:
+                if filterLogic == 'and':
+                    masklist[0] &= mask
+                elif filterLogic == 'or':
+                    masklist[0] |= mask
+        df = df[ masklist[0] ]
     
     if iterateVariable is None:
         iterable = [None]
@@ -1362,7 +1363,8 @@ def PlotFromDataCSV(filePath, xVariable, yVariable, iterateVariable=None,
             dfSelect = df
         else:
             dfSelect = df[ (df[iterateVariable]==ii) ] 
-        plt.plot( dfSelect[xVariable], dfSelect[yVariable], '.', label = '{} = {}'.format(iterateVariable, ii))
+        plt.plot( dfSelect[xVariable], dfSelect[yVariable], '.', 
+                 label = '{} = {}'.format(iterateVariable, ii))
     
     ax.set(xlabel=xVariable, ylabel=yVariable)
     fig.tight_layout()
