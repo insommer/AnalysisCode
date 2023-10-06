@@ -442,11 +442,23 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         spool_number = '0000000000'
         
         fileTime = []
-        for x in range(number_of_pics): 
-            
-            filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
-            
-            if x % picturesPerIteration == 0 and return_fileTime:
+        skipped=0 #apparently the camera skips numbers some times
+        def calcFileName(ind,skipped):
+            x=ind+skipped
+            return data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat" 
+        
+        for ind in range(number_of_pics): 
+            # filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
+            filename = calcFileName(ind,skipped)
+            MAX_SKIP = 10 # to prevent infinite loops
+            while not os.path.exists(filename) and skipped < MAX_SKIP:
+                print("Warning: skipped "+os.path.basename(filename))
+                skipped += 1
+                filename = calcFileName(ind,skipped)
+            if skipped==MAX_SKIP:
+                raise Exception("REACHED MAXIMUM NUMBER OF SKIPPED FILES")
+                
+            if ind % picturesPerIteration == 0 and return_fileTime:
                 fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(filename), 2) ) )
             
             file = open(filename,"rb")
@@ -454,9 +466,9 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             data_array = np.frombuffer(content, dtype=data_type)
             data_array = data_array[0:number_of_pixels] # a spool file that is not bg corrected
             data_array_corrected = data_array - background_array #spool file that is background corrected
-            image_array[x*number_of_pixels: (x+1)*number_of_pixels] = data_array
+            image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array
             # print("max value before background subtraction = "+str(np.max(data_array)))
-            image_array_corrected[x*number_of_pixels: (x+1)*number_of_pixels] = data_array_corrected
+            image_array_corrected[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array_corrected
             #print("max value after background subtraction = "+str(np.max(image_array_corrected)))
             
 

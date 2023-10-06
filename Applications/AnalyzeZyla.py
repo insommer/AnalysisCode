@@ -211,6 +211,8 @@ def AnalyzeZyla(date,
             centers_y.append(center_y)
             widths_x.append(width_x)
             widths_y.append(width_y)
+            currentDataDict['amplitude_xfit']=amp_x
+            currentDataDict['amplitude_yfit']=amp_y
             currentDataDict['AtomNumber_yfit']=AtomNumberY
             currentDataDict['center_x']=center_x
             currentDataDict['center_y']=center_y
