@@ -1230,6 +1230,8 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
             images_array = np.concatenate([images_array, _images_array], axis=0)
             fileTime = fileTime + _fileTime
             NoOfRuns.append(len(_fileTime))
+            
+    print('Images loaded.')
                 
     images_array = images_array[examFrom: examUntil]
     fileTime = fileTime[examFrom: examUntil]
@@ -1323,6 +1325,63 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     df.insert(0, 'Folder', dataFolderindex)
     
     return df
+
+
+
+
+def PlotFromDataCSV(filePath, xVariable, yVariable, iterateVariable=None, 
+                    filterlist=None, filterLogic='and'):
+
+    
+    if not os.path.exists(filePath):
+        raise FileNotFoundError("The file does not exist!")
+    
+    df = pd.read_csv(filePath)
+    
+    if filterlist:
+        masklist = []
+        for fil in filterlist:
+            masklist.append[eval( 'df.' + fil.replace(' ', '_') )]
+            
+        for mask in masklist[1:]:
+            if filterLogic == 'and':
+                masklist[0] &= mask
+            elif filterLogic == 'or':
+                masklist[0] |= mask
+        df = df[ mask ]
+    
+    if iterateVariable is None:
+        iterable = [None]
+    else:
+        iterable = df[iterateVariable]
+        iterable = iterable.unique()
+    
+    fig, ax = plt.subplots(figsize=(8,5))
+    for ii in iterable:
+        if ii is None:
+            dfSelect = df
+        else:
+            dfSelect = df[ (df[iterateVariable]==ii) ] 
+        plt.plot( dfSelect[xVariable], dfSelect[yVariable], '.', label = '{} = {}'.format(iterateVariable, ii))
+    
+    ax.set(xlabel=xVariable, ylabel=yVariable)
+    fig.tight_layout()
+    if iterateVariable:
+        plt.legend()
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
 def temperature_model(t, w0, T):
