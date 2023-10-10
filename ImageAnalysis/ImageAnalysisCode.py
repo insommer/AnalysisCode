@@ -1340,7 +1340,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
 
 
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
-                    groupby=None, iterateVariable=None, 
+                    groupby=None, groupbyX=0, iterateVariable=None, 
                     filterlist=None, filterLogic='and'):
     '''
     Parameters
@@ -1355,11 +1355,14 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         The name of the variable to be plotted as the y axis. It should be the 
         name of a column of the dataframe.
     groupby : str, default: None
-        The name of a dataframe column. It is assigned, the data points will be
+        The name of a dataframe column. If it is assigned, the data points will be
         averaged based on the values of this column, and the plot will be an
         errorbar plot.
+    groupbyX : boolean, default: 0
+        The name of a dataframe column. If it is true, the data points will be
+        averaged based for each x value, and the plot will be an errorbar plot.
     iterateVariable : str, default: None
-        The name of a dataframe column. It is assigned, the plot will be divided
+        The name of a dataframe column. If it is assigned, the plot will be divided
         into different groups based on the values of this column.
     filterlist : list of strings, default: None
         A list of the filter conditions. Each condition should be in the form of 
@@ -1400,14 +1403,17 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     columnlist = [xVariable, yVariable]
     
     if iterateVariable:
+        iterateVariable.replace(' ', '_')
         iterable = df[iterateVariable].unique()
         columnlist.append(iterateVariable)
     else:
         iterable = [None]
-        
-    if groupby:
-        columnlist.append(groupby)
     
+    if groupby == xVariable:
+        groupbyX = 1        
+    if groupby and not groupbyX:
+        groupby.replace(' ', '_')
+        columnlist.append(groupby)    
     
     fig, ax = plt.subplots(figsize=(8,5))
     for ii in iterable:
@@ -1416,12 +1422,19 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         else:
             dfii = df[columnlist][ (df[iterateVariable]==ii) ]
             
-        if groupby:
+        if groupbyX:
+            dfiimean = dfii.groupby(xVariable).mean()
+            dfiistd = dfii.groupby(xVariable).std()
+            plt.errorbar(dfiimean.index, dfiimean[yVariable],
+                         dfiistd[yVariable], capsize=3,
+                         label = '{} = {}'.format(iterateVariable, ii))
+            plt.scatter(dfiimean.index, dfiimean[yVariable], s=8)
+        elif groupby:
             dfiimean = dfii.groupby(groupby).mean()
             dfiistd = dfii.groupby(groupby).std()
             plt.errorbar(dfiimean[xVariable], dfiimean[yVariable],
                          dfiistd[yVariable], dfiistd[xVariable], capsize=3,
-                         label = '{} = {}'.format(iterateVariable, ii))
+                         label = '{} = {}'.format(iterateVariable, ii))        
         else:
             plt.plot( dfii[xVariable], dfii[yVariable], '.', 
                      label = '{} = {}'.format(iterateVariable, ii))
