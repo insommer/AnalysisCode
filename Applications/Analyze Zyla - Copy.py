@@ -28,7 +28,7 @@ repetition = 1 #The number of identical runs to be averaged.
 examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 3
-do_plot = True
+do_plot = False
 uniformscale = 0
 
 variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
@@ -131,7 +131,6 @@ for ind in range(imgNo):
     if not do_plot:
         axs = [None] 
         plotInd = 0
-        Ind = None
         plotNo = None
     else:
         plotInd = ind % plotPWindow
