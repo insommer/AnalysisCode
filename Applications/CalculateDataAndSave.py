@@ -14,31 +14,42 @@ import os
 
 
 totalDataPath =r"Z:\ats317group\Data"
-date = '9/26/2023'
+date = '9/29/2023'
+dataCSV_filename = 'Data Folder 5-9.csv'
+dataFolders = [r'Andor/ODT position 5', r'Andor/ODT position 6',
+               r'Andor/ODT position 7', r'Andor/ODT position 8', 
+               r'Andor/ODT position 9']
+saveToCSV = 1
+writeToExistingFile = 0
 
-dataCSV_filename = 'data_10_5.csv'
 dayFolderPath = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
-dataFolders = [r'Andor/Test', r'Andor/Test_1']
-
 dataCSV_filePath = os.path.join(dayFolderPath, dataCSV_filename)
+fileExist = os.path.exists(dataCSV_filePath)
 
+if fileExist:
+    if writeToExistingFile:
+        dataCSV = pd.read_csv(dataCSV_filePath)
+        dataCSV.time = pd.to_datetime(dataCSV.time)
+        dataCSV.set_index('time', inplace=True)
+    else:
+        raise FileExistsError("The file already exists. Change the filename if you don't want to overite the older file.")
 
-if os.path.exists(dataCSV_filePath):
-    dataCSV = pd.read_csv(dataCSV_filePath)
-    dataCSV.time = pd.to_datetime(dataCSV.time)
-    dataCSV.set_index('time', inplace=True)
 else:
     variableLog_folder = os.path.join(dayFolderPath, 'Variable Logs')
     dataCSV = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
-    
-    
-results = ImageAnalysisCode.CalculateFromZyla(dayFolderPath, 
-                dataFolders, 
-                variableLog = dataCSV,                
-                repetition=1)
 
-combined = results.join( dataCSV, how='outer', lsuffix='_l' )
+print('Variable Log Loaded.')
+    
+results = ImageAnalysisCode.CalculateFromZyla(dayFolderPath, dataFolders, 
+                                              variableLog = dataCSV, repetition=1)
 
-combined.to_csv( os.path.join(dayFolderPath, dataCSV_filename) )
+# if fileExist:
+    
+# else:
+dataCSV = results.join( dataCSV, how='outer', lsuffix='_L' )
+    
+
+if saveToCSV:
+    dataCSV.to_csv( os.path.join(dayFolderPath, dataCSV_filename) )
 
     

@@ -1327,8 +1327,6 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     return df
 
 
-
-
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
                     groupby=None, iterateVariable=None, 
                     filterlist=None, filterLogic='and'):
@@ -1352,7 +1350,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         The name of a dataframe column. It is assigned, the plot will be divided
         into different groups based on the values of this column.
     filterlist : list of strings, default: None
-        A list of the filter condition. Each conditon should be in the form of 
+        A list of the filter conditions. Each condition should be in the form of 
         'ColumName+operator+value'. No spaces around the operator.
     filterLogic : string, default: 'and'
         'and' or 'or', the logic operation between different filters.
@@ -1421,19 +1419,6 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     if iterateVariable:
         plt.legend()
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
     
 
 def temperature_model(t, w0, T):
