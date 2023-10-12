@@ -1254,16 +1254,16 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     
     logTime = Filetime2Logtime(fileTime, variableLog)
         
-    if variableFilterList is not None and variableLog is not None:    
+    if variableFilterList and variableLog is not None:    
         filteredList = VariableFilter(logTime, variableLog, variableFilterList)
         images_array = np.delete(images_array, filteredList, 0)
         dataFolderindex = np.delete(dataFolderindex, filteredList, 0)
         logTime = np.delete(logTime, filteredList, 0)
             
-    if pictureToHide is not None:
+    if pictureToHide:
         images_array = np.delete(images_array, pictureToHide, 0)
         dataFolderindex = np.delete(dataFolderindex, pictureToHide, 0)
-        if logTime is not None:
+        if logTime:
             logTime = np.delete(logTime, pictureToHide, 0)
     
     # ImageAnalysisCode.ShowImagesTranspose(images_array)
@@ -1312,7 +1312,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
                                                       xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                       xscale_factor=1/lengthFactor, yscale_factor=lengthFactor)
         
-        if variablesToDisplay is not None and variableLog is not None:
+        if variablesToDisplay and variableLog is not None:
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axs[plotInd,0].text(0,1, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
@@ -1335,6 +1335,10 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
                       columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX'])
     df.index.set_names('time', inplace=True)
     df.insert(0, 'Folder', dataFolderindex)
+    
+    if variableLog is not None:
+        variableLog = variableLog.loc[logTime]
+        df = df.join(variableLog)
     
     return df
 
@@ -1386,6 +1390,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         raise FileNotFoundError("The file does not exist!")
     
     df = pd.read_csv(filePath)
+    df = df[ ~np.isnan(df[yVariable]) ]
     
     if filterlist:
         masklist = []
