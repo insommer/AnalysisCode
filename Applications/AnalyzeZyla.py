@@ -20,12 +20,12 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-date = '9/29/2023'
+date = '10/10/2023'
 # data_folder = [r'/Andor/MOT and ODT Movement', r'/Andor/MOT and ODT Movement_3',
 #                r'/Andor/MOT and ODT Movement data_1', r'/Andor/MOT and ODT Movement data', 
 #                r'/Andor/MOT and ODT Movement data_2', r'/Andor/MOT and ODT Movement data_4',
 #                r'/Andor/ODT Position 5']
-data_folder1 = [r'/Andor/ODT position 9']
+data_folder1 = [r'/Andor/Position 1 Bias Scan']
 # data_folder1 = [r'/spool test']
 ####################################
 #Parameter Setting
@@ -37,7 +37,7 @@ data_folder1 = [r'/Andor/ODT position 9']
 # do_plot = True
 # uniformscale = 0
 
-variablesToDisplay = ['IterationNum'] #['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
+variablesToDisplay = ['wait','cMOT coil', 'VerticalBiasCurrent', 'ZSBiasCurrent'] 
 # showTimestamp = False
 
 # variableFilterList = None
@@ -49,15 +49,6 @@ variablesToDisplay = ['IterationNum'] #['wait','cMOT coil', 'ZSBiasCurrent', 'Ve
 # subtract_bg = True
 # signal_feature = 'narrow' 
 
-# rowstart = 10
-# rowend = -10
-# columnstart = 10
-# columnend = -10
-
-# rowstart = 200
-# rowend = 780
-# columnstart = 200
-# columnend = 900
 
 ####################################
 ####################################
@@ -70,9 +61,9 @@ def AnalyzeZyla(date,
                 data_folders, 
                 data_path='C:/Users/Sommer Lab/Documents/Data/', 
                 repetition=1, 
-                examNum=None, 
-                examFrom1=None, 
-                plotPWindow=3, do_plot=True, uniformscale=0, 
+                examNum=15, 
+                examFrom=None, 
+                plotPWindow=5, do_plot=True, uniformscale=0, 
                 variablesToDisplay= variablesToDisplay,
                 showTimestamp=False, variableFilterList=None, 
                 pictureToHide=None,
@@ -85,7 +76,7 @@ def AnalyzeZyla(date,
     dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
     data_folders = [ dataLocation + f for f in data_folders ]
     variableLog_folder = dataLocation + r'/Variable Logs'
-    examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom1, repetition)
+    examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
     
     
     params = ImageAnalysisCode.ExperimentParams(t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
