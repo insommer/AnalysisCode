@@ -15,43 +15,47 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-date = '9/29/2023'
-# data_folder = [r'/Andor/MOT and ODT Movement', r'/Andor/MOT and ODT Movement_3',
-#                r'/Andor/MOT and ODT Movement data_1', r'/Andor/MOT and ODT Movement data', 
-#                r'/Andor/MOT and ODT Movement data_2', r'/Andor/MOT and ODT Movement data_4',
-#                r'/Andor/ODT Position 5']
-data_folder = [r'/Andor/ODT position 5']
+date = '10/10/2023'
+data_folder = [r'/Andor/Position 1 Bias Scan_1']
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 5 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 3
-do_plot = False
+plotPWindow = 5
+do_plot = True
 uniformscale = 0
 
 variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
+
 showTimestamp = False
 
 variableFilterList = None
-# variableFilterList = ['wait==30', 'VerticalBiasCurrent==3'] # NO SPACE around the operator!
+variableFilterList = ['VerticalBiasCurrent==1', 'ZSBiasCurrent==7.5'] # NO SPACE around the operator!
 
 pictureToHide = None
-# pictureToHide = [8] # list(range(0,10,2))
+# pictureToHide = [2] # list(range(0,10,2))
 
 subtract_bg = True
 signal_feature = 'narrow' 
+signal_width = 8
+figbgDeg = 5
 
 rowstart = 10
 rowend = -10
 columnstart = 10
 columnend = -10
 
-rowstart = 200
-rowend = 780
-columnstart = 200
-columnend = 900
+# rowstart = 400
+# rowend = 580
+# columnstart = 400
+# columnend = 700
+
+# rowstart = 200
+# rowend = 780
+# columnstart = 200
+# columnend = 900
 
 ####################################
 ####################################
@@ -153,7 +157,7 @@ for ind in range(imgNo):
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
-                                                  subtract_bg = subtract_bg, signal_feature = signal_feature, 
+                                                  subtract_bg=subtract_bg, signal_feature=signal_feature, signal_width=signal_width, figbgDeg=figbgDeg,
                                                   vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
@@ -185,10 +189,10 @@ for ind in range(imgNo):
         print("\n{}. Atom Number from gauss fit = {:.2e}".format(ind, AtomNumberY))
         # width_x = popt0[2]/units.um
         
-        print("RMS cloud size x: {:.2f} um".format(width_x))
+        print("Amp_y: {:.2f}".format(amp_y * units.um))
         print("RMS cloud size y: {:.2f} um".format(width_y))
-        print("x center: {:.2f} um".format(center_x))
-        print("y center: {:.2f} um".format(center_y))
+        # print("x center: {:.2f} um".format(center_x))
+        # print("y center: {:.2f} um".format(center_y))
         centers_x.append(center_x)
         centers_y.append(center_y)
         widths_x.append(width_x)
@@ -229,6 +233,7 @@ ax2.errorbar(xx, AtomNumbers, AtomNumbers_std, capsize=5, color='tab:green')
 ax2.plot(xx, AtomNumbers, '.-', color='tab:green')
 ax2.set_ylabel('Atom Number', color='tab:green')
 ax2.tick_params(axis="y", labelcolor='tab:green')
+ax2.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 
 
 
