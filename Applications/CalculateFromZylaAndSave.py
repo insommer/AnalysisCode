@@ -13,50 +13,48 @@ import pandas as pd
 import os
 
 totalDataPath =r"Z:\ats317group\Data"
-date = '10/10/2023'
-dataCSV_filename = 'Position 1 Bias Scan_no redundant index.csv'
+date = '10/12/2023'
+dataCSV_filename = 'ODT Position 5_1 and _2 .csv'
+
 dataFolders = []
-dataFolders = [r'Andor/Position 1 Bias Scan_2']
+dataFolders = [r'Andor/Position 5 Bias Scan_1', r'Andor/Position 5 Bias Scan_2']
 saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
 
 
-dayFolderPath = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
-dataCSV_filePath = os.path.join(dayFolderPath, dataCSV_filename)
+dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
+dataCSV_filePath = os.path.join(dayFolder, dataCSV_filename)
 fileExist = os.path.exists(dataCSV_filePath)
 
 if Calculate:    
-    variableLog_folder = os.path.join(dayFolderPath, 'Variable Logs')
-    variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
+    variableLogFolder = os.path.join(dayFolder, 'Variable Logs')
+    variableLog = ImageAnalysisCode.LoadVariableLog(variableLogFolder)
     
-    results = ImageAnalysisCode.CalculateFromZyla(dayFolderPath, dataFolders, 
-                                                  variableLog = variableLog)
+    results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
+                                                  variableLog = variableLog,
+                                                  rowstart = 400,
+                                                  rowend = 580,
+                                                  columnstart = 400,
+                                                  columnend = 700)
     
-    
-if fileExist:
-    if saveToCSV:
+if saveToCSV:
+    if fileExist:
         if writeToExistingFile:
             dataCSV = pd.read_csv(dataCSV_filePath)
             dataCSV.time = pd.to_datetime(dataCSV.time)
             dataCSV.set_index('time', inplace=True)
             
             intersection = dataCSV.index.intersection(results.index)
-            dataCSV = pd.concat( [dataCSV.drop(intersection), results] )
-            
+            results = pd.concat( [dataCSV.drop(intersection), results] )
         else:
             dataCSV_filename = dataCSV_filename.replace('.csv', '_1.csv')
-            dataCSV = results
-        
-        dataCSV.to_csv( os.path.join(dayFolderPath, dataCSV_filename) )
-
-
-
-#%% Plot
+                    
+    results.to_csv( os.path.join(dayFolder, dataCSV_filename) )
+    print('Results saved.')
+    
+#%%
 
 ImageAnalysisCode.PlotFromDataCSV(dataCSV_filePath, 
                                   'ZSBiasCurrent', 'AtomNumber', 
-                                  iterateVariable='VerticalBiasCurrent', groupbyX=1,
-                                  filterlist=['wait==30'])
-
-    
+                                  iterateVariable='VerticalBiasCurrent', groupbyX=1)

@@ -871,7 +871,7 @@ def Gaussian(x, amp, center, w, offset):
     #amp = N/(w*(2*np.pi)**0.5)
     return amp*np.exp(-.5*(x-center)**2/w**2) + offset
 
-def fitbg(data, signal_feature='narrow'): 
+def fitbg(data, signal_feature='narrow', signal_width=8, figbgDeg=5): 
        
     datalength = len(data)
     signalcenter = data.argmax()
@@ -886,7 +886,7 @@ def fitbg(data, signal_feature='narrow'):
         p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=2 )        
         
     else:
-        mask_hw = int(datalength/8)
+        mask_hw = int(datalength/signal_width)
         bg_mask = np.full(xdata.shape, True)
         center_mask = bg_mask.copy()
         bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False  
@@ -895,7 +895,7 @@ def fitbg(data, signal_feature='narrow'):
         bg_mask[:mask_hw] = True
         bg_mask[-mask_hw:] = True
         
-        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=5 )
+        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=figbgDeg )
     
     return np.polyval(p, xdata)
     
@@ -985,13 +985,14 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
     return popts[0], popts[1]
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
-                           subtract_bg = True, signal_feature = 'wide',
+                           subtract_bg = True, signal_feature = 'wide', 
+                           signal_width=8, figbgDeg=5,
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
     
     if subtract_bg:
-        bg = fitbg(data, signal_feature=signal_feature) 
+        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, figbgDeg=figbgDeg) 
         originalData = data.copy()
         data = data - bg        
         
@@ -1046,7 +1047,8 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
 
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
 def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1, 
-                  subtract_bg = True, signal_feature = 'wide',
+                  subtract_bg = True, signal_feature = 'wide', 
+                  signal_width=8, figbgDeg=5,
                   vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
@@ -1086,6 +1088,7 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
         array1D = integrate1D(array,dx, free_axis=axis)        
         popt= fitgaussian1D_June2023(array1D, dx=dx, doplot=do_plot, ax=ax[ind+1], 
                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
+                                     signal_width=signal_width, figbgDeg=figbgDeg,
                                      add_title = add_title, add_xlabel=add_xlabel, add_ylabel=add_ylabel, no_xticklabel=no_xticklabel,
                                      label=axis, title=title+" vs "+axis, newfig=False,
                                      xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
@@ -1217,7 +1220,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
                 repetition=1, 
                 examNum=None, examFrom=None, 
                 do_plot=False, plotPWindow=5, uniformscale=0, 
-                variablesToDisplay= None, variableFilterList=None, showTimestamp=False, pictureToHide=None,
+                variablesToDisplay=None, variableFilterList=None, showTimestamp=False, pictureToHide=None,
                 subtract_bg=True, signal_feature='narrow', 
                 rowstart=10, rowend=-10, 
                 columnstart=10, columnend=-10,
@@ -1445,6 +1448,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
                      label = '{} = {}'.format(iterateVariable, ii))
     
     ax.set(xlabel=xVariable, ylabel=yVariable)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     fig.tight_layout()
     if iterateVariable:
         plt.legend()
