@@ -637,7 +637,7 @@ def ShowImagesTranspose(images, logTime=None, variableLog=None,
 
     """
     
-    if variableFilterList is not None:        
+    if variableFilterList:        
         filterList = VariableFilter(logTime, variableLog, variableFilterList)
         images = np.delete(images, filterList, 0)
         logTime = np.delete(logTime, filterList, 0)
@@ -871,7 +871,7 @@ def Gaussian(x, amp, center, w, offset):
     #amp = N/(w*(2*np.pi)**0.5)
     return amp*np.exp(-.5*(x-center)**2/w**2) + offset
 
-def fitbg(data, signal_feature='narrow', signal_width=8, figbgDeg=5): 
+def fitbg(data, signal_feature='narrow', signal_width=8, fitbgDeg=5): 
        
     datalength = len(data)
     signalcenter = data.argmax()
@@ -895,7 +895,7 @@ def fitbg(data, signal_feature='narrow', signal_width=8, figbgDeg=5):
         bg_mask[:mask_hw] = True
         bg_mask[-mask_hw:] = True
         
-        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=figbgDeg )
+        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=fitbgDeg )
     
     return np.polyval(p, xdata)
     
@@ -986,13 +986,13 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
                            subtract_bg = True, signal_feature = 'wide', 
-                           signal_width=8, figbgDeg=5,
+                           signal_width=8, fitbgDeg=5,
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
     
     if subtract_bg:
-        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, figbgDeg=figbgDeg) 
+        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
         originalData = data.copy()
         data = data - bg        
         
@@ -1048,7 +1048,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
 def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1, 
                   subtract_bg = True, signal_feature = 'wide', 
-                  signal_width=8, figbgDeg=5,
+                  signal_width=8, fitbgDeg=5,
                   vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
@@ -1088,7 +1088,7 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
         array1D = integrate1D(array,dx, free_axis=axis)        
         popt= fitgaussian1D_June2023(array1D, dx=dx, doplot=do_plot, ax=ax[ind+1], 
                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
-                                     signal_width=signal_width, figbgDeg=figbgDeg,
+                                     signal_width=signal_width, fitbgDeg=fitbgDeg,
                                      add_title = add_title, add_xlabel=add_xlabel, add_ylabel=add_ylabel, no_xticklabel=no_xticklabel,
                                      label=axis, title=title+" vs "+axis, newfig=False,
                                      xlabel=xlabel1D, ylabel=ylabel1D, xscale_factor=xscale_factor, 
@@ -1252,7 +1252,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     fileTime = fileTime[examFrom: examUntil]
     
     dataFolderindex = []
-    [ dataFolderindex.extend([dataFolders[ii]] * NoOfRuns[ii]) for ii in range(len(NoOfRuns)) ]
+    [ dataFolderindex.extend([dataFolders[ii].replace(' ','_')] * NoOfRuns[ii]) for ii in range(len(NoOfRuns)) ]
     dataFolderindex = dataFolderindex[examFrom: examUntil]
     
     logTime = Filetime2Logtime(fileTime, variableLog)
@@ -1346,9 +1346,29 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     return df
 
 
+def FilterByOr(df, filterLists):
+    
+    masks = []
+    for flts in filterLists:
+        masklist = []
+        for flt in flts:
+            masklist.append(eval( 'df.' + flt.replace(' ', '_') ))   
+           
+        if len(masklist) > 1:
+            for mask in masklist[1:]:
+                masklist[0] |= mask
+        masks.append(masklist[0])
+        
+    if len(masks) > 1:
+        for mask in masks[1:]:
+            mask[0] &= mask
+    return df[ mask[0] ]
+
+
+
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
                     groupby=None, groupbyX=0, iterateVariable=None, 
-                    filterlist=None, filterLogic='and'):
+                    filterByAnd=None, filterByOr=[], filterByOr2=[]):
     '''
     Parameters
     ----------
@@ -1395,18 +1415,12 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     df = pd.read_csv(filePath)
     df = df[ ~np.isnan(df[yVariable]) ]
     
-    if filterlist:
-        masklist = []
-        for fil in filterlist:
-            masklist.append(eval( 'df.' + fil.replace(' ', '_') ))
+    if filterByAnd:
+        for flt in filterByAnd:
+            df = df[ eval('df.' + flt.replace(' ', '_')) ]
             
-        if len(masklist) > 1:
-            for mask in masklist[1:]:
-                if filterLogic == 'and':
-                    masklist[0] &= mask
-                elif filterLogic == 'or':
-                    masklist[0] |= mask
-        df = df[ masklist[0] ]
+    if filterByOr:
+        df = FilterByOr(df, [filterByOr, filterByOr2])
     
     columnlist = [xVariable, yVariable]
     
