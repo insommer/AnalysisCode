@@ -1367,9 +1367,12 @@ def FilterByOr(df, filterLists):
 
 
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
-                    groupby=None, groupbyX=0, iterateVariable=None, 
-                    filterByAnd=None, filterByOr=[], filterByOr2=[]):
+                    groupby=None, groupbyX=0, iterateVariable=None,
+                    filterByAnd=None, filterByOr=[], filterByOr2=[],
+                    threeD=0, viewElev=30, viewAzim=-45):
     '''
+    
+
     Parameters
     ----------
     filePath : str
@@ -1391,11 +1394,24 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     iterateVariable : str, default: None
         The name of a dataframe column. If it is assigned, the plot will be divided
         into different groups based on the values of this column.
-    filterlist : list of strings, default: None
+        
+    filterByAnd : list of strings, default: []
         A list of the filter conditions. Each condition should be in the form of 
-        'ColumName+operator+value'. No spaces around the operator.
-    filterLogic : string, default: 'and'
-        'and' or 'or', the logic operation between different filters.
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic and. 
+    filterByOr : list of strings, default: []
+        A list of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic or. 
+    filterByOr2 : list of strings, default: []
+        The same as filterByOr, but a logical and will be performed for the 
+        results of filterByOr2 and filterByOr.    
+    threeD : boolean, default: 0
+        Plot a 3-D line plot if set to True. 
+    viewElev : float, default: 30
+        The elevation angle of the 3-D plot. 
+    viewAzim : float, default: -45
+        The azimuthal angle of the 3-D plot. 
 
     Raises
     ------
@@ -1407,8 +1423,8 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     None.
 
     '''
-
     
+        
     if not os.path.exists(filePath):
         raise FileNotFoundError("The file does not exist!")
     
@@ -1427,45 +1443,65 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     if iterateVariable:
         iterateVariable.replace(' ', '_')
         iterable = df[iterateVariable].unique()
+        iterable.sort()
         columnlist.append(iterateVariable)
     else:
         iterable = [None]
+        threeD = 0
     
-    if groupby == xVariable:
-        groupbyX = 1        
+    if groupby == xVariable or groupbyX:
+        groupbyX = 1  
+        groupby = xVariable
     if groupby and not groupbyX:
         groupby.replace(' ', '_')
-        columnlist.append(groupby)    
+        columnlist.append(groupby)
     
-    fig, ax = plt.subplots(figsize=(8,5))
+    if threeD:
+        fig, ax = plt.subplots(figsize=(9,9), subplot_kw=dict(projection='3d'))
+        ax.view_init(elev=viewElev, azim=viewAzim)
+    else:
+        fig, ax = plt.subplots(figsize=(8,5))
+    
     for ii in iterable:
         if ii is None:
             dfii = df[columnlist]
         else:
             dfii = df[columnlist][ (df[iterateVariable]==ii) ]
             
-        if groupbyX:
-            dfiimean = dfii.groupby(xVariable).mean()
-            dfiistd = dfii.groupby(xVariable).std()
-            plt.errorbar(dfiimean.index, dfiimean[yVariable],
-                         dfiistd[yVariable], capsize=3,
-                         label = '{} = {}'.format(iterateVariable, ii))
-            plt.scatter(dfiimean.index, dfiimean[yVariable], s=8)
-        elif groupby:
+        if groupby:
             dfiimean = dfii.groupby(groupby).mean()
             dfiistd = dfii.groupby(groupby).std()
-            plt.errorbar(dfiimean[xVariable], dfiimean[yVariable],
-                         dfiistd[yVariable], dfiistd[xVariable], capsize=3,
-                         label = '{} = {}'.format(iterateVariable, ii))        
+            
+            yMean = dfiimean[yVariable]
+            yStd = dfiistd[yVariable]
+            
+            if groupbyX:
+                xMean = dfiimean.index
+                xStd = None
+            else:
+                xMean = dfiimean[xVariable]
+                xStd = dfiistd[xVariable]
+            
+            if threeD:
+                ax.plot3D( [ii]*len(xMean), xMean, yMean,
+                         label = '{} = {}'.format(iterateVariable, ii))                
+            else:
+                ax.errorbar(xMean, yMean, yStd, xStd, capsize=3,
+                            label = '{} = {}'.format(iterateVariable, ii)) 
+                #plt.scatter(xMean, yMean, s=8)
         else:
-            plt.plot( dfii[xVariable], dfii[yVariable], '.', 
+            ax.plot( dfii[xVariable], dfii[yVariable], '.', 
                      label = '{} = {}'.format(iterateVariable, ii))
-    
-    ax.set(xlabel=xVariable, ylabel=yVariable)
-    ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+            
+    if threeD:
+        ax.set(xlabel=iterateVariable, ylabel=xVariable, zlabel=yVariable)
+        ax.ticklabel_format(axis='z', style='sci', scilimits=(-3,3))
+    else:
+        ax.set(xlabel=xVariable, ylabel=yVariable)
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     fig.tight_layout()
     if iterateVariable:
-        plt.legend()
+        plt.legend(loc=2)
     plt.show()
     
 
