@@ -871,7 +871,7 @@ def Gaussian(x, amp, center, w, offset):
     #amp = N/(w*(2*np.pi)**0.5)
     return amp*np.exp(-.5*(x-center)**2/w**2) + offset
 
-def fitbg(data, signal_feature='narrow', signal_width=8, fitbgDeg=5): 
+def fitbg(data, signal_feature='narrow', signal_width=10, fitbgDeg=5): 
        
     datalength = len(data)
     signalcenter = data.argmax()
@@ -986,7 +986,7 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
                            subtract_bg = True, signal_feature = 'wide', 
-                           signal_width=8, fitbgDeg=5,
+                           signal_width=10, fitbgDeg=5,
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
@@ -1048,7 +1048,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
 def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1, 
                   subtract_bg = True, signal_feature = 'wide', 
-                  signal_width=8, fitbgDeg=5,
+                  signal_width=10, fitbgDeg=5,
                   vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
@@ -1216,16 +1216,15 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     
 
 def CalculateFromZyla(dayFolderPath, dataFolders, 
-                variableLog=None,                
-                repetition=1, 
-                examNum=None, examFrom=None, 
-                do_plot=False, plotPWindow=5, uniformscale=0, 
-                variablesToDisplay=None, variableFilterList=None, showTimestamp=False, pictureToHide=None,
-                subtract_bg=True, signal_feature='narrow', 
-                rowstart=10, rowend=-10, 
-                columnstart=10, columnend=-10,
-                angle_deg= 2, #rotates ccw
-                picturesPerIteration = 3, lengthFactor=1e-6):    
+                      variableLog=None, 
+                      repetition=1, examNum=None, examFrom=None, 
+                      do_plot=False, plotPWindow=5, uniformscale=0, 
+                      variablesToDisplay=None, variableFilterList=None, 
+                      showTimestamp=False, pictureToHide=None,
+                      subtract_bg=True, signal_feature='narrow', signal_width=10,
+                      rowstart=10, rowend=-10, columnstart=10, columnend=-10,
+                      angle_deg= 2, #rotates ccw
+                      picturesPerIteration = 3, lengthFactor=1e-6):    
     
     dataFolderPaths = [ os.path.join(dayFolderPath, f) for f in dataFolders ]
     examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
@@ -1309,7 +1308,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
         
         popt0, popt1 = fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                       do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
-                                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
+                                                      subtract_bg = subtract_bg, signal_feature = signal_feature, signal_width=signal_width,
                                                       vmax = vmax, vmin = vmin,
                                                       title="1D density", title2D="column density",
                                                       xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
@@ -1331,12 +1330,14 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
             center_y, width_y, atomNumberY = [np.nan] * 3
         else:                    
             amp_y, center_y, width_y, _ = popt1
-            atomNumberY = amp_y * width_y * (2*np.pi)**0.5   
-        results.append([center_y, width_y, atomNumberY, center_x, width_x, atomNumberX])
+            atomNumberY = amp_y * width_y * (2*np.pi)**0.5
+        
+        convert = 1e6
+        results.append([center_y*convert, width_y*convert, atomNumberY, 
+                        center_x*convert, width_x*convert, atomNumberX])
             
     df = pd.DataFrame( results, index=logTime, 
-                      columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX'])
-    df.index.set_names('time', inplace=True)
+                      columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX']).rename_axis('time')
     df.insert(0, 'Folder', dataFolderindex)
     
     if variableLog is not None:
@@ -1369,6 +1370,7 @@ def FilterByOr(df, filterLists):
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
                     groupby=None, groupbyX=0, iterateVariable=None,
                     filterByAnd=None, filterByOr=[], filterByOr2=[],
+                    legend=1,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
     
@@ -1393,8 +1395,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         averaged based for each x value, and the plot will be an errorbar plot.
     iterateVariable : str, default: None
         The name of a dataframe column. If it is assigned, the plot will be divided
-        into different groups based on the values of this column.
-        
+        into different groups based on the values of this column.        
     filterByAnd : list of strings, default: []
         A list of the filter conditions. Each condition should be in the form of 
         'ColumName+operator+value'. No spaces around the operator. Different condtions
@@ -1500,9 +1501,11 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         ax.set(xlabel=xVariable, ylabel=yVariable)
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     fig.tight_layout()
-    if iterateVariable:
-        plt.legend(loc=2)
+    if iterateVariable and legend:
+        plt.legend()
     plt.show()
+    
+    return fig, ax
     
 
 def temperature_model(t, w0, T):
