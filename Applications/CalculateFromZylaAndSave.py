@@ -13,11 +13,11 @@ import pandas as pd
 import os
 
 totalDataPath =r"Z:\ats317group\Data"
-date = '10/12/2023'
-dataCSV_filename = 'ODT Position 5_1 and _2 .csv'
+date = '9/29/2023'
+dataCSV_filename = 'Data Folder 5-9_Calculated on 1019.csv'
 
 dataFolders = []
-dataFolders = [r'Andor/Position 5 Bias Scan_1', r'Andor/Position 5 Bias Scan_2']
+dataFolders = [r'Andor/ODT position 9']
 saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
@@ -34,9 +34,11 @@ if Calculate:
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,
                                                   rowstart = 400,
-                                                  rowend = 580,
+                                                  rowend = 650,
                                                   columnstart = 400,
-                                                  columnend = 700)
+                                                  columnend = 700,
+                                                  subtract_bg=True, 
+                                                  signal_width=40)
     
 if saveToCSV:
     if fileExist:
@@ -55,6 +57,15 @@ if saveToCSV:
     
 #%%
 
-ImageAnalysisCode.PlotFromDataCSV(dataCSV_filePath, 
-                                  'ZSBiasCurrent', 'AtomNumber', 
-                                  iterateVariable='VerticalBiasCurrent', groupbyX=1)
+if not Calculate:
+    result = pd.read_csv(dataCSV_filePath)
+
+# ImageAnalysisCode.PlotFromDataCSV(dataCSV_filePath, 
+#                                   'Ycenter', 'AtomNumber', 
+#                                   iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   groupbyX=1, threeD=1)
+
+fig, ax = ImageAnalysisCode.PlotFromDataCSV(results, 'Ycenter', 'AtomNumber', 
+                                   filterByAnd=['wait==30', 'AtomNumber>1e4'], 
+                iterateVariable='VerticalBiasCurrent', groupby='ODT_Position')

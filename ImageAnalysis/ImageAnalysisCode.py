@@ -1029,7 +1029,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
             ax.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))
             
-        ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
         ax.tick_params('y', direction='in', pad=-5)
         plt.setp(ax.get_yticklabels(), ha='left')
         
@@ -1336,8 +1336,10 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
         results.append([center_y*convert, width_y*convert, atomNumberY, 
                         center_x*convert, width_x*convert, atomNumberX])
             
-    df = pd.DataFrame( results, index=logTime, 
-                      columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX']).rename_axis('time')
+    df = pd.DataFrame(results, index=logTime,
+                      columns=['Ycenter', 'Ywidth', 'AtomNumber', 'Xcenter', 'Xwidth', 'AtomNumberX'
+                               ]
+                      ).rename_axis('time')
     df.insert(0, 'Folder', dataFolderindex)
     
     if variableLog is not None:
@@ -1370,7 +1372,7 @@ def FilterByOr(df, filterLists):
 def PlotFromDataCSV(filePath, xVariable, yVariable, 
                     groupby=None, groupbyX=0, iterateVariable=None,
                     filterByAnd=None, filterByOr=[], filterByOr2=[],
-                    legend=1,
+                    legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
     
@@ -1421,7 +1423,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
 
     Returns
     -------
-    None.
+    fig, ax.
 
     '''
     
@@ -1502,7 +1504,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     fig.tight_layout()
     if iterateVariable and legend:
-        plt.legend()
+        plt.legend(loc=legendLoc)
     plt.show()
     
     return fig, ax
