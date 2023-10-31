@@ -14,15 +14,15 @@ import os
 import datetime
 
 totalDataPath =r"Z:\ats317group\Data"
-date = '10/12/2023'
-dataFolders = [r'Andor/Position 1 Bias Scan']
+date = '10/24/2023'
+dataFolders = [r'Andor/No ODT Bias Scan_1']
 
 
 saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
 
-targetFileName = 'ODT Position 1 Bias Scan'
+targetFileName = 'No ODT Bias Scan_CalculatedOnOCT31'
 targetFolder = r'Z:\ats317group\Data\Analysis Resutls in csv'
 
 
@@ -34,15 +34,17 @@ if Calculate:
     
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,
-                                                  rowstart = 400,
-                                                  rowend = 650,
-                                                  columnstart = 400,
-                                                  columnend = 700,
-                                                  subtract_bg=True, 
-                                                  signal_width=40)
+                                                  # rowstart = 400,
+                                                  # rowend = 650,
+                                                  # columnstart = 400,
+                                                  # columnend = 700,
+                                                  subtract_bg=False, 
+                                                  signal_width=40
+                                                  )
+    
+targetFilePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
 
-if saveToCSV:
-    targetFilePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
+if Calculate and saveToCSV:
     
     if os.path.exists(targetFilePath):
         if writeToExistingFile:
@@ -75,6 +77,7 @@ if not Calculate:
 
 fig, ax = ImageAnalysisCode.PlotFromDataCSV(results, 'ZSBiasCurrent', 'AtomNumber', 
                                     # filterByAnd=['wait==30', 'AtomNumber>1e4'], 
+                                    # filterByAnd=["Folder==r'Andor/No ODT Bias Scan_3'"],
                                     iterateVariable='VerticalBiasCurrent',
                                     groupbyX=1, threeD=0
                                     )

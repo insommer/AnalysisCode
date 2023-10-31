@@ -15,32 +15,32 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-date = '10/10/2023'
-data_folder = [r'/Andor/Position 1 Bias Scan_1']
+date = '10/26/2023'
+data_folder = [r'/Andor/Move Lens']
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = None #The number of runs to exam.
+examNum = 32 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 5
+plotPWindow = 4
 do_plot = True
 uniformscale = 0
 
-variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent', 'ODT_Position']
+variablesToDisplay = ['wait', 'Lens Position' ]
 
 showTimestamp = False
 
 variableFilterList = None
-variableFilterList = ['VerticalBiasCurrent==1', 'ZSBiasCurrent==7.5'] # NO SPACE around the operator!
+# variableFilterList = ['VerticalBiasCurrent==0'] # NO SPACE around the operator!
 
 pictureToHide = None
-# pictureToHide = [2] # list(range(0,10,2))
+# pictureToHide = [4] # list(range(0,10,2))
 
-subtract_bg = True
+subtract_bg = 1
 signal_feature = 'narrow' 
-signal_width = 8
-figbgDeg = 5
+signal_width = 40 #The narrower the signal, the bigger the number.
+fitbgDeg = 5
 
 rowstart = 10
 rowend = -10
@@ -48,7 +48,7 @@ columnstart = 10
 columnend = -10
 
 # rowstart = 400
-# rowend = 580
+# rowend = 650
 # columnstart = 400
 # columnend = 700
 
@@ -157,7 +157,7 @@ for ind in range(imgNo):
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
-                                                  subtract_bg=subtract_bg, signal_feature=signal_feature, signal_width=signal_width, figbgDeg=figbgDeg,
+                                                  subtract_bg=subtract_bg, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg,
                                                   vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
@@ -198,7 +198,7 @@ for ind in range(imgNo):
         widths_x.append(width_x)
         widths_y.append(width_y)
 
-# fig.tight_layout()
+    fig.tight_layout()
 
 print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumbers)))
     

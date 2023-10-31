@@ -209,6 +209,7 @@ def AnalyzeZyla(date,
             currentDataDict['center_y']=center_y
             currentDataDict['width_x']=width_x
             currentDataDict['width_y']=width_y
+            currentDataDict['Number_of_atoms']=Number_of_atoms[ind]
         else:
             log("fit failed for index {}".format(ind),2)
         dataDicts.append(currentDataDict)

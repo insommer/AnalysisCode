@@ -259,7 +259,7 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
             x = iteration*picturesPerIteration + picture
             
             if picture == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(file_names[x]), 2 ) ) )
+                fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(file_names[x]) ) )
                 
             if x > 0:
                 data_array_corrected = loadPGM(file_names[x], file_encoding = file_encoding)
@@ -342,7 +342,7 @@ def LoadVariableLog(path):
     
     for filename in filenames:
         variable_dict = {}
-        variable_dict['time'] = datetime.datetime.fromtimestamp( round(os.path.getctime(os.path.join(path,filename)),2) )
+        variable_dict['time'] = datetime.datetime.fromtimestamp( os.path.getctime(os.path.join(path,filename)) )
         
         # datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
         # print(parameter_dict['time'])
@@ -388,6 +388,8 @@ def Filetime2Logtime(fileTime, variableLog, timeLim=10):
         logTimes.append(logTime)
         
         dt = (t - logTime).total_seconds()
+        print('The pictures were took {} s after the log.'.format(dt))
+        
         if dt > timeLim:
             print('Warning! The log is {:.2f} s earlier than the data file!'.format(dt))
     return logTimes
@@ -395,6 +397,7 @@ def Filetime2Logtime(fileTime, variableLog, timeLim=10):
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
                       return_fileTime=0):
+    # examFrom: examUntil
         """
         Parameters
         ----------
@@ -1344,8 +1347,19 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     
     if variableLog is not None:
         variableLog = variableLog.loc[logTime]
-        df = df.join(variableLog)
+        df1 = df.join(variableLog)
     
+    return df1
+
+
+def DataFilter(df, filterByAnd=[], filterByOr=[], filterByOr2=[]):
+    if filterByAnd:
+        for flt in filterByAnd:
+            df = df[ eval('df.' + flt.replace(' ', '_')) ]
+            
+    if filterByOr:
+        df = FilterByOr(df, [filterByOr, filterByOr2])
+        
     return df
 
 
@@ -1369,9 +1383,9 @@ def FilterByOr(df, filterLists):
 
 
 
-def PlotFromDataCSV(filePath, xVariable, yVariable, 
+def PlotFromDataCSV(df, xVariable, yVariable, 
                     groupby=None, groupbyX=0, iterateVariable=None,
-                    filterByAnd=None, filterByOr=[], filterByOr2=[],
+                    filterByAnd=[], filterByOr=[], filterByOr2=[],
                     legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
@@ -1379,9 +1393,8 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
 
     Parameters
     ----------
-    filePath : str
-        The path to the data file. The file should be a .csv file that can be 
-        read in to a pd dataframe.
+    df : DataFrame
+        Pandas dataframe from CalculateFromZyla or loaded from a saved data file.
     xVariable : str
         The name of the variable to be plotted as the x axis. It should be the 
         name of a column of the dataframe.
@@ -1428,18 +1441,12 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
     '''
     
         
-    if not os.path.exists(filePath):
-        raise FileNotFoundError("The file does not exist!")
+    # if not os.path.exists(filePath):
+    #     raise FileNotFoundError("The file does not exist!")
     
-    df = pd.read_csv(filePath)
+    # df = pd.read_csv(filePath)
     df = df[ ~np.isnan(df[yVariable]) ]
-    
-    if filterByAnd:
-        for flt in filterByAnd:
-            df = df[ eval('df.' + flt.replace(' ', '_')) ]
-            
-    if filterByOr:
-        df = FilterByOr(df, [filterByOr, filterByOr2])
+    df = DataFilter(df, filterByAnd, filterByOr, filterByOr2)
     
     columnlist = [xVariable, yVariable]
     
@@ -1463,7 +1470,7 @@ def PlotFromDataCSV(filePath, xVariable, yVariable,
         fig, ax = plt.subplots(figsize=(9,9), subplot_kw=dict(projection='3d'))
         ax.view_init(elev=viewElev, azim=viewAzim)
     else:
-        fig, ax = plt.subplots(figsize=(8,5))
+        fig, ax = plt.subplots(figsize=(10,8))
     
     for ii in iterable:
         if ii is None:

@@ -25,8 +25,8 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '9/28/2023'
-data_folder = r'/FLIR/MOT and ODT Movement_2'
+date = '10/25/2023'
+data_folder = r'/FLIR/starting up'
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date)
 data_folder = dataLocation + data_folder
@@ -35,16 +35,16 @@ variableLog_folder = dataLocation + r'/Variable Logs'
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 99 #The number of runs to exam.
+examNum = 10 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 variablesToDisplay = None
-variablesToDisplay = ['wait', 'CamBiasCurrent', 'ZSBiasCurrent']
+# variablesToDisplay = ['wait', 'CamBiasCurrent', 'ZSBiasCurrent']
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
 variableFilterList = None
-variableFilterList = ['wait==30', 'ZSBiasCurrent==6'] # NO SPACE around the operator!
+# variableFilterList = ['wait==30', 'ZSBiasCurrent==6'] # NO SPACE around the operator!
 
 ####################################
 ####################################
