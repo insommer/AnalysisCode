@@ -19,7 +19,7 @@ import PIL
 import datetime
 import pandas as pd
 from scipy.ndimage import rotate
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class AndorZyla: # Andor Zyla 5.5  
     def __init__(self):
@@ -583,7 +583,7 @@ def CountsToAtoms(params, counts):
     return  (4*np.pi*counts*params.camera.sensitivity)/(params.camera.quantum_eff*params.R_scat*params.t_exp*params.solid_angle)
     
 
-def ShowImages3d(images):
+def ShowImages3d(images,vmin=None,vmax=None):
     """
     Draws a grid of images
 
@@ -596,11 +596,17 @@ def ShowImages3d(images):
     #print(iterations,picturesPerIteration)
     #imax = np.max(images)
     #imin = np.min(images)
-    
+    MAX_COLS = 5
+    ncols = min(MAX_COLS, iterations)
+    nrows = int(np.ceil(iterations/ncols))
+    fig =plt.figure()
     for it in range(iterations):
-        print(it)
-        ax = plt.subplot(iterations,1,1)
-        ax.imshow(images[it,:,:],cmap="gray")#,vmin = imin, vmax=imax)
+        #print(it)
+        ax = plt.subplot(nrows,ncols,it+1)
+        im = ax.imshow(images[it,:,:],cmap="gray",vmin = vmin, vmax=vmax)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(im, cax=cax, orientation='vertical')
     plt.tight_layout()
     plt.show()
 
@@ -1055,7 +1061,7 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
                   vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
-                  xscale_factor=1, yscale_factor=1, legend=False):
+                  xscale_factor=1, yscale_factor=1, legend=False,fig=None):
     
     add_title = False
     add_xlabel=False
@@ -1064,13 +1070,17 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
     
     if do_plot:
         if ax is None:
-            _, ax = plt.subplots(1,3, figsize=(8,2))
+            fig, ax = plt.subplots(1,3, figsize=(8,2))
             plt.rcParams.update({'font.size' : 10})
         else:
             plt.rcParams.update({'font.size' : 8})
-            
-        ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
-                
+        
+        if fig:#Add colorbar
+            im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
+            divider = make_axes_locatable(ax[0])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
+        
         if Ind == 0:
             ax[0].set_title(title2D)
             add_title = True            
@@ -1526,18 +1536,38 @@ def temperature_model(t, w0, T):
     # model = w0*np.sqrt((kb*T*(t-t0)**2)/(m*w0**2))
     return model
 
-def temperature_fit(params, widths_array, tof_array):
-    #fit_array = np.linspace(tof_array[0], tof_array[-1], len(tof_array))
+def temperature_fit(params, widths_array, tof_array,label="",do_plot=False):
+    #Inputs: params object, widths in meters, times in seconds
+    #Optional: label like "x" or "y"
+    
     min_time = min(tof_array)
     max_time = max(tof_array)
     min_width = min(widths_array)
     max_width = max(widths_array)
+    
+    #remove Nans and Infs
+    good_indexes = np.isfinite(widths_array)
+    tof_array = tof_array[good_indexes]
+    widths_array = widths_array[good_indexes]
+    
     w0guess = min_width
     slope = (max_width-min_width)/(max_time-min_time)
     Tguess = (slope)**2*params.m/params.kB 
     popt, pcov = curve_fit(temperature_model, tof_array, widths_array, p0 = [w0guess, Tguess])
     times_fit = np.linspace(min_time, max_time, 100)
     widths_fit = temperature_model(times_fit, popt[0], popt[1])
+    
+    if (do_plot):
+        #plot the widths vs. position
+        plt.figure()
+        plt.title("{} T = {:.2f} uK".format(label, popt[1]*1e6))
+        plt.xlabel("Time of flight (ms)")
+        plt.ylabel("width of atom cloud (um)")
+        plt.scatter(1e3*tof_array, 1e6*widths_array)
+        plt.plot(1e3*times_fit, 1e6*widths_fit)
+        # if data_folder:
+        #     plt.savefig(data_folder+r'\\'+"temperature x.png", dpi = 500)
+    
     return tof_array, times_fit, widths_fit, popt, pcov
 
  

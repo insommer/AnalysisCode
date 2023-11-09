@@ -15,19 +15,19 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-date = '10/26/2023'
-data_folder = [r'/Andor/Move Lens']
+date = '7/18/2023'
+data_folder = [r'/Andor/ODT Align']
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
 examNum = 32 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 4
+plotPWindow = 6
 do_plot = True
 uniformscale = 0
 
-variablesToDisplay = ['wait', 'Lens Position' ]
+variablesToDisplay = ['wait', 'D1_AOM_VCO' ]
 
 showTimestamp = False
 
