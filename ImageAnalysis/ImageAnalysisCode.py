@@ -1055,13 +1055,13 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
     return popt
 
 #Modified from fitgaussian2, passing the handle for plotting in subplots. 
-def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1, 
+def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1, 
                   subtract_bg = True, signal_feature = 'wide', 
                   signal_width=10, fitbgDeg=5,
                   vmax = None, vmin = 0,
                   title="", title2D="", 
                   xlabel1D="",ylabel1D="",
-                  xscale_factor=1, yscale_factor=1, legend=False,fig=None):
+                  xscale_factor=1, yscale_factor=1, legend=False):
     
     add_title = False
     add_xlabel=False
@@ -1069,17 +1069,17 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, Ind=0, imgNo=1,
     no_xticklabel=True
     
     if do_plot:
-        if ax is None:
+        if ax is None:#Create fig and ax if it is not passed.
             fig, ax = plt.subplots(1,3, figsize=(8,2))
             plt.rcParams.update({'font.size' : 10})
         else:
             plt.rcParams.update({'font.size' : 8})
         
-        if fig:#Add colorbar
-            im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
-            divider = make_axes_locatable(ax[0])
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(im, cax=cax, orientation='vertical')
+        #Add colorbar
+        im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
+        divider = make_axes_locatable(ax[0])
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        fig.colorbar(im, cax=cax, orientation='vertical')
         
         if Ind == 0:
             ax[0].set_title(title2D)
