@@ -71,7 +71,9 @@ def AnalyzeZyla(date,
                 signal_feature='narrow', 
                 rowstart=0, rowend=-1, 
                 columnstart=0, columnend=-1,
-                picturesPerIteration = 3):
+                picturesPerIteration = 3,
+                subtract_burntin = 0,
+                do_plot_ratio = 0):
     
     dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
     data_folders = [ dataLocation + f for f in data_folders ]
@@ -113,12 +115,13 @@ def AnalyzeZyla(date,
     log("Calculating column densities...")
     Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                     firstFrame=0, correctionFactorInput=1.0,  
-                    subtract_burntin=0, preventNAN_and_INF=True)
+                    subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     # plt.figure()
     # plt.imshow(np.array(images_array[0][0]-images_array[0][2],dtype=np.float64)/(images_array[0][1]-images_array[0][2]),vmin=0,vmax=1.1)
     # plt.imshow(images_array[0][0]-images_array[0][1])
     
-    
+    if (do_plot_ratio):
+        ImageAnalysisCode.ShowImages3d(ratio_array,vmin=0,vmax=1.2)
     
     imgNo = len(columnDensities)
     angle_deg= 2 #rotates ccw
@@ -166,9 +169,9 @@ def AnalyzeZyla(date,
                                                       vmax = vmax, vmin = vmin,
                                                       title="1D density", title2D="column density",
                                                       xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
-                                                      xscale_factor=1/units.um, yscale_factor=units.um)
+                                                      xscale_factor=1/units.um, yscale_factor=units.um, fig=fig)
         
-        if variablesToDisplay is not None and variableLog is not None:
+        if variablesToDisplay and variableLog is not None:
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axs[plotInd,0].text(0,1, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
