@@ -1077,9 +1077,10 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
         
         #Add colorbar
         im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
-        divider = make_axes_locatable(ax[0])
-        cax = divider.append_axes('right', size='3%', pad=0.05)
-        fig.colorbar(im, cax=cax, orientation='vertical')
+        if fig:
+            divider = make_axes_locatable(ax[0])
+            cax = divider.append_axes('right', size='3%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
         
         if Ind == 0:
             ax[0].set_title(title2D)
