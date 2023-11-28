@@ -15,8 +15,10 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-date = '7/18/2023'
-data_folder = [r'/Andor/ODT Align']
+date = '9/7/2023'
+data_folder = [
+    r'/Andor/Thermometry_High PD 2.45 to 0.25 V Evap Time 100 ms'
+    ]
 ####################################
 #Parameter Setting
 ####################################
@@ -89,7 +91,7 @@ for ff in data_folder:
 images_array = images_array[examFrom: examUntil]
 fileTime = fileTime[examFrom: examUntil]
 
-variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
+variableLog = None
 logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
     
 if variableFilterList is not None and variableLog is not None:    
@@ -161,7 +163,7 @@ for ind in range(imgNo):
                                                   vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
-                                                  xscale_factor=1/units.um, yscale_factor=units.um)
+                                                  xscale_factor=1/units.um, yscale_factor=units.um, fig=fig)
     
     if do_plot and variablesToDisplay is not None and variableLog is not None:
         variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]

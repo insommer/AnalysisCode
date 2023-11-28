@@ -148,8 +148,8 @@ def AnalyzeZyla(date,
         
         plotInd = ind % plotPWindow
         if do_plot == True and plotInd == 0:
-            # if ind//plotPWindow>0:
-            #     fig.tight_layout()
+            if ind//plotPWindow>0:
+                plt.tight_layout()
             plotNo = min(plotPWindow, imgNo-ind)
             fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
             plt.subplots_adjust(hspace=0.14, wspace=0.12)
@@ -225,7 +225,8 @@ def AnalyzeZyla(date,
     # runDataFrame['centers_y']=centers_y
     # runDataFrame['widths_y']=widths_y
     
-    fig.tight_layout()
+    if do_plot:
+        plt.tight_layout()
     
     print('\nThe average number of atoms:{:.2e}'.format(np.mean(AtomNumbers)))
         

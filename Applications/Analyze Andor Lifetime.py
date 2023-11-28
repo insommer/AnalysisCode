@@ -10,20 +10,26 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+#data_location = r'C:/Users/Sommer Lab/Documents/Data/'
+data_location = r'Z:/ats317group/Data/'
+
 
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/07-2023/07 Jul 2023'
-data_folder = r'/Andor/lifetime'
+date = r'/2023/11-2023/17 Nov 2023'
+data_folder = r'/Andor/ODT with stabilization lifetime'
 
 data_folder = data_location + date + data_folder
 
 
 # data_folder = './Andor/lifetime' 
 t_exp = 10e-6
-picturesPerIteration = 3
+subtract_bg = 1
+
+subtract_burntin = 1
+picturesPerIteration = 4 if subtract_burntin else 3
+
 sec=1
 ms = 1e-3*sec
 
@@ -36,16 +42,24 @@ if os.path.exists(list_file):
     times = np.loadtxt(list_file)
 else:
     List = '''
+10
+30
+50
 100
+200
+300
+400
+500
 600
-1100
-1600
-2100
-2600
-3100
-3600
-4100
-4600
+10
+30
+50
+100
+200
+300
+400
+500
+600
     '''
     times = np.array(List.split('\n')[1:-1], dtype='float')
     np.savetxt(list_file, times)
@@ -53,16 +67,12 @@ else:
 
 # times = np.loadtxt(data_folder+'/wait_ms.txt')*ms
 
-rowstart =160#550
-rowend =320#710
-columnstart = 100#550#550
-columnend = 350#800#800
 
 
-rowstart = 100
-rowend =220
-columnstart = 150
-columnend = 350
+rowstart = 300
+rowend = -300
+columnstart=300
+columnend=-300
 
 params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")      
 images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
@@ -71,14 +81,14 @@ images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=None,  
-                subtract_burntin=0, preventNAN_and_INF=False)
+                subtract_burntin=subtract_burntin, preventNAN_and_INF=False)
 
 imgNo = len(columnDensities)
 print(imgNo)
-angle_deg= 1 #rotates ccw
+angle_deg= 2 #rotates ccw
 #ROTATE
 for ind in range(imgNo):
-    rotated_ = rotate(columnDensities[ind][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
+    rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
     if ind==0: #first time
         rotated_columnDensities =np.zeros((imgNo, *np.shape(rotated_)))
     rotated_columnDensities[ind] = rotated_
@@ -89,6 +99,7 @@ AtomNumbers = []
 for ind in range(imgNo):
     poptx, popty = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind],dx=dx, do_plot = True, title=str(ind),
                                               ylabel1D="1d density (atoms/m)", xlabel1D="distance (microns)",
+                                              subtract_bg = subtract_bg,
                                               xscale_factor=1e6)
 
     wy = abs(popty[2])
