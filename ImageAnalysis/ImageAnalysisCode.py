@@ -1234,19 +1234,17 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     # return np.nan, np.nan, np.nan, np.nan
     
 
-def CalculateFromZyla(dayFolderPath, dataFolders, 
-                      variableLog=None, 
+def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 
                       repetition=1, examNum=None, examFrom=None, 
-                      plotRate=0.2, 
-                      plotPWindow=5, uniformscale=0, 
-                      variablesToDisplay=None, variableFilterList=None, 
+                      plotRate=0.2, plotPWindow=5, uniformscale=0, 
+                      variablesToDisplay=[], variableFilterList=None, 
                       showTimestamp=False, pictureToHide=None,
                       subtract_bg=True, signal_feature='narrow', signal_width=10,
-                      rowstart=10, rowend=-10, columnstart=10, columnend=-10,
+                      rowstart=30, rowend=-30, columnstart=30, columnend=-30,
                       angle_deg= 2, #rotates ccw
                       subtract_burntin=0, 
-                      lengthFactor=1e-6,
-                      do_plot=0):    
+                      lengthFactor=1e-6
+                      ):    
     
     dataFolderPaths = [ os.path.join(dayFolderPath, f) for f in dataFolders ]
     examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
@@ -1267,9 +1265,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
             images_array = np.concatenate([images_array, _images_array], axis=0)
             fileTime = fileTime + _fileTime
             NoOfRuns.append(len(_fileTime))
-            
-    print('Images loaded.')
-                
+    
     images_array = images_array[examFrom: examUntil]
     fileTime = fileTime[examFrom: examUntil]
     
@@ -1295,10 +1291,20 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = absImagingSimple(images_array, 
                     firstFrame=0, correctionFactorInput=1.0,  
                     subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
-        
+    
     imgNo = len(columnDensities)
+    print('{} images loaded.'.format(imgNo))
+        
     results = []
+    
+    #Generate the list for plot based on the total image # and the set ploting ratio
     plotList = np.arange(imgNo)[np.random.rand(imgNo) < plotRate]
+    plotNo = len(plotList)
+    plotInd = 0
+    
+    axs = [None] 
+    axRowInd = 0
+    axRowNo = None
     
     if uniformscale:
         vmax = columnDensities.max()
@@ -1306,20 +1312,24 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     else:
         vmax = None
         vmin = 0
+   
+    for ind in range(imgNo):
         
-    for ind in range(imgNo):        
-        if not do_plot:
-            axs = [None] 
-            plotInd = 0
-            plotNo = None
-        else:
-            plotInd = ind % plotPWindow
-            if plotInd == 0:
+        # do_plot = 1 if ind in plotList else 0
+        
+        if ind in plotList:
+            do_plot = 1
+        else: do_plot = 0
+        
+        if do_plot:
+            axRowInd = plotInd % plotPWindow #The index of axes in one figure
+            if axRowInd == 0:
                 # if ind//plotPWindow>0:
                 #     fig.tight_layout()
-                plotNo = min(plotPWindow, imgNo-ind)
-                fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
+                axRowNo = min(plotPWindow, plotNo-plotInd) #The number of rows of axes in one figure
+                fig, axs = plt.subplots(axRowNo , 3, figsize=(3*3, 1.8*axRowNo), squeeze = False, layout="constrained")
                 plt.subplots_adjust(hspace=0.14, wspace=0.12)
+            plotInd += 1
             
         rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
         # rotated_=columnDensities[ind]
@@ -1331,18 +1341,19 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
         dx=params.camera.pixelsize_meters/params.magnification
         
         popt0, popt1 = fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
-                                                      do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
+                                                      do_plot = do_plot, ax=axs[axRowInd], Ind=axRowInd, imgNo=axRowNo,
                                                       subtract_bg = subtract_bg, signal_feature = signal_feature, signal_width=signal_width,
                                                       vmax = vmax, vmin = vmin,
                                                       title="1D density", title2D="column density",
                                                       xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                       xscale_factor=1/lengthFactor, yscale_factor=lengthFactor)
         
-        if variablesToDisplay and variableLog is not None:
+        if do_plot and variableLog is not None:
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
-            axs[plotInd,0].text(0,1, 
-                            variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
-                            fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
+            axs[axRowInd,0].text(0,1,
+                                 'imgIdx = {}'.format(ind) + '\n'
+                            + variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
+                            fontsize=5, ha='left', va='top', transform=axs[axRowInd,0].transAxes, 
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
                 
         if popt0 is None:
@@ -1501,7 +1512,7 @@ def PlotFromDataCSV(df, xVariable, yVariable,
             
         if groupby:
             dfiimean = dfii.groupby(groupby).mean()
-            dfiistd = dfii.groupby(groupby).std()
+            dfiistd = dfii.groupby(groupby).std(ddof=0)
             
             yMean = dfiimean[yVariable]
             yStd = dfiistd[yVariable]
