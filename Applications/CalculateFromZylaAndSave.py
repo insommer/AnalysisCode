@@ -14,17 +14,24 @@ import os
 import datetime
 
 totalDataPath =r"Z:\ats317group\Data"
-totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
+# totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
 date = '11/30/2023'
-dataFolders = [r'Andor/ODT Position 1713 Bias Scan_1']
+dataFolders = [
+    r'Andor/ODT Position 1200 Bias Scan CMOT',
+    
+    ]
 
 
-saveToCSV = 0
+print('###1')
+
+saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
 
-targetFileName = 'ODT P5 bias scan'
-targetFolder = r'Z:\ats317group\Data\ODT Data 11.22'
+targetFileName = 'ODT Position 1200 Bias Scan CMOT'
+targetFolder = r'Z:\ats317group\Data\ODT Data 11.30'
+
+print('###2')
 
 
 dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
@@ -32,7 +39,8 @@ dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
 if Calculate:    
     variableLogFolder = os.path.join(dayFolder, 'Variable Logs')
     variableLog = ImageAnalysisCode.LoadVariableLog(variableLogFolder)
-    
+    print('###3')
+
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,
                                                   
@@ -41,19 +49,26 @@ if Calculate:
                                                   # columnstart = 400,
                                                   # columnend = 700,
                                                   
-                                                   # rowstart = 400,
-                                                   # rowend = -350,
-                                                   # columnstart = 600,
-                                                   # columnend = -670,
+                                                    # rowstart = 400,
+                                                    # rowend = -350,
+                                                    # columnstart = 600,
+                                                    # columnend = -670,
                                                   
-                                                  subtract_bg=1, 
+                                                  subtract_bg=0, 
                                                   signal_width=40, 
-                                                  subtract_burntin=0
+                                                  subtract_burntin=1,
+                                                  plotRate=0.2,
+                                                  plotPWindow=4,
+                                                  variablesToDisplay = ['ZSBiasCurrent',
+                                                                        'VerticalBiasCurrent']                                                  
                                                   )
-    
-targetFilePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
+    print('###4')
+
 
 if Calculate and saveToCSV:
+    if not os.path.exists(targetFolder):  
+        os.mkdir(targetFolder)
+    targetFilePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
     
     if os.path.exists(targetFilePath):
         if writeToExistingFile:
@@ -71,7 +86,7 @@ if Calculate and saveToCSV:
                 ii += 1                
                     
     results.to_csv( targetFilePath )
-    print('Results saved.')
+    print('Results saved to\n{}.'.format(targetFilePath))
     
 #%%
 
