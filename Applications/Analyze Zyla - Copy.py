@@ -15,22 +15,22 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-data_path =r"C:\Users\Sommer Lab\Documents\Data"
-date = '11/30/2023'
+date = '9/7/2023'
 data_folder = [
-    r'/Andor/ODT Position 1200 Bias Scan CMOT'
+    r'/Andor/Thermometry_High PD 2.45 to 0.25 V Evap Time 100 ms'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = None #The number of runs to exam.
+examNum = 32 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 5
+plotPWindow = 6
 do_plot = True
 uniformscale = 0
 
-variablesToDisplay = ['wait','ZSBiasCurrent',  'VerticalBiasCurrent']
+variablesToDisplay = ['wait', 'D1_AOM_VCO' ]
+
 showTimestamp = False
 
 variableFilterList = None
@@ -39,11 +39,10 @@ variableFilterList = None
 pictureToHide = None
 # pictureToHide = [4] # list(range(0,10,2))
 
-subtract_bg = 0
+subtract_bg = 1
 signal_feature = 'narrow' 
 signal_width = 40 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-subtract_burntin = 1
 
 rowstart = 10
 rowend = -10
@@ -51,9 +50,9 @@ columnstart = 10
 columnend = -10
 
 # rowstart = 400
-# rowend = -350
-# columnstart = 600
-# columnend = -670
+# rowend = 650
+# columnstart = 400
+# columnend = 700
 
 # rowstart = 200
 # rowend = 780
@@ -67,9 +66,8 @@ data_folder = [ dataLocation + f for f in data_folder ]
 variableLog_folder = dataLocation + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-picturesPerIteration = 4 if subtract_burntin else 3
-
 t_exp = 10e-6
+picturesPerIteration = 3
 ms = 1e-3
 
 class SIUnits:
@@ -93,7 +91,7 @@ for ff in data_folder:
 images_array = images_array[examFrom: examUntil]
 fileTime = fileTime[examFrom: examUntil]
 
-variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
+variableLog = None
 logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
     
 if variableFilterList is not None and variableLog is not None:    
@@ -110,7 +108,7 @@ if pictureToHide is not None:
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1.0,  
-                subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+                subtract_burntin=0, preventNAN_and_INF=True)
 # plt.figure()
 # plt.imshow(np.array(images_array[0][0]-images_array[0][2],dtype=np.float64)/(images_array[0][1]-images_array[0][2]),vmin=0,vmax=1.1)
 # plt.imshow(images_array[0][0]-images_array[0][1])
@@ -150,7 +148,7 @@ for ind in range(imgNo):
             plt.subplots_adjust(hspace=0.14, wspace=0.12)
 
         
-    rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend, columnstart:columnend]
+    rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
     # rotated_=columnDensities[ind]
     if ind==0: #first time
         rotated_columnDensities =np.zeros((imgNo, *np.shape(rotated_)))

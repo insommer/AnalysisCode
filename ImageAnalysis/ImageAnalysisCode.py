@@ -378,25 +378,20 @@ def VariableFilter(timestamps, variableLog, variableFilterList):
         
     return filteredList
 
-def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=15):
+def Filetime2Logtime(fileTime, variableLog, timeLim=10):
     if variableLog is None:
         return None
     
-    Index = variableLog.index
     logTimes = []
     for ii, t in enumerate(fileTime):
-        logTime = Index[ Index <= t ][-1]        
-        dt = (t - logTime).total_seconds()
-        
-        if dt > timeUpLim or dt < timeLowLim:
-            print('Warning! The log is {:.2f} s earlier than the data file, potential mismatching!'.format(dt))
-            
-            if dt < timeLowLim:
-                logTime = Index[ Index <= t ][-2]
-                print('Picked the logfile earlier, the time interval is {:.2f} s'.format((t - logTime).total_seconds()))
-
+        logTime = variableLog[ variableLog.index <= t ].iloc[-1].name
         logTimes.append(logTime)
         
+        dt = (t - logTime).total_seconds()
+        print('The pictures were took {} s after the log.'.format(dt))
+        
+        if dt > timeLim:
+            print('Warning! The log is {:.2f} s earlier than the data file!'.format(dt))
     return logTimes
 
 
@@ -1082,10 +1077,10 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
         
         #Add colorbar
         im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
-        # if fig:
-        #     divider = make_axes_locatable(ax[0])
-        #     cax = divider.append_axes('right', size='3%', pad=0.05)
-        #     fig.colorbar(im, cax=cax, orientation='vertical')
+        if fig:
+            divider = make_axes_locatable(ax[0])
+            cax = divider.append_axes('right', size='3%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
         
         if Ind == 0:
             ax[0].set_title(title2D)
@@ -1237,21 +1232,17 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 def CalculateFromZyla(dayFolderPath, dataFolders, 
                       variableLog=None, 
                       repetition=1, examNum=None, examFrom=None, 
-                      plotRate=0.2, 
-                      plotPWindow=5, uniformscale=0, 
+                      do_plot=False, plotPWindow=5, uniformscale=0, 
                       variablesToDisplay=None, variableFilterList=None, 
                       showTimestamp=False, pictureToHide=None,
                       subtract_bg=True, signal_feature='narrow', signal_width=10,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10,
                       angle_deg= 2, #rotates ccw
-                      subtract_burntin=0, 
-                      lengthFactor=1e-6,
-                      do_plot=0):    
+                      picturesPerIteration = 3, lengthFactor=1e-6):    
     
     dataFolderPaths = [ os.path.join(dayFolderPath, f) for f in dataFolders ]
     examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
     
-    picturesPerIteration = 4 if subtract_burntin else 3    
     params = ExperimentParams(t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
     images_array = None
     NoOfRuns = []
@@ -1294,11 +1285,10 @@ def CalculateFromZyla(dayFolderPath, dataFolders,
     # ImageAnalysisCode.ShowImagesTranspose(images_array)
     Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = absImagingSimple(images_array, 
                     firstFrame=0, correctionFactorInput=1.0,  
-                    subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+                    subtract_burntin=0, preventNAN_and_INF=True)
         
     imgNo = len(columnDensities)
-    results = []
-    plotList = np.arange(imgNo)[np.random.rand(imgNo) < plotRate]
+    results = []    
     
     if uniformscale:
         vmax = columnDensities.max()
