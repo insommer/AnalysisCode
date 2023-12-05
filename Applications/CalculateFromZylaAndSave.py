@@ -14,16 +14,17 @@ import os
 import datetime
 
 totalDataPath =r"Z:\ats317group\Data"
-date = '10/24/2023'
-dataFolders = [r'Andor/No ODT Bias Scan']
+totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
+date = '11/30/2023'
+dataFolders = [r'Andor/ODT Position 1200 Bias Scan_3']
 
 
-saveToCSV = 1
+saveToCSV = 0
 writeToExistingFile = 1
-Calculate = 0
+Calculate = 1
 
-targetFileName = 'No ODT Bias Scan_CalculatedOnOCT31'
-targetFolder = r'Z:\ats317group\Data\Analysis Resutls in csv'
+targetFileName = 'ODT P5 bias scan'
+targetFolder = r'Z:\ats317group\Data\ODT Data 11.22'
 
 
 dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
@@ -34,12 +35,20 @@ if Calculate:
     
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,
+                                                  
                                                   # rowstart = 400,
                                                   # rowend = 650,
                                                   # columnstart = 400,
                                                   # columnend = 700,
-                                                  subtract_bg=False, 
-                                                  signal_width=40
+                                                  
+                                                   # rowstart = 400,
+                                                   # rowend = -350,
+                                                   # columnstart = 600,
+                                                   # columnend = -670,
+                                                  
+                                                  subtract_bg=1, 
+                                                  signal_width=40, 
+                                                  subtract_burntin=0
                                                   )
     
 targetFilePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
@@ -81,5 +90,5 @@ fig, ax = ImageAnalysisCode.PlotFromDataCSV(results, 'ZSBiasCurrent', 'AtomNumbe
                                     # filterByAnd=['wait==30', 'AtomNumber>1e4'], 
                                     # filterByAnd=["Folder==r'Andor/No ODT Bias Scan_3'"],
                                     iterateVariable='VerticalBiasCurrent',
-                                    groupbyX=1, threeD=1
+                                    groupbyX=1, threeD=0
                                     )
