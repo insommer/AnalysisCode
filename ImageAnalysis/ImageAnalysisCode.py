@@ -460,7 +460,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         for ind in range(number_of_pics): 
             # filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
             filename = calcFileName(ind,skipped)
-            MAX_SKIP = 10 # to prevent infinite loops
+            MAX_SKIP = 100 # to prevent infinite loops
             while not os.path.exists(filename) and skipped < MAX_SKIP:
                 print("Warning: skipped "+os.path.basename(filename))
                 skipped += 1

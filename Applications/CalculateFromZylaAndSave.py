@@ -16,9 +16,13 @@ import datetime
 totalDataPath =r"Z:\ats317group\Data"
 # totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
 date = '11/30/2023'
+<<<<<<< HEAD
+dataFolders = [r'Andor/ODT Position 1200 Bias Scan_3']
+=======
 dataFolders = [
     r'Andor/ODT Position 1200 Bias Scan CMOT',
     ]
+>>>>>>> 5257aa1484aa9d5cac657a248b4c8240453ed76f
 
 print('###1')
 
