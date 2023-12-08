@@ -18,9 +18,7 @@ totalDataPath =r"Z:\ats317group\Data"
 date = '11/30/2023'
 dataFolders = [
     r'Andor/ODT Position 1200 Bias Scan CMOT',
-    
     ]
-
 
 print('###1')
 
