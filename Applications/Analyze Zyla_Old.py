@@ -16,17 +16,17 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"C:\Users\Sommer Lab\Documents\Data"
-date = '11/30/2023'
+date = '12/12/2023'
 data_folder = [
-    r'/Andor/ODT Position 1200 Bias Scan CMOT'
+    r'/Andor/Test_1'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = None #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 5
+examNum = 'all' #The number of runs to exam.
+examFrom = 0 #Set to None if you want to check the last several runs. 
+plotPWindow = 6
 do_plot = True
 uniformscale = 0
 
@@ -37,23 +37,25 @@ variableFilterList = None
 # variableFilterList = ['VerticalBiasCurrent==0'] # NO SPACE around the operator!
 
 pictureToHide = None
-# pictureToHide = [4] # list(range(0,10,2))
+# pictureToHide = [-2] # list(range(0,10,2))
 
-subtract_bg = 0
-signal_feature = 'narrow' 
+subtract_bg = 1
+signal_feature = 'wide' 
 signal_width = 40 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-subtract_burntin = 1
+subtract_burntin = 0
+angle_deg= 1 #rotates ccw
 
 rowstart = 10
 rowend = -10
 columnstart = 10
 columnend = -10
 
-# rowstart = 400
-# rowend = -350
-# columnstart = 600
-# columnend = -670
+rowstart = 660
+rowstart = 620
+rowend = -500
+columnstart = 700
+columnend = -500
 
 # rowstart = 200
 # rowend = 780
@@ -118,7 +120,6 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
 
 
 imgNo = len(columnDensities)
-angle_deg= 2 #rotates ccw
 
 AtomNumbers=[]
 widths_x = []

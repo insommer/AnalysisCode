@@ -17,8 +17,8 @@ data_location = r'Z:/ats317group/Data/'
 ####################################
 #Set the date and the folder name
 ####################################
-date = r'/2023/11-2023/17 Nov 2023'
-data_folder = r'/Andor/ODT with stabilization lifetime'
+date = r'/2023/12-2023/12 Dec 2023'
+data_folder = r'/Andor/B Field On Lens at 102 Aligned'
 
 data_folder = data_location + date + data_folder
 

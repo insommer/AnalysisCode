@@ -73,7 +73,8 @@ def AnalyzeZyla(date,
                 columnstart=0, columnend=-1,
                 picturesPerIteration = 3,
                 subtract_burntin = 0,
-                do_plot_ratio = 0):
+                do_plot_ratio = 0,
+                angle_deg=2):
     
     dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
     data_folders = [ dataLocation + f for f in data_folders ]
@@ -124,8 +125,7 @@ def AnalyzeZyla(date,
         ImageAnalysisCode.ShowImages3d(ratio_array,vmin=0,vmax=1.2)
     
     imgNo = len(columnDensities)
-    angle_deg= 2 #rotates ccw
-    
+        
     AtomNumbers=[]
     widths_x = []
     widths_y = []
@@ -261,6 +261,7 @@ def AnalyzeZyla(date,
     ax2.plot(xx, AtomNumbers, '.-', color='tab:green')
     ax2.set_ylabel('Atom Number', color='tab:green')
     ax2.tick_params(axis="y", labelcolor='tab:green')
+    ax2.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
     
     return dataDicts
 

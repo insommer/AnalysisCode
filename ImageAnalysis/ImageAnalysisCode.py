@@ -378,7 +378,7 @@ def VariableFilter(timestamps, variableLog, variableFilterList):
         
     return filteredList
 
-def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=15):
+def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=18):
     if variableLog is None:
         return None
     
@@ -1581,12 +1581,13 @@ def temperature_fit(params, widths_array, tof_array,label="",do_plot=False):
     
     if (do_plot):
         #plot the widths vs. position
-        plt.figure()
+        plt.figure(figsize=(3,2))
         plt.title("{} T = {:.2f} uK".format(label, popt[1]*1e6))
         plt.xlabel("Time of flight (ms)")
         plt.ylabel("width of atom cloud (um)")
         plt.scatter(1e3*tof_array, 1e6*widths_array)
         plt.plot(1e3*times_fit, 1e6*widths_fit)
+        plt.tight_layout()
         # if data_folder:
         #     plt.savefig(data_folder+r'\\'+"temperature x.png", dpi = 500)
     
@@ -1724,12 +1725,14 @@ def fit_exponential(xdata, ydata ,dx=1, doplot = False, label="", title="",
     popt, pcov = curve_fit(func, xdata, ydata, p0=guess)       
 
     #poptarray([2.56274217, 1.37268521, 0.47427475])
+    plt.plot(xdata, ydata,'o')
     plt.plot(xfit, func(xfit, *popt), 'r-', label= label % tuple(popt))
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     if legend:
         plt.legend()
+    plt.tight_layout()
     plt.show()
     return popt, pcov
     
