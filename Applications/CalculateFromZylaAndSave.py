@@ -16,32 +16,26 @@ import datetime
 totalDataPath =r"Z:\ats317group\Data"
 # totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
 date = '11/30/2023'
-<<<<<<< HEAD
-dataFolders = [r'Andor/ODT Position 1200 Bias Scan_3']
-=======
+
 dataFolders = [
     r'Andor/ODT Position 1200 Bias Scan CMOT',
     ]
->>>>>>> 5257aa1484aa9d5cac657a248b4c8240453ed76f
-
-print('###1')
 
 saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
 
 targetFileName = 'ODT Position 1200 Bias Scan CMOT'
-targetFolder = r'Z:\ats317group\Data\ODT Data 11.30'
+targetFolder = r'Z:\ats317group\Data\ODT Move Data Set 3'
 
 print('###2')
-
 
 dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
 
 if Calculate:    
     variableLogFolder = os.path.join(dayFolder, 'Variable Logs')
     variableLog = ImageAnalysisCode.LoadVariableLog(variableLogFolder)
-    print('###3')
+    print('VariableLog loaded.')
 
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,

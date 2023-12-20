@@ -113,7 +113,7 @@ def GetDataLocation(date, DataPath='C:/Users/Sommer Lab/Documents/Data/'):
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
 
 def GetExamRange(examNum, examFrom=None, repetition=1):
-    if examNum is None:
+    if examNum is None or examNum == 'all':
         return None, None
     
     examNum = examNum * repetition
@@ -401,7 +401,7 @@ def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=15):
 
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
-                      return_fileTime=0):
+                      examFrom=None, examUntil=None, return_fileTime=0):
     # examFrom: examUntil
         """
         Parameters
