@@ -400,6 +400,27 @@ def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=18):
     return logTimes
 
 
+def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None):
+    '''
+    Generate the list of filenames in the correct order and selected range
+    used for loading Zyla images. 
+    '''
+    filenames = glob.glob1(data_folder,"*spool.dat")
+    filenamesInd = [ ii[6::-1] for ii in filenames]
+    
+    indexedFilenames = list(zip(filenamesInd, filenames))
+    indexedFilenames.sort()
+    
+    filenames = [ii[1] for ii in indexedFilenames]
+    
+    if examFrom:
+        examFrom *= picsPerIteration
+    if examUntil:
+        examUntil *= picsPerIteration
+        
+    return filenames[examFrom: examUntil]    
+
+
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
                       examFrom=None, examUntil=None, return_fileTime=0):
     # examFrom: examUntil
@@ -432,9 +453,14 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         else:
             raise Exception("Unknown pixel format "+pix_format)
         number_of_pixels = height*width
+        
         number_of_pics = len(glob.glob1(data_folder,"*spool.dat"))
         picturesPerIteration = params.picturesPerIteration
         assert number_of_pics % picturesPerIteration == 0
+        
+        #Get the filenames and select the range needed.
+        fileNames = GetFileNames(data_folder, picturesPerIteration, examFrom, examUntil)
+        number_of_pics = len(fileNames)        
         number_of_iterations = int(number_of_pics/picturesPerIteration)
 
         background_array = np.zeros(number_of_pixels)
@@ -449,24 +475,11 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
         image_array =           np.zeros(shape = (number_of_pixels * number_of_pics))
         image_array_corrected = np.zeros(shape = (number_of_pixels * number_of_pics))
-        spool_number = '0000000000'
-        
         fileTime = []
-        skipped=0 #apparently the camera skips numbers some times
-        def calcFileName(ind,skipped):
-            x=ind+skipped
-            return data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat" 
         
         for ind in range(number_of_pics): 
-            # filename = data_folder + "\\"+ str(x)[::-1] + spool_number[0:(10-len(str(x)))]+"spool.dat"    
-            filename = calcFileName(ind,skipped)
-            MAX_SKIP = 100 # to prevent infinite loops
-            while not os.path.exists(filename) and skipped < MAX_SKIP:
-                print("Warning: skipped "+os.path.basename(filename))
-                skipped += 1
-                filename = calcFileName(ind,skipped)
-            if skipped==MAX_SKIP:
-                raise Exception("REACHED MAXIMUM NUMBER OF SKIPPED FILES")
+            
+            filename = data_folder + "\\" + fileNames[ind] 
                 
             if ind % picturesPerIteration == 0 and return_fileTime:
                 fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(filename), 2) ) )
