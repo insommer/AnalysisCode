@@ -13,24 +13,25 @@ import pandas as pd
 import os
 import datetime
 
-totalDataPath =r"Z:\ats317group\Data"
+totalDataPath = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 # totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
-date = '11/30/2023'
+date = '1/8/2024'
+dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
 
 dataFolders = [
-    r'Andor/ODT Position 1200 Bias Scan CMOT',
+    # r'Andor/Bias Scan ODT at 1012',
+    r'Andor/Bias Scan ODT at 1012_1'
     ]
 
 saveToCSV = 1
 writeToExistingFile = 1
 Calculate = 1
 
-targetFileName = 'ODT Position 1200 Bias Scan CMOT'
+targetFileName = 'Bias Scan ODT at 1012'
 targetFolder = r'Z:\ats317group\Data\ODT Move Data Set 3'
+targetFolder = dayFolder
 
 print('###2')
-
-dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
 
 if Calculate:    
     variableLogFolder = os.path.join(dayFolder, 'Variable Logs')
@@ -40,23 +41,28 @@ if Calculate:
     results = ImageAnalysisCode.CalculateFromZyla(dayFolder, dataFolders, 
                                                   variableLog = variableLog,
                                                   
-                                                  # rowstart = 400,
-                                                  # rowend = 650,
-                                                  # columnstart = 400,
-                                                  # columnend = 700,
+                                                   rowstart = 600,
+                                                   rowend = -300,
+                                                   columnstart = 600,
+                                                   columnend = -200,
+                                                  # rowstart =560,
+                                                  # rowend = -500,
+                                                  # columnstart = 780,
+                                                  # columnend = -550,
+                                                  angle_deg= 1,
                                                   
-                                                    # rowstart = 400,
-                                                    # rowend = -350,
-                                                    # columnstart = 600,
-                                                    # columnend = -670,
-                                                  
-                                                  subtract_bg=0, 
-                                                  signal_width=40, 
-                                                  subtract_burntin=1,
-                                                  plotRate=0.2,
-                                                  plotPWindow=4,
-                                                  variablesToDisplay = ['ZSBiasCurrent',
-                                                                        'VerticalBiasCurrent']                                                  
+                                                  subtract_bg=1, 
+                                                  signal_feature='wide',
+                                                  # signal_width=40, 
+                                                  subtract_burntin=0,
+                                                  plotRate=1,
+                                                  plotPWindow=5,
+                                                  variablesToDisplay = [
+                                                       'ZSBiasCurrent',
+                                                       'VerticalBiasCurrent',
+                                                      # 'Coil_medB', 
+                                                      # 'wait'
+                                                      ]
                                                   )
     print('###4')
 
@@ -87,19 +93,26 @@ if Calculate and saveToCSV:
 #%%
 
 if not Calculate:
-    fileName = 'No ODT Bias Scan_Oct24'
+    fileName = 'Variable Wait_1_Jan08'
     filePath = os.path.join(targetFolder, fileName) + '.csv'
+    filePath = os.path.join(targetFolder, targetFileName) + datetime.datetime.strptime(date, '%m/%d/%Y').strftime('_%b%d.csv')
     results = pd.read_csv(filePath)
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 
-#                                   'Ycenter', 'AtomNumber', 
-#                                   iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   groupbyX=1, threeD=1)
+ImageAnalysisCode.PlotFromDataCSV(results, 
+                                  xVariable='ZSBiasCurrent',
+                                  yVariable='AtomNumber', 
+                                  iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  groupbyX=1, threeD=0,
+                                  figSize = 0.5
+                                  )
 
-fig, ax = ImageAnalysisCode.PlotFromDataCSV(results, 'ZSBiasCurrent', 'AtomNumber', 
-                                    # filterByAnd=['wait==30', 'AtomNumber>1e4'], 
-                                    # filterByAnd=["Folder==r'Andor/No ODT Bias Scan_3'"],
-                                    iterateVariable='VerticalBiasCurrent',
-                                    groupbyX=1, threeD=0
-                                    )
+# fig, ax = ImageAnalysisCode.PlotFromDataCSV(results, 
+#                                             xVariable='wait', 
+#                                             yVariable='Xcenter', 
+#                                     filterByAnd=['wait>10'], 
+#                                     # filterByAnd=["Folder==r'Andor/No ODT Bias Scan_3'"],
+#                                     # iterateVariable='VerticalBiasCurrent',
+#                                     # groupbyX=1, threeD=0
+#                                     figSize = 0.5
+#                                     )

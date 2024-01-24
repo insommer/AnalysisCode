@@ -9,24 +9,36 @@ Created on Mon Dec 12 15:17:30 20x22
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-
-
-
-data_location = r'C:/Users/Sommer Lab/Documents/Data'
+from ImageAnalysis import ImageAnalysisCode
 
 ####################################
 #Set the date, the folder name, and the file name
 ####################################
-date = r'/2023/08-2023/09 Aug 2023'
-data_folder = r'/'
-filename = r'/Laser focus profile between two paths.raw'
 
-path = data_location + date + data_folder + filename
+data_path =r"C:\Users\Sommer Lab\Documents\Data"
+date = '12/20/2023'
+data_folder = r'\FLIR\Beam Waist'
+filename = r'\18276023-2023-12-20-164619.raw'
+
+
+dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
+path = dataLocation + data_folder + filename
+
+
+
+# date = r'/2023/12-2023/12 Dec 2023'
+# data_folder = r'/'
+# filename = r'/Laser focus profile between two paths.raw'
+
+# path = data_location + date + data_folder + filename
 
 ####################################
-#Choose the camera, 1 for Point Grey Chameleon, 2 for Basler dart
+# Choose the camera
+# 1 for the old Point Grey Chameleon, 
+# 1.2 for the new Point Grey Chameleon, 
+# 2 for Basler dart
 ####################################
-camera = 1.2
+camera = 1
 
 # path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)

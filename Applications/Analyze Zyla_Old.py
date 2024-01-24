@@ -15,22 +15,26 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"Z:\ats317group\Data"
-data_path =r"C:\Users\Sommer Lab\Documents\Data"
-date = '12/12/2023'
+data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
+date = '1/23/2024'
 data_folder = [
-    r'/Andor/Test_1'
+    r'/Andor/Med Field Bias Scan ODT 1930',
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 'all' #The number of runs to exam.
-examFrom = 0 #Set to None if you want to check the last several runs. 
-plotPWindow = 6
+examNum = 15 #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
+plotPWindow = 5
 do_plot = True
 uniformscale = 0
 
-variablesToDisplay = ['wait','ZSBiasCurrent',  'VerticalBiasCurrent']
+variablesToDisplay = [
+                # 'Coil_medB', 
+                      'wait', 'ODT Position'
+                       ,'ZSBiasCurrent',  'VerticalBiasCurrent'
+                      ]
 showTimestamp = False
 
 variableFilterList = None
@@ -40,8 +44,8 @@ pictureToHide = None
 # pictureToHide = [-2] # list(range(0,10,2))
 
 subtract_bg = 1
-signal_feature = 'wide' 
-signal_width = 40 #The narrower the signal, the bigger the number.
+signal_feature = 'narrow' 
+signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
 subtract_burntin = 0
 angle_deg= 1 #rotates ccw
@@ -51,16 +55,21 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-rowstart = 660
-rowstart = 620
-rowend = -500
-columnstart = 700
-columnend = -500
+# rowstart = 660
+# rowstart = 600
+# rowend = -500
+# columnstart = 600
+# columnend = -200
 
-# rowstart = 200
-# rowend = 780
-# columnstart = 200
-# columnend = 900
+rowstart =550
+rowend = -350
+columnstart = 700
+columnend = -300
+
+# rowstart =400
+# rowend = -300
+# columnstart = 650
+# columnend = -200
 
 ####################################
 ####################################
@@ -85,15 +94,15 @@ images_array = None
 for ff in data_folder:
     if images_array is None:
         images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
-                                                                   return_fileTime=1)
+                                                                   return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
     else:
         _images_array, _fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
                                                                        return_fileTime=1)
         images_array = np.concatenate([images_array, _images_array], axis=0)
         fileTime = fileTime + _fileTime
 
-images_array = images_array[examFrom: examUntil]
-fileTime = fileTime[examFrom: examUntil]
+# images_array = images_array[examFrom: examUntil]
+# fileTime = fileTime[examFrom: examUntil]
 
 variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
