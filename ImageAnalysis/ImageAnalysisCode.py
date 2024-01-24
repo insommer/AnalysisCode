@@ -1341,7 +1341,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
                 #     fig.tight_layout()
                 axRowNo = min(plotPWindow, plotNo-plotInd) #The number of rows of axes in one figure
                 fig, axs = plt.subplots(axRowNo , 3, figsize=(3*3, 1.8*axRowNo), squeeze = False, layout="constrained")
-                plt.subplots_adjust(hspace=0.14, wspace=0.12)
+                # plt.subplots_adjust(hspace=0.14, wspace=0.12)
             plotInd += 1
             
         rotated_ = rotate(columnDensities[ind], angle_deg, reshape = False)[rowstart:rowend,columnstart:columnend]
@@ -1431,7 +1431,7 @@ def FilterByOr(df, filterLists):
 def PlotFromDataCSV(df, xVariable, yVariable, 
                     groupby=None, groupbyX=0, iterateVariable=None,
                     filterByAnd=[], filterByOr=[], filterByOr2=[],
-                    legend=1, legendLoc=0,
+                    figSize=1, legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
     
@@ -1512,10 +1512,10 @@ def PlotFromDataCSV(df, xVariable, yVariable,
         columnlist.append(groupby)
     
     if threeD:
-        fig, ax = plt.subplots(figsize=(9,9), subplot_kw=dict(projection='3d'))
+        fig, ax = plt.subplots(figsize=(9*figSize, 9*figSize), subplot_kw=dict(projection='3d'))
         ax.view_init(elev=viewElev, azim=viewAzim)
     else:
-        fig, ax = plt.subplots(figsize=(10,8))
+        fig, ax = plt.subplots(figsize=(10*figSize, 8*figSize))
     
     for ii in iterable:
         if ii is None:
