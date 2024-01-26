@@ -109,7 +109,7 @@ class ExperimentParams:
             cos_theta = f/np.sqrt(aperture_radius**2+f**2)
             self.solid_angle = 2*np.pi*(1-cos_theta)
 
-def GetDataLocation(date, DataPath='C:/Users/Sommer Lab/Documents/Data/'):
+def GetDataLocation(date, DataPath='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
 
 def GetExamRange(examNum, examFrom=None, repetition=1):
@@ -223,8 +223,9 @@ def rebin2(arr, bins):
 
 def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
                   file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):
-    examFrom *= picturesPerIteration
-    if examUntil is not None:
+    if examFrom:
+        examFrom *= picturesPerIteration
+    if examUntil:
         examUntil *= picturesPerIteration
         
     file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
@@ -650,8 +651,8 @@ def ShowImages(images):
     plt.show()
     
 def ShowImagesTranspose(images, logTime=None, variableLog=None,
-                        variablesToDisplay=None, variableFilterList=None,
-                        showTimestamp=False, uniformscale=False):
+                        variablesToDisplay=None, showTimestamp=False, 
+                        uniformscale=False):
     """
     Draws a grid of images
 
@@ -664,10 +665,7 @@ def ShowImagesTranspose(images, logTime=None, variableLog=None,
 
     """
     
-    if variableFilterList:        
-        filterList = VariableFilter(logTime, variableLog, variableFilterList)
-        images = np.delete(images, filterList, 0)
-        logTime = np.delete(logTime, filterList, 0)
+
         
     iterations, picturesPerIteration, _, _ = images.shape
         
@@ -1095,10 +1093,10 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
         
         #Add colorbar
         im = ax[0].imshow(array, cmap = 'jet',vmin=vmin,vmax=vmax)
-        # if fig:
-        #     divider = make_axes_locatable(ax[0])
-        #     cax = divider.append_axes('right', size='3%', pad=0.05)
-        #     fig.colorbar(im, cax=cax, orientation='vertical')
+        if fig:
+            divider = make_axes_locatable(ax[0])
+            cax = divider.append_axes('right', size='3%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
         
         if Ind == 0:
             ax[0].set_title(title2D)
@@ -1130,6 +1128,8 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
 
 
 def fitgaussian(array, do_plot = False, vmax = None,title="", 
+                logTime=None, variableLog=None,
+                count=None, variablesToDisplay=None, showTimestamp=False,
                 save_column_density = False, column_density_xylim = None): 
     #np.sum(array, axis = 0) sums over rows, axis = 1 sums over columns
     rows = np.linspace(0, len(array), len(array))
@@ -1173,6 +1173,13 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
             vmax = array.max()
         
         plt.imshow(array, cmap = 'jet',vmin=0,vmax=vmax)
+        
+        if variablesToDisplay and logTime:
+            variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+            plt.text(0,0,
+                     variableLog.loc[logTime[count]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
+                     fontsize=7, ha='left', va='top',
+                     bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.9))
         
         if column_density_xylim == None:
             column_density_xylim = np.zeros(4)
