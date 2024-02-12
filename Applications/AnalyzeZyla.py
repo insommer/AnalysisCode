@@ -7,7 +7,7 @@ Created on Wed Apr 12 14:34:22 2023
 DEBUG=True
 def log(msg,indent=0):
     if DEBUG:
-        print("#########  "+'\t'*indent+ msg)
+        print("#AnalyzeZyla.py:  "+'\t'*indent+ msg)
 log("Starting script Analyze Zyla...")
 from ImageAnalysis import ImageAnalysisCode
 import numpy as np
@@ -82,7 +82,7 @@ def AnalyzeZyla(date,
     examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
     
     
-    params = ImageAnalysisCode.ExperimentParams(t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+    params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
     images_array = None
     log("Loading spooling series...")
     for ff in data_folders:

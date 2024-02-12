@@ -16,29 +16,35 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '1/23/2024'
+date = '2/9/2024'
 data_folder = [
-    r'/Andor/Med Field Bias Scan ODT 1930',
+    r'/Andor/Moved Lens',
+    # r'/Andor/ODT vs Wait_1'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged. 
-examNum = 15 #The number of runs to exam.
+examNum = 10 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
 uniformscale = 0
 
 variablesToDisplay = [
-                # 'Coil_medB', 
-                      'wait', 'ODT Position'
-                       ,'ZSBiasCurrent',  'VerticalBiasCurrent'
+                    # 'Coil_medB', 
+                       'wait', 
+                       'ODT Position',
+                      'ZSBiasCurrent',
+                      'VerticalBiasCurrent',
+                      # 'CamBiasCurrent'
                       ]
-showTimestamp = False
+showTimestamp = True
 
 variableFilterList = None
-# variableFilterList = ['VerticalBiasCurrent==0'] # NO SPACE around the operator!
+variableFilterList = [
+    # 'wait==50', 
+    ] # NO SPACE around the operator!
 
 pictureToHide = None
 # pictureToHide = [-2] # list(range(0,10,2))
@@ -48,7 +54,7 @@ signal_feature = 'narrow'
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
 subtract_burntin = 0
-angle_deg= 1 #rotates ccw
+angle_deg= 0.8 #rotates ccw
 
 rowstart = 10
 rowend = -10
@@ -61,19 +67,19 @@ columnend = -10
 # columnstart = 600
 # columnend = -200
 
-rowstart =550
-rowend = -350
-columnstart = 700
-columnend = -300
-
-# rowstart =400
-# rowend = -300
-# columnstart = 650
+# rowstart =500
+# rowend = -350
+# columnstart = 300
 # columnend = -200
 
+# rowstart =800
+# rowend = -700
+# columnstart = 1000
+# columnend = -1
+
 ####################################
 ####################################
-dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
+dataLocation = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
 data_folder = [ dataLocation + f for f in data_folder ]
 variableLog_folder = dataLocation + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
@@ -88,7 +94,7 @@ class SIUnits:
     um = 1e-6*m
 units=SIUnits()
 
-params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
 images_array = None
 
 for ff in data_folder:
@@ -117,7 +123,7 @@ if pictureToHide is not None:
     if logTime is not None:
         logTime = np.delete(logTime, pictureToHide, 0)
 
-# ImageAnalysisCode.ShowImagesTranspose(images_array)
+ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1.0,  
@@ -156,6 +162,7 @@ for ind in range(imgNo):
             # if ind//plotPWindow>0:
             #     fig.tight_layout()
             plotNo = min(plotPWindow, imgNo-ind)
+            plt.rcParams.update({'font.size' : 8})
             fig, axs = plt.subplots(plotNo , 3, figsize=(3*3, 1.8*plotNo), squeeze = False)
             plt.subplots_adjust(hspace=0.14, wspace=0.12)
 
@@ -175,7 +182,7 @@ for ind in range(imgNo):
                                                   vmax = vmax, vmin = vmin,
                                                   title="1D density", title2D="column density",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
-                                                  xscale_factor=1/units.um, yscale_factor=units.um, fig=fig)
+                                                  xscale_factor=1/units.um, yscale_factor=units.um, fig=None)
     
     if do_plot and variablesToDisplay is not None and variableLog is not None:
         variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]

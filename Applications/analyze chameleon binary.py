@@ -25,36 +25,34 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '10/25/2023'
-data_folder = r'/FLIR/starting up'
+date = '2/9/2024'
+data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
+data_folder = r'/FLIR/DOT 1700'
 
-dataLocation = ImageAnalysisCode.GetDataLocation(date)
-data_folder = dataLocation + data_folder
-variableLog_folder = dataLocation + r'/Variable Logs'
 
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 10 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
+showTimestamp = True
 variablesToDisplay = None
-# variablesToDisplay = ['wait', 'CamBiasCurrent', 'ZSBiasCurrent']
+variablesToDisplay = [
+    'wait',
+    'ODT Position',
+    'ZSBiasCurrent',
+    'VerticalBiasCurrent',
+    'CamBiasCurrent'
+    ]
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
 variableFilterList = None
-# variableFilterList = ['wait==30', 'ZSBiasCurrent==6'] # NO SPACE around the operator!
-
-####################################
-####################################
-
-examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom)
-    
-# data_folder =  './FLIR/odt align'
-t_exp = 10e-6
-picturesPerIteration = 3
-# t0 = 40e-6
+variableFilterList = [
+    # 'wait==3', 
+    # 'ZSBiasCurrent==6'
+    ] # NO SPACE around the operator!
 
 
 rowstart = 80
@@ -67,10 +65,29 @@ rowend = -1
 columnstart = 0
 columnend = -1
 
-#config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
 binsize=4
 
-params = ImageAnalysisCode.ExperimentParams(t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")      
+centerx = 165 * binsize
+centery = 80 * binsize
+radius = 150
+
+####################################
+####################################
+
+dataLocation = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
+data_folder = dataLocation + data_folder
+variableLog_folder = dataLocation + r'/Variable Logs'
+examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom)
+    
+# data_folder =  './FLIR/odt align'
+t_exp = 10e-6
+picturesPerIteration = 3
+# t0 = 40e-6
+
+#config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
+
+
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")      
 # images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
 # images_array = ImageAnalysisCode.loadSeriesRAW(params = params, picturesPerIteration=picturesPerIteration, data_folder = data_folder)
 images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
@@ -83,27 +100,21 @@ logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
 # Number_of_atoms, columnDensities = ImageAnalysisCode.flsImaging(images_array, params = params, firstFrame=0, rowstart = 0, rowend = -1, 
 #                                                                 columnstart =0, columnend = -1, subtract_burntin = 1)
 
+if variableFilterList:        
+    filterList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
+    images_array = np.delete(images_array, filterList, 0)
+    logTime = list(np.delete(logTime, filterList, 0))
 
 ImageAnalysisCode.ShowImagesTranspose(images_array, logTime, variableLog, 
-                                      variablesToDisplay, variableFilterList, showTimestamp=True)
+                                      variablesToDisplay, showTimestamp=showTimestamp)
 
 
-# print(data_folder+r'\\image-02242023185744-1.Raw')
-# print(ImageAnalysisCode.loadRAW(data_folder+'//image-02242023185744-1.Raw'))
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart, columnend = columnend, 
                 subtract_burntin=0, preventNAN_and_INF=True)
 
-if variableFilterList is not None:        
-    filterList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
-    columnDensities = np.delete(columnDensities, filterList, 0)
-    logTime = np.delete(logTime, filterList, 0)
 
-
-centerx = 250 * binsize
-centery = 120 * binsize
-radius = 210
 # columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
 #                                                   radius=radius/binsize)
 
@@ -134,9 +145,11 @@ for count, img in enumerate(columnDensities):
     _, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
                                                       radius=radius/binsize)
     
-    widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count],title = "Vertical Column Density",\
+    widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count],title = "Vertical Column Density",
                                                                         vmax = vmax, do_plot = 1, save_column_density=0,
-                                                                        column_density_xylim=(columnstart, columnend, rowstart, rowend))
+                                                                        column_density_xylim=(columnstart, columnend, rowstart, rowend),
+                                                                        count=count, logTime=logTime, variableLog=variableLog, 
+                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=False)
     center_x_array[count] = center_x
     center_y_array[count] = center_y
     print("Center x:",center_x)
