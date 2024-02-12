@@ -21,93 +21,8 @@ import pandas as pd
 from scipy.ndimage import rotate
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-class AndorZyla: # Andor Zyla 5.5  
-    def __init__(self):
-        self.quantum_eff = .62 #Andor Zyla 
-        self.sensitivity = .45
-        self.pixelsize_microns =  6.5
-        self.pixelsize_meters = self.pixelsize_microns*1e-6
-        
-class FLIRchameleon: #FLIR Chameleon3 CM3-U3-13S2M  
-    def __init__(self):
-        self.quantum_eff = .50 
-        self.sensitivity = .45 # numbers need to be updated
-        self.pixelsize_microns  = 3.75
-        self.pixelsize_meters = self.pixelsize_microns*1e-6
-        
-class ExperimentParams:
-    def __init__(self, config=None, t_exp = None, picturesPerIteration=1, axis="side", cam_type = "zyla"):
-        """        
-        Parameters
-        ----------
-        config : TYPE
-            DESCRIPTION.
-        picturesPerIteration : TYPE, optional
-            picturesPerIteration : int
-                How many pictures does Cicero take in each iteration? (typically 2 or 3) The default is 1.
-        """
-        self.t_exp = t_exp
-        if cam_type.lower() == "zyla":
-            #input parameters from config file
-            self.picturesPerIteration = picturesPerIteration
-            self.config =  config
-            if config:            
-                #self.number_of_pics = int(config['Acquisition']['NumberinKineticSeries'])
-                #print("number_of_pics = "+str(self.number_of_pics))
-                #assert self.number_of_pics % picturesPerIteration == 0, "Number of pictures should be a multiple of picturesPerIteration" # checks for error
-                #self.number_of_iterations = int(self.number_of_pics / picturesPerIteration)
-                
-                self.height1 = int(config['FullImage']['VerticalEnd']) - int(config['FullImage']['VerticalStart']) + 1
-                self.width1 = int(config['FullImage']['HorizontalEnd']) - int(config['FullImage']['HorizontalStart']) + 1 
-                self.bin_horizontal = int(config['FullImage']['HorizontalBin'])
-                self.bin_vertical = int(config['FullImage']['VerticalBin'])
-                
-                # image height, width and range after binning
-                self.height = int(self.height1/self.bin_vertical)
-                self.width = int(self.width1/self.bin_horizontal)
-                self.xmin=int(0)  #origin placed at zero by python
-                self.ymin=int(0)  #origin placed at zero by python
-                self.xmax=self.width-1
-                self.ymax=self.height-1 
-                self.number_of_pixels = self.height*self.width
-                print(self.height)
-                print(self.width)
-                print(self.number_of_pixels)
-                if not t_exp:
-                    self.t_exp = float(config['Acquisition']['ExposureTime'])   
-            self.camera=AndorZyla()
-            self.data_type = np.int16
-        elif cam_type.lower() == "chameleon":
-            self.camera = FLIRchameleon()
-            self.data_type = np.int16
-        self.ready_to_save = 'true'
-        
-        P_MOT_beam = 14e-3 #power per MOT beam, roughly 1/4 of what goes into octopus
-        self.andor_pixel_size = 1/(22.2e3) #obtained from measurement of magnification using ambient light
-        r_beam = .01 #meters
-        I1 = 2*P_MOT_beam/(np.pi*r_beam**2)
-        I = 6*I1
-        Isat = 25 #W/m^2
-        self.s = I/Isat
-        self.k = (671e-9)
-        self.gamma = 36.898e6
-        self.delta = 26e6*2*np.pi
-        self.R_scat = self.gamma*.5*self.s/(1+self.s+(2*self.delta/self.gamma)**2)
-        self.kB = 1.38e-23 #Boltzmann's constant
-        self.m = 9.988341e-27 #Li-6 mass in kg
-              
-        if axis == "side":
-            aperture_radius =  48.3/2 #in mm, the radius of the iris placed at the lens directly after the chamber where the MOT starts to get blocked
-            f=300 #mm
-            cos_theta = f/np.sqrt(aperture_radius**2+f**2)
-            self.solid_angle = 2*np.pi*(1-cos_theta)
-            self.magnification = 0.553 #
-        elif axis == "top":
-            self.magnification = 0.6 #subject to change...
-            aperture_radius =  1.5 #in mm, the radius of the iris placed at the lens directly after the chamber where the MOT starts to get blocked
-            f = 125.00 # in mm
-            cos_theta = f/np.sqrt(aperture_radius**2+f**2)
-            self.solid_angle = 2*np.pi*(1-cos_theta)
+from ImageAnalysis.ExperimentParameters import ExperimentParams
+
 
 def GetDataLocation(date, DataPath='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
@@ -424,7 +339,6 @@ def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None)
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
                       examFrom=None, examUntil=None, return_fileTime=0):
-    # examFrom: examUntil
         """
         Parameters
         ----------
@@ -665,8 +579,6 @@ def ShowImagesTranspose(images, logTime=None, variableLog=None,
 
     """
     
-
-        
     iterations, picturesPerIteration, _, _ = images.shape
         
     if uniformscale:
@@ -1149,21 +1061,24 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     ampy = np.max(col_sum)
     centery = np.argmax(col_sum)
     wy = len(cols)/12
-    # offsety = col_sum[0]
-    # if (do_plot):
-    #     plt.figure()
-    #     plt.imshow(array, cmap = 'gray')
-    #     plt.figure()
-    #     plt.title("col sum (for x direction fit)")
-    #     plt.plot(cols, row_sum)
-    #     plt.xlabel("pixel index")
-    #     plt.ylabel("sum over array values")
-    #     plt.figure()
-    #     plt.title("row sum (for y direction fit)")
-    #     plt.plot(rows, col_sum)
-    #     plt.xlabel("pixel index")
-    #     plt.ylabel("sum over array values")  
     
+    widthx, center_x, widthy, center_y = np.nan, np.nan, np.nan, np.nan
+    try:
+        poptx, pcovx = curve_fit(Gaussian, cols, row_sum, p0=[ampx, centerx, wx,0])
+        widthx = abs(poptx[2])
+        center_x = poptx[1]
+        
+    except RuntimeError as e:
+        print(e)
+        
+    try:
+        popty, pcovy = curve_fit(Gaussian, rows, col_sum, p0=[ampy, centery, wy,-1e13])
+        widthy = abs(popty[2])
+        center_y = popty[1]  
+        
+    except RuntimeError as e:
+        print(e)
+
     if do_plot:
         #see the input array
         plt.rcParams.update({'font.size' : 10})
@@ -1220,38 +1135,19 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
         plt.plot(cols, Gaussian(cols, *[ampx, centerx, wx,0]), label="guess vs x")
         plt.plot(rows, Gaussian(rows, *[ampy, centery, wy,0]), label="guess vs y")  
         plt.legend()
-        plt.tight_layout()
         
-    widthx, center_x, widthy, center_y = np.nan, np.nan, np.nan, np.nan
-    try:
-        poptx, pcovx = curve_fit(Gaussian, cols, row_sum, p0=[ampx, centerx, wx,0])
-        widthx = abs(poptx[2])
-        center_x = poptx[1]
-        
-        if (do_plot):
+        if not np.isnan(widthx):
             plt.plot(cols, Gaussian(cols, *poptx), label="fit vs x")
             plt.legend()
             plt.tight_layout()
-    
-    except RuntimeError as e:
-        print(e)
-        
-    try:
-        popty, pcovy = curve_fit(Gaussian, rows, col_sum, p0=[ampy, centery, wy,-1e13])
-        widthy = abs(popty[2])
-        center_y = popty[1]  
-        
-        if (do_plot):
+        if not np.isnan(widthy):
             plt.plot(rows, Gaussian(rows, *popty), label="fit vs y")  
             plt.legend()
             plt.tight_layout()
-    
-    except RuntimeError as e:
-        print(e)
+
+        plt.tight_layout()
         
     return widthx, center_x, widthy, center_y
-
-    # return np.nan, np.nan, np.nan, np.nan
     
 
 def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 
