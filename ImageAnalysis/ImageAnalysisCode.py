@@ -99,9 +99,9 @@ def loadPGM(filename, file_encoding = 'binary'):
             res = f.readline().split()
             cols = int(res[0])
             rows = int(res[1])
-            pixel_number = rows*cols
             
-            maxval = f.readline()
+            # pixel_number = rows*cols            
+            # maxval = f.readline()
             
             datastrings = f.read().split()
             data =list( map(int, datastrings))

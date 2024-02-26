@@ -16,16 +16,18 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '2/9/2024'
+date = '2/23/2024'
 data_folder = [
-    r'/Andor/Moved Lens',
-    # r'/Andor/ODT vs Wait_1'
+    r'/Andor/ODT 3800',
+    # r'/Andor/ODT 3800 Bias Scam_2',
+    # r'/Andor/Test'
     ]
 ####################################
 #Parameter Setting
 ####################################
-repetition = 1 #The number of identical runs to be averaged. 
-examNum = 10 #The number of runs to exam.
+repetition = 1 #The number of identical runs to be averaged.
+subtract_burntin = 0
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
@@ -37,9 +39,12 @@ variablesToDisplay = [
                        'ODT Position',
                       'ZSBiasCurrent',
                       'VerticalBiasCurrent',
-                      # 'CamBiasCurrent'
+                       'CamBiasCurrent'
                       ]
-showTimestamp = True
+showTimestamp = False
+# variablesToDisplay=None
+textY = 1
+textVA = 'bottom'
 
 variableFilterList = None
 variableFilterList = [
@@ -47,13 +52,12 @@ variableFilterList = [
     ] # NO SPACE around the operator!
 
 pictureToHide = None
-# pictureToHide = [-2] # list(range(0,10,2))
+# pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 1
-signal_feature = 'narrow' 
+subtract_bg = 0
+signal_feature = 'wide' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-subtract_burntin = 0
 angle_deg= 0.8 #rotates ccw
 
 rowstart = 10
@@ -62,20 +66,44 @@ columnstart = 10
 columnend = -10
 
 # rowstart = 660
-# rowstart = 600
+# rowstart = 500
+# rowend = -10
+columnstart = 600
+columnend = -200
+
+# columnstart = 800
+# columnend = 1200
+
+
+# rowstart =250
 # rowend = -500
 # columnstart = 600
-# columnend = -200
+# columnend = -550
 
-# rowstart =500
-# rowend = -350
-# columnstart = 300
-# columnend = -200
+# rowstart =200
+# # rowend = -150
+# columnstart = 500
+# columnend = -300
 
-# rowstart =800
-# rowend = -700
-# columnstart = 1000
-# columnend = -1
+# # rowstart =305 #ODT 2675
+# # rowend = 340
+# # rowstart =616 #ODT1675
+# # rowend = 651
+# # rowstart =550 #ODT1675
+# # rowend = 680
+# # rowstart = 800 #ODT990
+# # rowend = 835
+
+# rowstart = 888 #ODT700
+# rowend = 923
+# rowstart = 1078 #ODT50
+# rowend = 1113
+
+rowstart = 443
+rowend = 478
+
+# rowstart = 200
+# rowend = 700
 
 ####################################
 ####################################
@@ -123,7 +151,7 @@ if pictureToHide is not None:
     if logTime is not None:
         logTime = np.delete(logTime, pictureToHide, 0)
 
-ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
+# ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1.0,  
@@ -145,7 +173,7 @@ centers_y = []
 
 if uniformscale:
     vmax = columnDensities.max()
-    vmin = columnDensities.min()
+    vmin = 0
 else:
     vmax = None
     vmin = 0
@@ -180,15 +208,15 @@ for ind in range(imgNo):
                                                   do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
                                                   subtract_bg=subtract_bg, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg,
                                                   vmax = vmax, vmin = vmin,
-                                                  title="1D density", title2D="column density",
+                                                  title="1D density", title2D="",
                                                   xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
                                                   xscale_factor=1/units.um, yscale_factor=units.um, fig=None)
     
     if do_plot and variablesToDisplay is not None and variableLog is not None:
         variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
-        axs[plotInd,0].text(0,1, 
+        axs[plotInd,0].text(0,textY, 
                         variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
-                        fontsize=5, ha='left', va='top', transform=axs[plotInd,0].transAxes, 
+                        fontsize=5, ha='left', va=textVA, transform=axs[plotInd,0].transAxes, 
                         bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
     
         

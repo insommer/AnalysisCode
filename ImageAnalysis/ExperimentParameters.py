@@ -39,10 +39,11 @@ def getImagingSystemByDate(date_mdy, axis, debug=True):
     -------
     An ImagingSystem object
     """
-    data_date = datetime.datetime.strptime(date_mdy,"%m/%d/%Y")
+    data_date = datetime.datetime.strptime(date_mdy,"%m/%d/%Y")    
+    date1 = "2/8/2024" # Change the lenses for the side imaging, the magnification changed from 0.553 to 1.69
     
     if axis.lower() == "side":
-        if data_date > datetime.datetime.strptime("02/08/2024","%m/%d/%Y"):#changed side imaging lenses
+        if data_date > datetime.datetime.strptime(date1,"%m/%d/%Y"):#changed side imaging lenses
             if debug:
                 print("\tNew side imaging")
             #NOTE: magnification is precisely calibrated. But numerical aperture variables are approximate!
