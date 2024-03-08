@@ -16,18 +16,18 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '2/23/2024'
+date = '3/7/2024'
 data_folder = [
-    r'/Andor/ODT 3800',
-    # r'/Andor/ODT 3800 Bias Scam_2',
-    # r'/Andor/Test'
+    # r'/Andor/ODT 1900 Test',
+    # r'/Andor/ODT 1900 Align',
+    r'/Andor/Test_1'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = None #The number of runs to exam.
+examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
@@ -35,7 +35,8 @@ uniformscale = 0
 
 variablesToDisplay = [
                     # 'Coil_medB', 
-                       'wait', 
+                       'wait',
+                       # 'ODT Misalign',
                        'ODT Position',
                       'ZSBiasCurrent',
                       'VerticalBiasCurrent',
@@ -54,22 +55,22 @@ variableFilterList = [
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 0
-signal_feature = 'wide' 
+subtract_bg = 1
+signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-angle_deg= 0.8 #rotates ccw
+angle_deg= 0.5 #rotates ccw
 
 rowstart = 10
 rowend = -10
 columnstart = 10
 columnend = -10
 
-# rowstart = 660
+rowstart = 660
 # rowstart = 500
 # rowend = -10
-columnstart = 600
-columnend = -200
+# columnstart = 600
+# columnend = -200
 
 # columnstart = 800
 # columnend = 1200
@@ -85,12 +86,12 @@ columnend = -200
 # columnstart = 500
 # columnend = -300
 
-# # rowstart =305 #ODT 2675
-# # rowend = 340
+# rowstart =750 #ODT 2675
+# rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-# # rowstart =550 #ODT1675
-# # rowend = 680
+# rowstart =970 #ODT19001
+# rowend = 1070
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -99,11 +100,11 @@ columnend = -200
 # rowstart = 1078 #ODT50
 # rowend = 1113
 
-rowstart = 443
-rowend = 478
+# rowstart = 443 #ODT3800
+# rowend = 478
 
-# rowstart = 200
-# rowend = 700
+# rowstart -= 20
+# rowend += 20
 
 ####################################
 ####################################
@@ -202,7 +203,7 @@ for ind in range(imgNo):
     rotated_columnDensities[ind] = rotated_
 
     #preview:
-    dx=params.camera.pixelsize_meters/params.magnification
+    dx = params.camera.pixelsize_meters/params.magnification
     
     popt0, popt1 = ImageAnalysisCode.fitgaussian2D(rotated_columnDensities[ind], dx=dx, 
                                                   do_plot = do_plot, ax=axs[plotInd], Ind=plotInd, imgNo=plotNo,
