@@ -14,11 +14,15 @@ import configparser
 #import imageio 
 import glob
 from scipy.optimize import curve_fit
+from scipy.ndimage import rotate
+from scipy.ndimage import gaussian_filter1d
+from scipy import signal
+from skimage.filters import threshold_otsu
+
 import os
 import PIL
 import datetime
 import pandas as pd
-from scipy.ndimage import rotate
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from ImageAnalysis.ExperimentParameters import ExperimentParams
@@ -94,8 +98,7 @@ def loadPGM(filename, file_encoding = 'binary'):
             filetype = f.readline()
             if filetype.strip() != "P2":
                 raise Exception("wrong format, should be P2")
-                return
-             
+                             
             res = f.readline().split()
             cols = int(res[0])
             rows = int(res[1])
@@ -249,6 +252,7 @@ def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_na
     
 def LoadVariableLog(path):
     if not os.path.exists(path):
+        print('The path for variable logs does not exist, no logs were loded.')
         return None
         
     filenames = os.listdir(path)
@@ -357,7 +361,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
     
         """
         if not os.path.exists(data_folder):
-            raise Exception("Data folder not found:"+str(data_folder))
+            raise Exception("Data folder not found:" + str(data_folder))
         #Load meta data
         metadata = LoadConfigFile(data_folder, "acquisitionmetadata.ini",encoding="utf-8-sig")
         height =int( metadata["data"]["AOIHeight"])
@@ -366,7 +370,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
         if pix_format.lower() == "mono16":
             data_type=np.uint16
         else:
-            raise Exception("Unknown pixel format "+pix_format)
+            raise Exception("Unknown pixel format " + pix_format)
         number_of_pixels = height*width
         
         number_of_pics = len(glob.glob1(data_folder,"*spool.dat"))
@@ -456,7 +460,7 @@ def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_fol
         if pix_format.lower() == "mono16":
             data_type=np.uint16
         else:
-            raise Exception("Unknown pixel format "+pix_format)
+            raise Exception("Unknown pixel format " + pix_format)
         number_of_pixels = height*width
         picturesPerIteration = params.picturesPerIteration
         assert numToLoad % picturesPerIteration == 0
@@ -804,9 +808,22 @@ def integrate1D(array2D, dx=1, free_axis="y"):
     return array1D
 
 
-def Gaussian(x, amp, center, w, offset):
-    #amp = N/(w*(2*np.pi)**0.5)
-    return amp*np.exp(-.5*(x-center)**2/w**2) + offset
+def Gaussian(x, amp, center, w, offset=0):
+    return amp * np.exp(-0.5*(x-center)**2/w**2) + offset
+
+def MultiGaussian(x, *params):
+    L = len(params)        
+    if  L % 3 != 1:
+        raise TypeError('The number of parameters provided to MultiGaussian() besides x variable should be 3N+1, N is the number of Gaussian curves.')
+
+    result = np.zeros(len(x))
+    N = L//3
+    
+    for n in range(N):
+        result += Gaussian(x, *params[n:-1:N])
+        # print(params[n:-1:N])
+    return result + params[-1]
+
 
 def fitbg(data, signal_feature='narrow', signal_width=10, fitbgDeg=5): 
        
@@ -921,6 +938,129 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
         
     return popts[0], popts[1]
 
+
+def DetectPeaks(yy, amp=1, width=3, denoise=0, doPlot=0):
+    
+    yycopy = yy.copy()
+    
+    if denoise:
+        yycopy = gaussian_filter1d(yy, 3)
+    
+    # Determine the background with the otsu method and set to 0.
+    # thr = threshold_otsu(yycopy)
+    thr = 0.07 * (yy.max() - yy.min()) + yy.min()
+    yycopy[yycopy < thr] = yy.min()    
+
+    peaks, properties = signal.find_peaks(yycopy, prominence=amp*0.01*(yycopy.max()-yycopy.min()), width=width)
+
+    if doPlot:
+        fig, ax = plt.subplots(1,1, layout='constrained')
+        
+        ymin = yy[peaks] - properties["prominences"]
+        ymax = yy[peaks]
+        amp = ymax - ymin
+        xmin = properties["left_ips"]
+        xmax = properties["right_ips"]
+        width = (xmax - xmin) / 2
+        ax.vlines(x=peaks, ymin=ymin, ymax=ymax, color = "C1")
+        ax.hlines(y=properties["width_heights"], xmin=xmin, xmax=xmax, color = "C1")
+        xx = np.arange(len(yy))
+        ax.plot(xx, MultiGaussian(xx, *amp, *peaks, *width, yy.min()))
+        ax.plot(yy, '--')
+        ax.plot(yycopy, '.g')
+
+    return peaks, properties
+
+
+
+def fitSingleGaussian(data, xdata=None, dx=1, 
+                      subtract_bg=0, signal_feature='wide', 
+                      signal_width=10, fitbgDeg=5,
+                                          ):
+    
+    if subtract_bg:
+        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
+        data = data - bg        
+        offset = 0
+    else:
+        offset = min( data[:10].mean(), data[-10:].mean() )
+        
+    if xdata is None:
+        xdata = np.arange( len(data) )
+        
+    #initial guess:
+    amp = data.max()
+    center = xdata[ data.argmax() ]    
+    w = ( data > 0.6*data.max() ).sum() * dx / 2
+    
+    guess = [amp, center, w, offset]
+    
+    try:
+        popt, _ = curve_fit(Gaussian, xdata, data, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )
+        
+    except Exception as e:
+        print(e)
+        return None
+    
+    popt[1:-1] *= dx
+    
+    if subtract_bg:
+        return popt, bg
+    else:
+        return popt
+    
+
+
+
+def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', 
+                     subtract_bg=0, signal_feature='wide', signal_width=10, fitbgDeg=5,
+                     amp=1, width=3, denoise=0):
+    
+    if subtract_bg:
+        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
+        data = data - bg        
+        offset = 0
+    else:
+        offset = min( data[:10].mean(), data[-10:].mean() )
+    
+    peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=0)
+    
+    #initial guess:
+    amps = properties['width_heights'] + properties['prominences'] / 2
+    widths = (properties['right_ips'] - properties['left_ips']) / 2    
+    
+    N = len(peaks)
+    # print(peaks)
+    if NoOfModel != 'auto' and NoOfModel > N:
+        D = NoOfModel - N
+        N = NoOfModel
+        amps = np.concatenate( (amps, [amps.mean()]*D) )
+        peaks = np.concatenate( (peaks, [int(amps.mean()-20)]*D) )
+        widths = np.concatenate( (widths, [int(widths.mean())]*D) )
+
+    guess = [*amps, *peaks, *widths, offset]
+    
+    if xdata is None:
+        xdata = np.arange( len(data) )
+    
+    try:
+        # minamps = 0.1*(data.max()-data.min())
+        minamps = 0
+        popt, _ = curve_fit(MultiGaussian, xdata, data, p0 = guess,
+                            bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1)))
+        
+    except Exception as e:
+        print(e)
+        return None 
+    
+    popt[N:-1] *= dx
+    
+    if subtract_bg:
+        return popt, bg
+    else:
+        return popt  
+    
+
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
                            subtract_bg = True, signal_feature = 'wide', 
                            signal_width=10, fitbgDeg=5,
@@ -935,7 +1075,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
         
         offset_g = 0
     else:
-        offset_g = offset_g = min( data[:10].mean(), data[-10:].mean() )
+        offset_g = min( data[:10].mean(), data[-10:].mean() )
     
     datalength = len(data)
     
@@ -1027,7 +1167,7 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
         
     popts=[]
     for ind, axis in enumerate(["x","y"]):
-        array1D = integrate1D(array,dx, free_axis=axis)        
+        array1D = integrate1D(array, dx, free_axis=axis)        
         popt= fitgaussian1D_June2023(array1D, dx=dx, doplot=do_plot, ax=ax[ind+1], 
                                      subtract_bg = subtract_bg, signal_feature = signal_feature, 
                                      signal_width=signal_width, fitbgDeg=fitbgDeg,
@@ -1148,6 +1288,129 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
         plt.tight_layout()
         
     return widthx, center_x, widthy, center_y
+
+
+def plotImgAndFitResult(imgs, *popts, fitFunc=MultiGaussian,
+                        axlist=['y', 'x'], dx=1, 
+                        plotPWindow=5, 
+                        variablesToDisplay=[], variableLog=None, logTime=None, showTimestamp=False,
+                        textLocationY=1, textVA='bottom', 
+                        xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
+                        ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
+                        title=['Column Density', '1D density vs ', '1D density vs '], 
+                        bg = [], **kwargs): 
+    plt.rcParams['font.size'] = 9
+    plt.rcParams['axes.titlesize'] = 10
+    plt.rcParams['image.cmap'] = 'jet'
+    
+    axDict = {'x': 0, 'y':1}
+    
+    N = len(popts)
+    imgNo = len(imgs)
+    
+    oneD_imgs = []
+    xx = []
+    xxfit = []
+    
+    for n in range(N):
+        oneD = imgs.sum( axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
+        L = len(oneD[0])
+        oneD_imgs.append(oneD)
+        xx.append(np.arange(0, L) * dx)
+        xxfit.append(np.arange(0, L, 0.1) * dx)
+        title[n+1] += axlist[n]
+        
+    # print(len(xx[0]))
+    # print(len(xxfit[0]))
+    for ind in range(imgNo):
+        plotInd = ind % plotPWindow
+        if plotInd == 0:
+            plotNo = min(plotPWindow, imgNo-ind)
+            fig, axes = plt.subplots(plotNo , N+1, figsize=(3.5*(N+1), 1.8*plotNo), squeeze = False, 
+                                     sharex='col', layout="constrained")
+            for n in range(N+1):
+                axes[-1, n].set_xlabel(xlabel[n])
+                axes[int(plotNo/2), n].set_ylabel(ylabel[n])
+                axes[0, n].set_title(title[n])
+                
+        axes[plotInd, 0].imshow(imgs[ind], vmin=0)
+                
+        for n in range(N):
+            axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.')
+            axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
+            axes[plotInd, n+1].ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
+            axes[plotInd, n+1].tick_params('y', direction='in', pad=-5)
+            plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
+            
+        if variablesToDisplay:
+            variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+            axes[plotInd,0].text(-0.05, textLocationY, 
+                            variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
+                            fontsize=5, ha='left', va=textVA, transform=axes[plotInd,0].transAxes, 
+                            bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+
+
+def AnalyseFittingResults(popts, ax='Y', logTime=None, 
+                          columns=['center', 'width', 'atomNumber']):
+    results = []
+    for p in popts:
+        center, width, atomNumber = [np.nan] * 3
+    
+        if p is not None:
+            N = len(p) // 3
+            amp = p[0:N]
+            center = p[N:2*N]
+            width = p[2*N:3*N]
+            atomNumber = (amp * width * (2*np.pi)**0.5).sum()
+            if N == 1:
+                center = center[0]
+                width = width[0]                
+
+        results.append([center, width, atomNumber])
+    
+    columns = [ax.upper() + ii for ii in columns]
+    return pd.DataFrame(results, index=logTime, columns=columns).rename_axis('time')
+
+
+def fit2Lines(x, ys, pointsForGuess=3):
+    y1 = []
+    y2 = []
+    for ii in ys[:pointsForGuess]:
+        if len(ii) < 2:
+            break
+        y1.append(ii.max())
+        y2.append(ii.min())
+    
+    # Initial guess
+    x1 = list(x[:len(y1)])
+    p1 = np.poly1d( np.polyfit(x1, y1, deg=1) )
+    p2 = np.poly1d( np.polyfit(x1, y2, deg=1) )
+    
+    for ii in range(pointsForGuess, len(x)):
+        if len( ys[ii] ) < 2:
+            continue
+        
+        xi = x[ii]
+        yi1, yi2 = ys[ii]
+        pi1, pi2 = p1(xi), p2(xi)
+        
+        d1 = max(abs(yi1-pi1), abs(yi2-pi2)) 
+        d2 = max(abs(yi1-pi2), abs(yi2-pi1)) 
+        
+        if d2 < d1:
+            yi1, yi2 = yi2, yi1
+        
+        x1.append(xi)
+        y1.append(yi1)
+        y2.append(yi2)
+        
+    p1 = np.poly1d( np.polyfit(x1, y1, deg=1) )
+    p2 = np.poly1d( np.polyfit(x1, y2, deg=1) )
+    
+    if abs(p1[0]) > abs(p2[0]):
+        p1, p2 = p2, p1
+        y1, y2 = y2, y1
+    return p1, p2, y1, y2
     
 
 def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 
