@@ -1372,21 +1372,20 @@ def AnalyseFittingResults(popts, ax='Y', logTime=None,
     return pd.DataFrame(results, index=logTime, columns=columns).rename_axis('time')
 
 
-def fit2Lines(x, ys, pointsForGuess=3):
+def fit2Lines(x, ys, xMean, y1Mean, y2Mean, pointsForGuess=3):
+    mergingPoint = ( np.array([ len(ii) for ii in ys ]) < 2 ).argmax()
+    if mergingPoint > 0 and mergingPoint < pointsForGuess:
+        pointsForGuess = mergingPoint
+        
+    # Initial guess
+    x1 = xMean[:pointsForGuess]
+    p1 = np.poly1d( np.polyfit(x1, y1Mean[:pointsForGuess], deg=1) )
+    p2 = np.poly1d( np.polyfit(x1, y2Mean[:pointsForGuess], deg=1) )
+    
+    x1 = []
     y1 = []
     y2 = []
-    for ii in ys[:pointsForGuess]:
-        if len(ii) < 2:
-            break
-        y1.append(ii.max())
-        y2.append(ii.min())
-    
-    # Initial guess
-    x1 = list(x[:len(y1)])
-    p1 = np.poly1d( np.polyfit(x1, y1, deg=1) )
-    p2 = np.poly1d( np.polyfit(x1, y2, deg=1) )
-    
-    for ii in range(pointsForGuess, len(x)):
+    for ii in range(len(x)):
         if len( ys[ii] ) < 2:
             continue
         
@@ -1403,7 +1402,8 @@ def fit2Lines(x, ys, pointsForGuess=3):
         x1.append(xi)
         y1.append(yi1)
         y2.append(yi2)
-        
+    
+    
     p1 = np.poly1d( np.polyfit(x1, y1, deg=1) )
     p2 = np.poly1d( np.polyfit(x1, y2, deg=1) )
     
@@ -1411,7 +1411,6 @@ def fit2Lines(x, ys, pointsForGuess=3):
         p1, p2 = p2, p1
         y1, y2 = y2, y1
     return p1, p2, y1, y2
-    
 
 def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 
                       repetition=1, examNum=None, examFrom=None, 
