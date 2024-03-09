@@ -984,6 +984,7 @@ def fitSingleGaussian(data, xdata=None, dx=1,
         offset = 0
     else:
         offset = min( data[:10].mean(), data[-10:].mean() )
+        bg = None
         
     if xdata is None:
         xdata = np.arange( len(data) )
@@ -1004,13 +1005,8 @@ def fitSingleGaussian(data, xdata=None, dx=1,
     
     popt[1:-1] *= dx
     
-    if subtract_bg:
-        return popt, bg
-    else:
-        return popt
+    return popt, bg
     
-
-
 
 def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', 
                      subtract_bg=0, signal_feature='wide', signal_width=10, fitbgDeg=5,
@@ -1022,6 +1018,7 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
         offset = 0
     else:
         offset = min( data[:10].mean(), data[-10:].mean() )
+        bg = None
     
     peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=0)
     
@@ -1055,11 +1052,8 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
     
     popt[N:-1] *= dx
     
-    if subtract_bg:
-        return popt, bg
-    else:
-        return popt  
-    
+    return popt, bg
+
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
                            subtract_bg = True, signal_feature = 'wide', 
@@ -1290,15 +1284,14 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     return widthx, center_x, widthy, center_y
 
 
-def plotImgAndFitResult(imgs, *popts, fitFunc=MultiGaussian,
+def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         axlist=['y', 'x'], dx=1, 
                         plotPWindow=5, 
                         variablesToDisplay=[], variableLog=None, logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
-                        title=['Column Density', '1D density vs ', '1D density vs '], 
-                        bg = [], **kwargs): 
+                        title=['Column Density', '1D density vs ', '1D density vs ']): 
     plt.rcParams['font.size'] = 9
     plt.rcParams['axes.titlesize'] = 10
     plt.rcParams['image.cmap'] = 'jet'
@@ -1320,9 +1313,8 @@ def plotImgAndFitResult(imgs, *popts, fitFunc=MultiGaussian,
         xxfit.append(np.arange(0, L, 0.1) * dx)
         title[n+1] += axlist[n]
         
-    # print(len(xx[0]))
-    # print(len(xxfit[0]))
     for ind in range(imgNo):
+        #Creat figures
         plotInd = ind % plotPWindow
         if plotInd == 0:
             plotNo = min(plotPWindow, imgNo-ind)
@@ -1332,12 +1324,19 @@ def plotImgAndFitResult(imgs, *popts, fitFunc=MultiGaussian,
                 axes[-1, n].set_xlabel(xlabel[n])
                 axes[int(plotNo/2), n].set_ylabel(ylabel[n])
                 axes[0, n].set_title(title[n])
-                
+        
+        #Plot the Images
         axes[plotInd, 0].imshow(imgs[ind], vmin=0)
-                
+        
         for n in range(N):
-            axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.')
-            axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
+            axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
+            if bgs and bgs[0] is not None:
+                axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[ind])
+                axes[plotInd, n+1].plot(xx[n], bgs[ind], '.', markersize=0.3)
+            else:
+                axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
+            
+            
             axes[plotInd, n+1].ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
             axes[plotInd, n+1].tick_params('y', direction='in', pad=-5)
             plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
@@ -1355,7 +1354,7 @@ def AnalyseFittingResults(popts, ax='Y', logTime=None,
     results = []
     for p in popts:
         center, width, atomNumber = [np.nan] * 3
-    
+        
         if p is not None:
             N = len(p) // 3
             amp = p[0:N]
