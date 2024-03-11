@@ -1034,6 +1034,12 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
         amps = np.concatenate( (amps, [amps.mean()]*D) )
         peaks = np.concatenate( (peaks, [int(amps.mean()-20)]*D) )
         widths = np.concatenate( (widths, [int(widths.mean())]*D) )
+        
+    # print(amps)
+    # print(peaks)
+    # print(widths)
+    # print(offset)
+
 
     guess = [*amps, *peaks, *widths, offset]
     
@@ -1048,7 +1054,7 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
         
     except Exception as e:
         print(e)
-        return None 
+        return None, None
     
     popt[N:-1] *= dx
     
@@ -1291,13 +1297,13 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
-                        title=['Column Density', '1D density vs ', '1D density vs ']): 
-    plt.rcParams['font.size'] = 9
-    plt.rcParams['axes.titlesize'] = 10
+                        title=['Column Density', '1D density vs ', '1D density vs '], 
+                        rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
+    plt.rcParams.update(rcParams)
     plt.rcParams['image.cmap'] = 'jet'
     
     axDict = {'x': 0, 'y':1}
-    
+
     N = len(popts)
     imgNo = len(imgs)
     
@@ -1411,14 +1417,16 @@ def fit2Lines(x, ys, xMean, y1Mean, y2Mean, pointsForGuess=3):
         y1, y2 = y2, y1
     return p1, p2, y1, y2
 
-def odtMisalign(df):
+def odtMisalign(df,
+                rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
+    plt.rcParams.update(rcParams)
     df = df.sort_values(by='ODT_Misalign')
     
     xx = df.center_Basler.values
     df = df.join([df.Ycenter.apply(min).rename('y1'), df.Ycenter.apply(max).rename('y2')])
 
     dfMean = df.groupby('ODT_Misalign').mean()
-    dfStd = df.groupby('ODT_Misalign').std()
+    dfStd = df.groupby('ODT_Misalign').std(ddof=0)
 
     xxMean = dfMean.center_Basler.values
     y1Mean = dfMean.y1.values
@@ -1429,45 +1437,66 @@ def odtMisalign(df):
 
     df = df.join( pd.DataFrame({'y1group': y1group, 'y2group': y2group} , index=df.index), rsuffix='r' )
     dfMean = df.groupby('ODT_Misalign').mean()
-    dfStd = df.groupby('ODT_Misalign').std()
+    dfStd = df.groupby('ODT_Misalign').std(ddof=0)
 
     xxfit = np.arange(xx.min(), xx.max())
     fig, ax = plt.subplots(1,1, figsize=(8,6), layout="constrained")
-    N = 3
-    ax.errorbar(dfMean.center_Basler, dfMean.y1group, N*dfStd.y1group, N*dfStd.center_Basler, ls='')
-    ax.errorbar(dfMean.center_Basler, dfMean.y2group, N*dfStd.y2group, N*dfStd.center_Basler, ls='')
+    N = 5
     ax.plot(xxfit, np.polyval(p1, xxfit), label='first pass')
     ax.plot(xxfit, np.polyval(p2, xxfit), label='second pass')
-    ax.text(0.05,0.01, 'Cross at x = {:.2f}\n'.format(root)
-            + 'The hight of the first pass is {:.2f}\n'.format(np.mean(y1group))
+    ax.errorbar(dfMean.center_Basler, dfMean.y1group, N*dfStd.y1group, N*dfStd.center_Basler, ls='', color='r')
+    ax.errorbar(dfMean.center_Basler, dfMean.y2group, N*dfStd.y2group, N*dfStd.center_Basler, ls='', color='r')
+    ax.text(0.05,0.01, 'First pass y = {:.2f}\n'.format(np.mean(y1group))
+            + 'Cross at   x = {:.2f}\n'.format(root)
             + 'std for x: {}\n'.format(np.round(dfStd.center_Basler.values, 2))
             + 'std for y: {}\n'.format(np.round(dfStd.y1group.values, 2))
             + '               {}\n'.format(np.round(dfStd.y2group.values, 2)), 
-            va='bottom', transform=ax.transAxes)
+            va='bottom', transform=ax.transAxes, fontsize=8)
     ax.set_xlabel('Position On Basler Camera')
     ax.set_ylabel('Position On Zyla Camera')
     ax.legend()
+    print('{:.3f}, {:.3f}'.format(np.mean(y1group), root))
     
-def odtAlign(df, expYcenter, expCenterBasler):
-    plotColumn = [df.Ycenter, df.center_Basler, df. Ywidth]
-    expected = [expYcenter, expCenterBasler, None]
-    fig, axes = plt.subplots(3,1, figsize=(8,10), sharex=True, layout="constrained")
+def odtAlign(df, expYcenter, expCenterBasler, repetition=1, 
+             rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
+    plt.rcParams.update(rcParams)
+    df = df.reset_index()
+    dfMean = df.groupby(df.index//repetition).mean()
+    dfStd = df.groupby(df.index//repetition).std(ddof=0) 
     
-    for ii, ax in enumerate(axes):
-        ax.plot(plotColumn[ii].values)
-        ax.set_ylabel(plotColumn[ii].name)
-        ax.text(0.01,0.98, 'The latest value is {:.2f}\n'.format(plotColumn[ii].values[-1]), 
+    cols = ['Ycenter', 'YatomNumber', 'center_Basler', 'Ywidth']
+    
+    x = dfMean.index
+    y = dfMean[cols]
+    yErr = dfStd[cols]
+    # [dfMean.Ycenter, dfMean.center_Basler, dfMean.YatomNumber, dfMean.Ywidth]
+    # yErr = [dfStd.Ycenter, dfStd.center_Basler, dfStd.YatomNumber, dfStd.Ywidth]
+    expected = [expYcenter, None, expCenterBasler, None]
+    fig, axes = plt.subplots(2, 2, figsize=(10,6), sharex=True, layout="constrained")
+        
+    for ii, ax in enumerate(axes.flatten()):
+        ax.errorbar(x, y[cols[ii]], yErr[cols[ii]])
+        ax.set_ylabel(y[cols[ii]].name)
+        if cols[ii] == 'YatomNumber':
+            formatstr = '{:.2e}\n'
+        else: 
+            formatstr = '{:.2f}\n'
+        ax.text(0.01,0.98, 'Latest value:    ' + formatstr.format(y[cols[ii]].iloc[-1]), 
                 va='top', transform=ax.transAxes)
-        ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+        ax.text(0.01,0.9, 'Average Value: ' + formatstr.format(y[cols[ii]].mean()),
+                va='top', transform=ax.transAxes)        
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,5))
         if expected[ii]:
             ax.axhline(y=expected[ii], ls='--', color='g')
-            ax.set(ylim=[expected[ii]-2*plotColumn[ii].std(), expected[ii]+2*plotColumn[ii].std()])
+            ax.set(ylim=[expected[ii]-2*y[cols[ii]].std(), expected[ii]+2*y[cols[ii]].std()])
 
-    ax = axes[-1].twinx()
-    ax.plot(df.YatomNumber.values, 'g')
-    ax.set_ylabel(df.YatomNumber.name, color='g')
-    ax.tick_params(axis="y", labelcolor='g')
-    ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    # ax = axes[-1].twinx()
+    # ax.errorbar(x, dfMean.YatomNumber, dfStd.YatomNumber, color='g')
+    # ax.set_ylabel(df.YatomNumber.name, color='g')
+    # ax.tick_params(axis="y", labelcolor='g')
+    # ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    # ax.text(0.01,0.9, 'Atom Number {:.2e}\n'.format(dfMean.YatomNumber.iloc[-1]), 
+    #         va='top', transform=ax.transAxes)
     
 
 def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 

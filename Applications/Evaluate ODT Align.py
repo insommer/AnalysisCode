@@ -12,27 +12,27 @@ import os
 #Set the date and the folder name
 ####################################
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/7/2024'
-data_folder = [
-    r'/Andor/ODT 1900 Misalign_1',
-    ]
-Basler_folder = 'Basler\ODT 1900 Misalign_1'
+date = '3/9/2024'
 
-# task = 'ODT Align'
-task = 'ODT Misalign'
+ODT_Position = '400'
+task = 'Misalign'
+# task = 'Align'
+expectedValues = [None, None]
 
-expectedValues = [769.44, 1895.24]
+data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
+Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
+
 ####################################
 #Parameter Setting
 ####################################
-repetition = 1 #The number of identical runs to be averaged.
+repetition = 3 #The number of identical runs to be averaged.
 subtract_burntin = 0
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 intermediatePlot = True
 uniformscale = 0
-plt.rcParams.update({'font.size': 12, 'xtick.labelsize': 10, 'ytick.labelsize': 10})
+rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
 
 variablesToDisplay = [
                     # 'Coil_medB', 
@@ -55,7 +55,7 @@ variableFilterList = [
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 1
+subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
@@ -66,31 +66,25 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-# rowstart = 660
-# rowstart = 500
-# rowend = -10
-# columnstart = 600
-# columnend = -200
-
-# columnstart = 800
+# columnstart = 750
 # columnend = 1200
 
 # rowstart =750 #ODT 2675
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-rowstart =970 #ODT19001
-rowend = 1070
+# rowstart =970 #ODT19001
+# rowend = 1070
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
 # rowstart = 888 #ODT700
 # rowend = 923
-# rowstart = 1078 #ODT50
-# rowend = 1113
+rowstart = 1032 #ODT400
+rowend = 1068
 
-# rowstart = 443 #ODT3800
-# rowend = 478
+# rowstart = 543 #ODT3400
+# rowend = 578
 
 rowstart -= 150
 rowend += 150
@@ -98,25 +92,15 @@ rowend += 150
 ####################################
 ####################################
 dataLocation = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
-data_folder = [ dataLocation + f for f in data_folder ]
+data_folder = os.path.join(dataLocation, data_folder)
 variableLog_folder = dataLocation + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 picturesPerIteration = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
 
-images_array = None
-
-for ff in data_folder:
-    if images_array is None:
-        images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
-                                                                   return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
-    else:
-        _images_array, _fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
-                                                                       return_fileTime=1)
-        images_array = np.concatenate([images_array, _images_array], axis=0)
-        fileTime = fileTime + _fileTime
-
+images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder, 
+                                                             return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
 # images_array = images_array[examFrom: examUntil]
 # fileTime = fileTime[examFrom: examUntil]
 
@@ -187,10 +171,12 @@ center_Basler = [ii[1] for ii in popt_Basler]
 dfjoin = results[['ODT_Misalign', 'Ycenter', 'Ywidth', 'YatomNumber']].copy()
 dfjoin['center_Basler'] = center_Basler
 
-if task == 'ODT Align':
-    ImageAnalysisCode.odtAlign(dfjoin, *expectedValues)
-elif task == 'ODT Misalign':
-    ImageAnalysisCode.odtMisalign(dfjoin)
+if task.startswith('Align'):
+    ImageAnalysisCode.odtAlign(dfjoin, *expectedValues, repetition=repetition,
+                               rcParams=rcParams)
+    
+elif task.startswith('Misalign'):
+    ImageAnalysisCode.odtMisalign(dfjoin, rcParams=rcParams)
 
 # %%
 if intermediatePlot:
@@ -199,7 +185,7 @@ if intermediatePlot:
                                           plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
                                           variableLog=variableLog, logTime=logTime,
-                                          textLocationY=0.8)
+                                          textLocationY=0.8, rcParams=rcParams)
 
     # xx = np.arange(len(imgs_oneD[0]))
     # fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')

@@ -16,31 +16,31 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/7/2024'
+date = '3/9/2024'
 data_folder = [
-    # r'/Andor/ODT 1900 Test',
-    # r'/Andor/ODT 1900 Align',
-    r'/Andor/Test_1'
+    # r'/Andor/ODT 3400 Align',
+    r'/Andor/ODT Pictures',
+    # r'/Andor/Test_5'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = 5 #The number of runs to exam.
+examNum = 9 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 5
+plotPWindow = 3
 do_plot = True
 uniformscale = 0
 
 variablesToDisplay = [
-                    # 'Coil_medB', 
-                       'wait',
-                       # 'ODT Misalign',
-                       'ODT Position',
-                      'ZSBiasCurrent',
-                      'VerticalBiasCurrent',
-                       'CamBiasCurrent'
+                    # # 'Coil_medB', 
+                    #    'wait',
+                    #    # 'ODT Misalign',
+                    #    'ODT Position',
+                    #   'ZSBiasCurrent',
+                    #   'VerticalBiasCurrent',
+                    #    'CamBiasCurrent'
                       ]
 showTimestamp = False
 # variablesToDisplay=None
@@ -66,14 +66,14 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-rowstart = 660
+# rowstart = 660
 # rowstart = 500
 # rowend = -10
 # columnstart = 600
 # columnend = -200
 
-# columnstart = 800
-# columnend = 1200
+columnstart = 750
+columnend = 1200
 
 
 # rowstart =250
@@ -152,7 +152,7 @@ if pictureToHide is not None:
     if logTime is not None:
         logTime = np.delete(logTime, pictureToHide, 0)
 
-# ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
+ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1.0,  
