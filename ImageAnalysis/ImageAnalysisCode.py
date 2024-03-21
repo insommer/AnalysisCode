@@ -18,6 +18,7 @@ from scipy.ndimage import rotate
 from scipy.ndimage import gaussian_filter1d
 from scipy import signal
 from skimage.filters import threshold_otsu
+from scipy.ndimage import rotate
 
 import os
 import PIL
@@ -300,7 +301,7 @@ def VariableFilter(timestamps, variableLog, variableFilterList):
 
 def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=18):
     if variableLog is None:
-        return None
+        return []
     
     Index = variableLog.index
     logTimes = []
@@ -318,6 +319,149 @@ def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=18):
         logTimes.append(logTime)
         
     return logTimes
+
+
+
+
+
+
+
+
+
+def GetFilePaths(*paths, picsPerIteration=3, examFrom=None, examUntil=None):
+    '''
+    Generate the list of filenames in the correct order and selected range
+    used for loading Zyla images. 
+    '''
+    FilePaths = []
+    
+    for path in paths:
+    
+        filenames = glob.glob1(path,"*spool.dat")
+        filenamesInd = [ ii[6::-1] for ii in filenames]
+    
+        indexedFilenames = list(zip(filenamesInd, filenames))
+        indexedFilenames.sort()
+    
+        filepaths = [os.path.join(path, ii[1]) for ii in indexedFilenames]
+        FilePaths.extend(filepaths)
+    
+    if examFrom:
+        examFrom *= picsPerIteration
+    if examUntil:
+        examUntil *= picsPerIteration
+        
+    return FilePaths[examFrom: examUntil]
+
+def LoadSpooledSeriesV2(*paths, picturesPerIteration=3, 
+                        background_folder = ".",  background_file_name= "",
+                        examFrom=None, examUntil=None, return_fileTime=0):
+        """
+        Modified from LoadSpooledSeries, works with multiple folders. 
+        
+        Parameters
+        ----------
+        paths : string
+            path to the folder with the spooled series data, and the background image
+        background_file_name : string
+            name of background image, assumed to be in the data_folder
+       
+        Returns
+        -------
+        4D array of integers giving the background-subtracted camera 
+        in each pixel.
+        Format: images[iterationNumber, pictureNumber, row, col]
+    
+        """
+        
+        for path in paths:
+            if not os.path.exists(path):
+                raise Exception("Data folder not found:" + str(path))
+        
+            number_of_pics = len(glob.glob1(path,"*spool.dat"))
+            assert number_of_pics % picturesPerIteration == 0
+            
+        #Load meta data
+        metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig")
+        height =int( metadata["data"]["AOIHeight"])
+        width = int( metadata["data"]["AOIWidth"])
+        pix_format = metadata["data"]["PixelEncoding"]
+        if pix_format.lower() == "mono16":
+            data_type=np.uint16
+        else:
+            raise Exception("Unknown pixel format " + pix_format)
+        number_of_pixels = height*width
+                
+        #Get the filenames and select the range needed.
+        filePaths = GetFilePaths(*paths, picsPerIteration=picturesPerIteration, 
+                                 examFrom=examFrom, examUntil=examUntil)
+        number_of_pics = len(filePaths)        
+        number_of_iterations = int(number_of_pics/picturesPerIteration)
+        
+        #Load background image into background_array
+        if background_file_name:
+            background_img = os.path.join(background_folder, background_file_name)
+            file=open(background_img,"rb")
+            content=file.read()
+            background_array = np.frombuffer(content, dtype=data_type)
+            background_array = background_array[0:number_of_pixels]
+            file.close()
+        #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
+        image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
+        
+        fileTime = []
+        fileFolder = []
+        
+        for ind, filepath in enumerate(filePaths):
+            
+            if ind % picturesPerIteration == 0 and return_fileTime:
+                fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filepath) ) )
+                fileFolder.append( '/'.join(filepath.replace('\\', '/').rsplit('/', 4)[1:-1]) )
+            
+            file = open(filepath, "rb")
+            content = file.read()
+            data_array = np.frombuffer(content, dtype=data_type)
+            data_array = data_array[:number_of_pixels] # a spool file that is not bg corrected
+            if background_file_name:
+                data_array = data_array - background_array #spool file that is background corrected
+            image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array            
+
+        # reshape the total_image_array_corrected into a 4D array
+        # outermost dimension's size is equal to the number of iterations, 
+        # 2nd outer dimensions size is number of pictures per iteration
+        # 3rd dimensions size is equal to the height of the images
+        #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
+        images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+        
+        return images, fileTime, fileFolder
+    
+    
+def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
+                      subtract_burntin=0, loadVariableLog=1, dirLevelAfterDayFolder=2):
+
+    pPI = 4 if subtract_burntin else 3    
+    rawImgs, fileTime, fileFolder = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
+                                                        return_fileTime=loadVariableLog, 
+                                                        examFrom=examFrom, examUntil=examUntil)
+    
+    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, firstFrame=0, correctionFactorInput=1.0,
+                                                      subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    
+    variableLog = None
+    if loadVariableLog:
+        dayfolders = np.unique( [ii.replace('\\', '/').rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
+        
+        variableLog = []
+        for ff in dayfolders:
+            variablelogfolder = os.path.join(ff, 'Variable Logs')
+            variableLog.append( LoadVariableLog(variablelogfolder) )
+            
+        variableLog = pd.concat(variableLog)
+        logTime = Filetime2Logtime(fileTime, variableLog)
+        variableLog = variableLog.loc[logTime]
+        variableLog.insert(0, 'Folder', fileFolder)
+    
+    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False), variableLog        
 
 
 def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None):
@@ -338,8 +482,7 @@ def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None)
     if examUntil:
         examUntil *= picsPerIteration
         
-    return filenames[examFrom: examUntil]    
-
+    return filenames[examFrom: examUntil]
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
                       examFrom=None, examUntil=None, return_fileTime=0):
@@ -401,7 +544,7 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             filename = data_folder + "\\" + fileNames[ind] 
                 
             if ind % picturesPerIteration == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp( round(os.path.getctime(filename), 2) ) )
+                fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filename) ) )
             
             file = open(filename,"rb")
             content = file.read()
@@ -500,6 +643,47 @@ def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_fol
         images = np.reshape(image_array_corrected,(number_of_iterations, picturesPerIteration, height, width))
         return images    
     
+    
+    
+    
+
+def PreprocessZylaPictures(dataRootFolder, date, dataFolder, subtract_burntin=0, rotateAngle=1,
+                           examNum=None, examFrom=None, repetition=1, return_fileTime=0,
+                           variableFilterList=[], pictureToHide=None):  
+        
+    dayfolder = GetDataLocation(date, DataPath=dataRootFolder)
+    dataFolder = os.path.join(dayfolder, dataFolder)
+    variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
+    examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
+    
+    pPI = 4 if subtract_burntin else 3    
+    params = ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= pPI, cam_type = "zyla")
+
+    images_array, fileTime = LoadSpooledSeries(params=params, data_folder=dataFolder, 
+                                               return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
+    # images_array = images_array[examFrom: examUntil]
+    # fileTime = fileTime[examFrom: examUntil]
+    
+    variableLog = LoadVariableLog(variableLog_folder)
+    logTime = Filetime2Logtime(fileTime, variableLog)
+        
+    if variableFilterList and variableLog is not None:    
+        filteredList = VariableFilter(logTime, variableLog, variableFilterList)
+        images_array = np.delete(images_array, filteredList, 0)
+        logTime = np.delete(logTime, filteredList, 0)
+    
+    if pictureToHide is not None:
+        images_array = np.delete(images_array, pictureToHide, 0)
+        if logTime is not None:
+            logTime = np.delete(logTime, pictureToHide, 0)
+    
+    Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = absImagingSimple(images_array, 
+                    firstFrame=0, correctionFactorInput=1.0,  
+                    subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    
+    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False), params, variableLog, logTime
+
+
 
 def CountsToAtoms(params, counts):
     """
@@ -1297,7 +1481,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
-                        title=['Column Density', '1D density vs ', '1D density vs '], 
+                        title=[], 
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
     plt.rcParams.update(rcParams)
     plt.rcParams['image.cmap'] = 'jet'
@@ -1310,6 +1494,8 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
     oneD_imgs = []
     xx = []
     xxfit = []
+    if not title:
+        title=['Column Density', '1D density vs ', '1D density vs ']
     
     for n in range(N):
         oneD = imgs.sum( axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
@@ -1455,7 +1641,7 @@ def odtMisalign(df,
     ax.set_xlabel('Position On Basler Camera')
     ax.set_ylabel('Position On Zyla Camera')
     ax.legend()
-    print('{:.3f}, {:.3f}'.format(np.mean(y1group), root))
+    print('Coordinates for aligning:\n{:.3f}, {:.3f}'.format(np.mean(y1group), root))
     
 def odtAlign(df, expYcenter, expCenterBasler, repetition=1, 
              rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
@@ -1488,7 +1674,8 @@ def odtAlign(df, expYcenter, expCenterBasler, repetition=1,
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,5))
         if expected[ii]:
             ax.axhline(y=expected[ii], ls='--', color='g')
-            ax.set(ylim=[expected[ii]-2*y[cols[ii]].std(), expected[ii]+2*y[cols[ii]].std()])
+            yrange = max(2*y[cols[ii]].std(ddof=0), 1.5 * np.abs(expected[ii] - y[cols[ii]].iloc[-1]))
+            ax.set(ylim=[expected[ii]-yrange, expected[ii]+yrange])
 
     # ax = axes[-1].twinx()
     # ax.errorbar(x, dfMean.YatomNumber, dfStd.YatomNumber, color='g')
@@ -1643,10 +1830,10 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
     df.insert(0, 'Folder', dataFolderindex)
     
     if variableLog is not None:
-        variableLog = variableLog.loc[logTime]
-        df1 = df.join(variableLog)
+        # variableLog = variableLog.loc[logTime]
+        df = df.join(variableLog)
     
-    return df1
+    return df
 
 
 def DataFilter(df, filterByAnd=[], filterByOr=[], filterByOr2=[]):
