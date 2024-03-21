@@ -16,20 +16,20 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/9/2024'
+date = '3/20/2024'
 data_folder = [
     # r'/Andor/ODT 3400 Align',
-    r'/Andor/ODT Pictures',
-    # r'/Andor/Test_5'
+    # r'/Andor/ODT Pictures',
+    r'/Andor/Test'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = 9 #The number of runs to exam.
+examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 3
+plotPWindow = 5
 do_plot = True
 uniformscale = 0
 
@@ -72,8 +72,8 @@ columnend = -10
 # columnstart = 600
 # columnend = -200
 
-columnstart = 750
-columnend = 1200
+# columnstart = 750
+# columnend = 1200
 
 
 # rowstart =250
@@ -90,8 +90,8 @@ columnend = 1200
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-# rowstart =970 #ODT19001
-# rowend = 1070
+rowstart =570 #ODT1900
+rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -103,14 +103,14 @@ columnend = 1200
 # rowstart = 443 #ODT3800
 # rowend = 478
 
-# rowstart -= 20
-# rowend += 20
+# rowstart -= 220
+# rowend += 220
 
 ####################################
 ####################################
-dataLocation = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
-data_folder = [ dataLocation + f for f in data_folder ]
-variableLog_folder = dataLocation + r'/Variable Logs'
+dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
+data_folder = [ dayFolder + f for f in data_folder ]
+variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 picturesPerIteration = 4 if subtract_burntin else 3

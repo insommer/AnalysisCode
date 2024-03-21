@@ -11,13 +11,13 @@ import os
 ####################################
 #Set the date and the folder name
 ####################################
-data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/9/2024'
+dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
+date = '3/20/2024'
 
-ODT_Position = '400'
+ODT_Position = '1900'
 task = 'Misalign'
-# task = 'Align'
-expectedValues = [None, None]
+task = 'Align'
+expectedValues = [748.056, 1917.761]
 
 data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
 Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
@@ -27,9 +27,9 @@ Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
 ####################################
 repetition = 3 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = None #The number of runs to exam.
+examNum = 3 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 5
+plotPWindow = 3
 intermediatePlot = True
 uniformscale = 0
 rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
@@ -66,22 +66,22 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-# columnstart = 750
-# columnend = 1200
+columnstart = 750
+columnend = 1200
 
 # rowstart =750 #ODT 2675
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-# rowstart =970 #ODT19001
-# rowend = 1070
+rowstart =570 #ODT1900
+rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
 # rowstart = 888 #ODT700
 # rowend = 923
-rowstart = 1032 #ODT400
-rowend = 1068
+# rowstart = 1032 #ODT400
+# rowend = 1068
 
 # rowstart = 543 #ODT3400
 # rowend = 578
@@ -91,39 +91,19 @@ rowend += 150
 
 ####################################
 ####################################
-dataLocation = ImageAnalysisCode.GetDataLocation(date, DataPath=data_path)
-data_folder = os.path.join(dataLocation, data_folder)
-variableLog_folder = dataLocation + r'/Variable Logs'
+dayfolder = ImageAnalysisCode.GetDataLocation(date, DataPath=dataRootFolder)
+dataPath = os.path.join(dayfolder, data_folder)
+variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-picturesPerIteration = 4 if subtract_burntin else 3
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+pPI = 4 if subtract_burntin else 3
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
-images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder, 
-                                                             return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
-# images_array = images_array[examFrom: examUntil]
-# fileTime = fileTime[examFrom: examUntil]
+columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, subtract_burntin=0, )
+columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
 
-variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
-logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
-    
-if variableFilterList is not None and variableLog is not None:    
-    filteredList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
-    images_array = np.delete(images_array, filteredList, 0)
-    logTime = np.delete(logTime, filteredList, 0)
-
-if pictureToHide is not None:
-    images_array = np.delete(images_array, pictureToHide, 0)
-    if logTime is not None:
-        logTime = np.delete(logTime, pictureToHide, 0)
-
-Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
-                firstFrame=0, correctionFactorInput=1.0,  
-                subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
-rotatedCD = rotate(columnDensities, angle_deg, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend]
-
-dx = params.camera.pixelsize_microns/params.magnification
-YcolumnDensities = rotatedCD.sum(axis=2) * dx / 1e6**2
+dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 
+YcolumnDensities = columnDensities.sum(axis=2) * dx / 1e6**2
 
 popts = []
 bgs = []
@@ -134,27 +114,28 @@ for ydata in YcolumnDensities:
     popts.append(popt)
     bgs.append(bg)
     
-# XcolumnDensities = rotatedCD.sum(axis=1) * dx / 1e6**2
+# XcolumnDensities = columnDensities.sum(axis=1) * dx / 1e6**2
 # poptsX = []
 # for xdata in XcolumnDensities:
 #     poptx,_ = ImageAnalysisCode.fitSingleGaussian(xdata, dx=dx,
 #                                                   subtract_bg=1, signal_feature='wide')
 #     poptsX.append(poptx)
 
-results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=logTime)
+results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index)
+
 if variableLog is not None:
-    results = results.join(variableLog.loc[logTime])
+    results = results.join(variableLog)
 # results.to_csv('0305.csv')
 
 # %%
 # Load the Basler pictures
-data_folder_Basler = os.path.join(dataLocation, Basler_folder)
+data_folder_Basler = os.path.join(dayfolder, Basler_folder)
 files = os.listdir(data_folder_Basler)
 files.sort()
 fileNo = len(files)
 
 imgs_Basler = []
-for file in files:
+for file in files[examFrom: examUntil]:
     path = os.path.join(data_folder_Basler, file)
     imgs_Basler.append( plt.imread(path)[...,0] )
 imgs_Basler = np.array(imgs_Basler)
@@ -181,10 +162,10 @@ elif task.startswith('Misalign'):
 # %%
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
-    ImageAnalysisCode.plotImgAndFitResult(rotatedCD, popts, bgs=bgs, dx=dx, 
+    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
                                           plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
-                                          variableLog=variableLog, logTime=logTime,
+                                          variableLog=variableLog, logTime=variableLog.index,
                                           textLocationY=0.8, rcParams=rcParams)
 
     # xx = np.arange(len(imgs_oneD[0]))
