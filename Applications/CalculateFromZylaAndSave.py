@@ -33,7 +33,7 @@ targetFolder = dayFolder
 
 print('###2')
 
-if Calculate:    
+if Calculate:
     variableLogFolder = os.path.join(dayFolder, 'Variable Logs')
     variableLog = ImageAnalysisCode.LoadVariableLog(variableLogFolder)
     print('VariableLog loaded.')

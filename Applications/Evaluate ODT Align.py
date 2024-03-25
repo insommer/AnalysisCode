@@ -59,7 +59,7 @@ subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-angle_deg= 0.5 #rotates ccw
+rotateAngle= 0.5 #rotates ccw
 
 rowstart = 10
 rowend = -10
@@ -93,13 +93,15 @@ rowend += 150
 ####################################
 dayfolder = ImageAnalysisCode.GetDataLocation(date, DataPath=dataRootFolder)
 dataPath = os.path.join(dayfolder, data_folder)
-variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
+# variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
-columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, subtract_burntin=0, )
+columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, 
+                                                                   rotateAngle=rotateAngle, subtract_burntin=0, )
+# %%
 columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
 
 dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 

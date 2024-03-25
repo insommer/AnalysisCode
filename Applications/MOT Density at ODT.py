@@ -13,15 +13,10 @@ from scipy import ndimage
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/9/2024'
+date = '3/22/2024'
 
-ODT_Position = '400'
-task = 'Misalign'
-task = 'Align'
-expectedValues = [None, None]
-
-data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
-Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
+ODTfolder = 'Andor/ODT 1900'
+MOTfolder = 'Andor/GM Cloud at 0 wait'
 
 ####################################
 #Parameter Setting
@@ -34,6 +29,7 @@ plotPWindow = 5
 intermediatePlot = True
 uniformscale = 0
 rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
+plt.rcParams['image.cmap'] = 'jet'
 
 variablesToDisplay = [
                     # 'Coil_medB', 
@@ -41,7 +37,7 @@ variablesToDisplay = [
                        'ODT Position',
                       'ZSBiasCurrent',
                       'VerticalBiasCurrent',
-                       'CamBiasCurrent'
+                       'IterationNum'
                       ]
 showTimestamp = False
 # variablesToDisplay=None
@@ -60,7 +56,7 @@ subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-angle_deg= 0.5 #rotates ccw
+rotateAngle= 0.5 #rotates ccw
 
 rowstart = 10
 rowend = -10
@@ -74,57 +70,81 @@ columnend = -10
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-# rowstart =970 #ODT19001
-# rowend = 1070
+# rowstart =570 #ODT1900
+# rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
 # rowstart = 888 #ODT700
 # rowend = 923
-rowstart = 1032 #ODT400
-rowend = 1068
+# rowstart = 1032 #ODT400
+# rowend = 1068
 
 # rowstart = 543 #ODT3400
 # rowend = 578
 
-rowstart -= 150
-rowend += 150
+# rowstart -= 50
+# rowend += 50
 
 ####################################
 ####################################
 dayfolder = ImageAnalysisCode.GetDataLocation(date, DataPath=dataRootFolder)
-dataPath = os.path.join(dayfolder, data_folder)
-variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
+ODTdataPath = os.path.join(dayfolder, ODTfolder)
+MOTdataPath = os.path.join(dayfolder, MOTfolder)
+
+
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
-
-pPI = 4 if subtract_burntin else 3
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, cam_type = "zyla")
 
 
+ODTimgs, ODTlog = ImageAnalysisCode.PreprocessZylaImg(ODTdataPath, subtract_burntin=0, rotateAngle=rotateAngle)
+MOTimgs, MOTlog = ImageAnalysisCode.PreprocessZylaImg(MOTdataPath, subtract_burntin=1, rotateAngle=rotateAngle)
 
 
-ODTcolumnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, subtract_burntin=0)
-ODTcolumnDensities = ODTcolumnDensities[:, rowstart:rowend, columnstart:columnend]
+
+
+
+ODTimgs = ODTimgs[:, rowstart:rowend, columnstart:columnend]
+MOTimgs = MOTimgs[:, rowstart:rowend, columnstart:columnend]
+
+
+N = len(MOTimgs)
+ppw = 5
 
 # %%
-imgs = ODTcolumnDensities.copy()
+for ii, img in enumerate(MOTimgs):
+    
+    if ii%ppw == 0:
+        plotNo = min(ppw, len(MOTimgs)-ii)
+        fig, axes = plt.subplots( plotNo , 1, figsize=(2, 1.5*plotNo), 
+                                 sharex='col', layout='constrained')
+        
+    axes[ii%ppw].imshow(img, vmin=0)
 
-maxCoor = []
-imgFiltered = np.zeros_like(imgs)
-for ii, img in enumerate(imgs):
-    imgFiltered[ii] = ndimage.gaussian_filter(img, sigma=10)
-    thr = 0.9*(imgFiltered[ii].max() - imgFiltered[ii].min()) + imgFiltered.min()
-    img[ imgFiltered[ii] < thr ] = 0
-    maxCoor.append( ndimage.center_of_mass(img) )
-    # maxCoor.append( np.unravel_index(imgFiltered[ii].argmax(), img.shape) )    
+# %%
+
+ImageAnalysisCode.plotImgAndFitResult(MOTimgs, variablesToDisplay=variablesToDisplay, variableLog=MOTlog)
+
+
+
+# imgs = ODTcolumnDensities.copy()
+
+# maxCoor = []
+# imgFiltered = np.zeros_like(imgs)
+# for ii, img in enumerate(imgs):
+#     imgFiltered[ii] = ndimage.gaussian_filter(img, sigma=10)
+#     thr = 0.9*(imgFiltered[ii].max() - imgFiltered[ii].min()) + imgFiltered.min()
+#     img[ imgFiltered[ii] < thr ] = 0
+#     maxCoor.append( ndimage.center_of_mass(img) )
+#     # maxCoor.append( np.unravel_index(imgFiltered[ii].argmax(), img.shape) )    
     
-fig, axes = plt.subplots(5,2, figsize=(20,15), sharex=True, sharey=True, layout='constrained')
-for ii, ax in enumerate(axes):
-    ax[0].imshow(ODTcolumnDensities[ii])
-    ax[0].scatter(*maxCoor[ii][::-1], marker='x')
+# fig, axes = plt.subplots(5,2, figsize=(20,15), sharex=True, sharey=True, layout='constrained')
+# for ii, ax in enumerate(axes):
+#     ax[0].imshow(ODTcolumnDensities[ii])
+#     ax[0].scatter(*maxCoor[ii][::-1], marker='x')
     
-    ax[1].imshow(imgs[ii])
-    ax[1].scatter(*maxCoor[ii][::-1], marker='x', c='r')
+#     ax[1].imshow(imgs[ii])
+#     ax[1].scatter(*maxCoor[ii][::-1], marker='x', c='r')
 
 
 # %% Filters

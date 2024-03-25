@@ -74,7 +74,8 @@ def AnalyzeZyla(date,
                 picturesPerIteration = 3,
                 subtract_burntin = 0,
                 do_plot_ratio = 0,
-                angle_deg=2):
+                angle_deg=2,
+                plot_raw_images=0):
     
     dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
     data_folders = [ dataLocation + f for f in data_folders ]
@@ -112,7 +113,8 @@ def AnalyzeZyla(date,
         if logTime is not None:
             logTime = np.delete(logTime, pictureToHide, 0)
     
-    # ImageAnalysisCode.ShowImagesTranspose(images_array)
+    if (plot_raw_images):
+        ImageAnalysisCode.ShowImagesTranspose(images_array)
     log("Calculating column densities...")
     Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                     firstFrame=0, correctionFactorInput=1.0,  

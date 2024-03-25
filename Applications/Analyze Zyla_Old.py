@@ -16,31 +16,31 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/20/2024'
+date = '3/22/2024'
 data_folder = [
     # r'/Andor/ODT 3400 Align',
-    # r'/Andor/ODT Pictures',
-    r'/Andor/Test'
+    # r'/Andor/MOT 1900',
+    r'/Andor/GM Cloud at 0 wait'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 0
-examNum = 5 #The number of runs to exam.
+subtract_burntin = 1
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
-uniformscale = 0
+uniformscale = 1
 
 variablesToDisplay = [
                     # # 'Coil_medB', 
-                    #    'wait',
-                    #    # 'ODT Misalign',
-                    #    'ODT Position',
-                    #   'ZSBiasCurrent',
-                    #   'VerticalBiasCurrent',
-                    #    'CamBiasCurrent'
+                        'wait',
+                        # 'ODT Misalign',
+                        'ODT Position',
+                      'ZSBiasCurrent',
+                      'VerticalBiasCurrent',
+                        'IterationNum'
                       ]
 showTimestamp = False
 # variablesToDisplay=None
@@ -55,7 +55,7 @@ variableFilterList = [
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 1
+subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
@@ -90,8 +90,8 @@ columnend = -10
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-rowstart =570 #ODT1900
-rowend = 670
+# rowstart =570 #ODT1900
+# rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -103,8 +103,8 @@ rowend = 670
 # rowstart = 443 #ODT3800
 # rowend = 478
 
-# rowstart -= 220
-# rowend += 220
+# rowstart -= 50
+# rowend += 50
 
 ####################################
 ####################################
@@ -152,7 +152,7 @@ if pictureToHide is not None:
     if logTime is not None:
         logTime = np.delete(logTime, pictureToHide, 0)
 
-ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
+# ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                 firstFrame=0, correctionFactorInput=1.0,  
