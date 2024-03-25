@@ -1132,7 +1132,7 @@ def DetectPeaks(yy, amp=1, width=3, denoise=0, doPlot=0):
     
     # Determine the background with the otsu method and set to 0.
     # thr = threshold_otsu(yycopy)
-    thr = 0.07 * (yy.max() - yy.min()) + yy.min()
+    thr = 0.1 * (yy.max() - yy.min()) + yy.min()
     yycopy[yycopy < thr] = yy.min()    
 
     peaks, properties = signal.find_peaks(yycopy, prominence=amp*0.01*(yycopy.max()-yycopy.min()), width=width)
@@ -1477,7 +1477,7 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         axlist=['y', 'x'], dx=1, 
                         plotPWindow=5, 
-                        variablesToDisplay=[], variableLog=None, logTime=None, showTimestamp=False,
+                        variablesToDisplay=[], variableLog=None, logTime=[], showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
@@ -1496,6 +1496,9 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
     xxfit = []
     if not title:
         title=['Column Density', '1D density vs ', '1D density vs ']
+        
+    if variablesToDisplay and not logTime:
+                logTime = variableLog.index
     
     for n in range(N):
         oneD = imgs.sum( axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
@@ -1510,7 +1513,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
         plotInd = ind % plotPWindow
         if plotInd == 0:
             plotNo = min(plotPWindow, imgNo-ind)
-            fig, axes = plt.subplots(plotNo , N+1, figsize=(3.5*(N+1), 1.8*plotNo), squeeze = False, 
+            fig, axes = plt.subplots(plotNo , N+1, figsize=(3*(N+1), 1.5*plotNo), squeeze = False, 
                                      sharex='col', layout="constrained")
             for n in range(N+1):
                 axes[-1, n].set_xlabel(xlabel[n])
@@ -1522,11 +1525,12 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
         
         for n in range(N):
             axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
-            if bgs and bgs[0] is not None:
-                axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[ind])
-                axes[plotInd, n+1].plot(xx[n], bgs[ind], '.', markersize=0.3)
-            else:
-                axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
+            if popts[n][ind] is not None:
+                if bgs and bgs[0] is not None:
+                    axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[ind])
+                    axes[plotInd, n+1].plot(xx[n], bgs[ind], '.', markersize=0.3)
+                else:
+                    axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
             
             
             axes[plotInd, n+1].ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
@@ -1534,6 +1538,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
             plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
             
         if variablesToDisplay:
+
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
@@ -1655,8 +1660,7 @@ def odtAlign(df, expYcenter, expCenterBasler, repetition=1,
     x = dfMean.index
     y = dfMean[cols]
     yErr = dfStd[cols]
-    # [dfMean.Ycenter, dfMean.center_Basler, dfMean.YatomNumber, dfMean.Ywidth]
-    # yErr = [dfStd.Ycenter, dfStd.center_Basler, dfStd.YatomNumber, dfStd.Ywidth]
+
     expected = [expYcenter, None, expCenterBasler, None]
     fig, axes = plt.subplots(2, 2, figsize=(10,6), sharex=True, layout="constrained")
         
@@ -1677,14 +1681,7 @@ def odtAlign(df, expYcenter, expCenterBasler, repetition=1,
             yrange = max(2*y[cols[ii]].std(ddof=0), 1.5 * np.abs(expected[ii] - y[cols[ii]].iloc[-1]))
             ax.set(ylim=[expected[ii]-yrange, expected[ii]+yrange])
 
-    # ax = axes[-1].twinx()
-    # ax.errorbar(x, dfMean.YatomNumber, dfStd.YatomNumber, color='g')
-    # ax.set_ylabel(df.YatomNumber.name, color='g')
-    # ax.tick_params(axis="y", labelcolor='g')
-    # ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
-    # ax.text(0.01,0.9, 'Atom Number {:.2e}\n'.format(dfMean.YatomNumber.iloc[-1]), 
-    #         va='top', transform=ax.transAxes)
-    
+   
 
 def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None, 
                       repetition=1, examNum=None, examFrom=None, 
