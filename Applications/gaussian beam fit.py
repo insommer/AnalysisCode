@@ -15,10 +15,10 @@ from ImageAnalysis import ImageAnalysisCode
 #Set the date, the folder name, and the file name
 ####################################
 
-data_path =r"C:\Users\Sommer Lab\Documents\Data"
-date = '12/20/2023'
-data_folder = r'\FLIR\Beam Waist'
-filename = r'\18276023-2023-12-20-164619.raw'
+data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
+date = '3/26/2024'
+data_folder = r'\FLIR\Beam Waist 2nd Pass'
+filename = r'\1st Pass 70% Laser Power High AOM 2.raw'
 
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
@@ -38,7 +38,7 @@ path = dataLocation + data_folder + filename
 # 1.2 for the new Point Grey Chameleon, 
 # 2 for Basler dart
 ####################################
-camera = 1
+camera = 1.2
 
 # path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)
@@ -84,7 +84,7 @@ y0 = np.argmax(sum_vs_y)
 # print(x0,y0)
 
 #slices
-slice_vs_x = img_array[y0,:]
+slice_vs_x = img_array[y0+10,:]
 slice_vs_y= img_array[:,x0]
 
 #plt.plot(slice_vs_x)
@@ -104,6 +104,11 @@ def fitgaussian(xdata, ydata,xc,do_plot=True, plot_title = False):
 
 xvalues = pixelsize_um*np.arange(width)
 yvalues = pixelsize_um*np.arange(height)
+
+
+# popt,pcov =fitgaussian(xvalues, sum_vs_x, (x0)*pixelsize_um, plot_title = "sum vs. x")
+# plt.figure()
+# popt2,pcov2 = fitgaussian(yvalues, sum_vs_y, y0*pixelsize_um, plot_title = "sum vs. y")
 
 popt,pcov =fitgaussian(xvalues, slice_vs_x, (x0)*pixelsize_um, plot_title = "slice vs. x")
 plt.figure()

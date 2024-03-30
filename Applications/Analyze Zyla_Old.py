@@ -16,17 +16,17 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/22/2024'
+date = '3/25/2024'
 data_folder = [
-    # r'/Andor/ODT 3400 Align',
+    r'/Andor/Test_1',
     # r'/Andor/MOT 1900',
-    r'/Andor/GM Cloud at 0 wait'
+    # r'/Andor/GM Cloud at 0 wait'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 1
+subtract_burntin = 0
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
