@@ -1833,15 +1833,22 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
     return df
 
 
-def DataFilter(df, filterByAnd=[], filterByOr=[], filterByOr2=[]):
-    if filterByAnd:
-        for flt in filterByAnd:
-            df = df[ eval('df.' + flt.replace(' ', '_')) ]
-            
-    if filterByOr:
-        df = FilterByOr(df, [filterByOr, filterByOr2])
+def DataFilter(df, *filterLists):    
+    masks = []
+    for fltlist in filterLists:
+        maskSingleList = []
+        for flt in fltlist:
+            maskSingleList.append(eval( 'df.' + flt.replace(' ', '_') ))   
+           
+        if len(fltlist) > 1:
+            for mask in maskSingleList[1:]:
+                maskSingleList[0] &= mask
+        masks.append(maskSingleList[0])
         
-    return df
+    if len(filterLists) > 1:
+        for mask in masks[1:]:
+            masks[0] |= mask
+    return df[ masks[0] ]
 
 
 def FilterByOr(df, filterLists):
@@ -1864,9 +1871,8 @@ def FilterByOr(df, filterLists):
 
 
 
-def PlotFromDataCSV(df, xVariable, yVariable, 
+def PlotFromDataCSV(df, xVariable, yVariable, *filterLists,
                     groupby=None, groupbyX=0, iterateVariable=None,
-                    filterByAnd=[], filterByOr=[], filterByOr2=[],
                     figSize=1, legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
@@ -1927,7 +1933,7 @@ def PlotFromDataCSV(df, xVariable, yVariable,
     
     # df = pd.read_csv(filePath)
     df = df[ ~np.isnan(df[yVariable]) ]
-    df = DataFilter(df, filterByAnd, filterByOr, filterByOr2)
+    df = DataFilter(df, *filterLists)
     
     columnlist = [xVariable, yVariable]
     
