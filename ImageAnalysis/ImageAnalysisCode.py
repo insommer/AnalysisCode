@@ -379,6 +379,7 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
                 raise Exception("Data folder not found:" + str(path))
         
             number_of_pics = len(glob.glob1(path,"*spool.dat"))
+            assert number_of_pics == 0
             assert number_of_pics % picturesPerIteration == 0
             
         #Load meta data
@@ -450,7 +451,7 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     variableLog = None
     if loadVariableLog:
         dayfolders = np.unique( [ii.replace('\\', '/').rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
-        
+        print(dayfolders)
         variableLog = []
         for ff in dayfolders:
             variablelogfolder = os.path.join(ff, 'Variable Logs')
@@ -1476,8 +1477,8 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 
 def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         axlist=['y', 'x'], dx=1, 
-                        plotPWindow=5, 
-                        variablesToDisplay=[], variableLog=None, logTime=[], showTimestamp=False,
+                        plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
+                        variableLog=None, variablesToDisplay=[], logTime=[], showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
@@ -1513,8 +1514,8 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
         plotInd = ind % plotPWindow
         if plotInd == 0:
             plotNo = min(plotPWindow, imgNo-ind)
-            fig, axes = plt.subplots(plotNo , N+1, figsize=(3*(N+1), 1.5*plotNo), squeeze = False, 
-                                     sharex='col', layout="constrained")
+            fig, axes = plt.subplots(plotNo , N+1, figsize=(figSizeRate*3*(N+1), figSizeRate*1.5*plotNo), 
+                                     squeeze = False, sharex='col', layout="constrained")
             for n in range(N+1):
                 axes[-1, n].set_xlabel(xlabel[n])
                 axes[int(plotNo/2), n].set_ylabel(ylabel[n])
@@ -1542,7 +1543,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
-                            fontsize=5, ha='left', va=textVA, transform=axes[plotInd,0].transAxes, 
+                            fontsize=5*fontSizeRate, ha='left', va=textVA, transform=axes[plotInd,0].transAxes, 
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
 
 
@@ -1833,12 +1834,32 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
     return df
 
 
-def DataFilter(df, *filterLists):    
+def DataFilter(info, *filterLists, imgs=None):   
+    '''
+    
+    Parameters
+    ----------
+    info : TYPE
+        DESCRIPTION.
+    *filterLists : list of strings
+        Lists of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Condtions
+        will be conbined by logic or, and filters in different lists will be 
+        conbined by logic and. 
+    imgs : TYPE, optional
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    '''
     masks = []
     for fltlist in filterLists:
         maskSingleList = []
         for flt in fltlist:
-            maskSingleList.append(eval( 'df.' + flt.replace(' ', '_') ))   
+            maskSingleList.append(eval( 'info.' + flt.replace(' ', '_') ))   
            
         if len(fltlist) > 1:
             for mask in maskSingleList[1:]:
@@ -1848,7 +1869,11 @@ def DataFilter(df, *filterLists):
     if len(filterLists) > 1:
         for mask in masks[1:]:
             masks[0] |= mask
-    return df[ masks[0] ]
+            
+    if imgs is not None:
+        return info[ masks[0] ], imgs[ masks[0] ]
+    else:
+        return info[ masks[0] ]
 
 
 def FilterByOr(df, filterLists):
