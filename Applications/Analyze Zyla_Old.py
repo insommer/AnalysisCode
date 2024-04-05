@@ -16,9 +16,9 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/25/2024'
+date = '4/5/2024'
 data_folder = [
-    r'/Andor/Test_1',
+    r'/Andor/Test',
     # r'/Andor/MOT 1900',
     # r'/Andor/GM Cloud at 0 wait'
     ]
