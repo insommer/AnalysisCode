@@ -379,8 +379,10 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
                 raise Exception("Data folder not found:" + str(path))
         
             number_of_pics = len(glob.glob1(path,"*spool.dat"))
-            assert number_of_pics == 0
-            assert number_of_pics % picturesPerIteration == 0
+            if number_of_pics == 0:
+                print('Warning!\n{}\ndoes not contain any data file!'.format(path))
+            elif number_of_pics % picturesPerIteration:
+                raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
             
         #Load meta data
         metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig")
@@ -451,7 +453,7 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     variableLog = None
     if loadVariableLog:
         dayfolders = np.unique( [ii.replace('\\', '/').rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
-        print(dayfolders)
+
         variableLog = []
         for ff in dayfolders:
             variablelogfolder = os.path.join(ff, 'Variable Logs')
