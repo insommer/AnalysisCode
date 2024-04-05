@@ -27,6 +27,7 @@ data_folder = [
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
+skipFirtImg = 1
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
@@ -113,7 +114,8 @@ data_folder = [ dayFolder + f for f in data_folder ]
 variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-picturesPerIteration = 4 if subtract_burntin else 3
+picturesPerIteration = 4 if (subtract_burntin or skipFirtImg) else 3
+firstFrame = 1 if (skipFirtImg and not subtract_burntin) else 0
 
 t_exp = 10e-6
 ms = 1e-3

@@ -73,6 +73,7 @@ def AnalyzeZyla(date,
                 columnstart=0, columnend=-1,
                 picturesPerIteration = 3,
                 subtract_burntin = 0,
+                firstFrame = 0,
                 do_plot_ratio = 0,
                 angle_deg=2,
                 plot_raw_images=0):
@@ -117,7 +118,7 @@ def AnalyzeZyla(date,
         ImageAnalysisCode.ShowImagesTranspose(images_array)
     log("Calculating column densities...")
     Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
-                    firstFrame=0, correctionFactorInput=1.0,  
+                    firstFrame=firstFrame, correctionFactorInput=1.0,  
                     subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     # plt.figure()
     # plt.imshow(np.array(images_array[0][0]-images_array[0][2],dtype=np.float64)/(images_array[0][1]-images_array[0][2]),vmin=0,vmax=1.1)
