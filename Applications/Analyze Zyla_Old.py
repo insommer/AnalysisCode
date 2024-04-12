@@ -16,11 +16,16 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/5/2024'
+date = '4/12/2024'
 data_folder = [
-    r'/Andor/Test',
+    # r'/Andor/ODT 1900 Bias Scan',
     # r'/Andor/MOT 1900',
-    # r'/Andor/GM Cloud at 0 wait'
+    # r'/Andor/GM Cloud at 0 wait',
+    # r'/Andor/Test_3',
+    r'/Andor/Test_4',
+    r'/Andor/Test_5',
+    r'/Andor/Test_6',
+
     ]
 ####################################
 #Parameter Setting
@@ -28,7 +33,7 @@ data_folder = [
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
 skipFirtImg = 1
-examNum = None #The number of runs to exam.
+examNum = 6 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 5
 do_plot = True
@@ -73,8 +78,8 @@ columnend = -10
 # columnstart = 600
 # columnend = -200
 
-# columnstart = 750
-# columnend = 1200
+columnstart = 750
+columnend = 1200
 
 
 # rowstart =250
@@ -91,8 +96,8 @@ columnend = -10
 # rowend = 830
 # # rowstart =616 #ODT1675
 # # rowend = 651
-# rowstart =570 #ODT1900
-# rowend = 670
+rowstart =570 #ODT1900
+rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -154,10 +159,10 @@ if pictureToHide is not None:
     if logTime is not None:
         logTime = np.delete(logTime, pictureToHide, 0)
 
-# ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
+ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
-                firstFrame=0, correctionFactorInput=1.0,  
+                firstFrame=firstFrame, correctionFactorInput=1.0,  
                 subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
 # plt.figure()
 # plt.imshow(np.array(images_array[0][0]-images_array[0][2],dtype=np.float64)/(images_array[0][1]-images_array[0][2]),vmin=0,vmax=1.1)

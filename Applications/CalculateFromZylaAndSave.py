@@ -15,15 +15,15 @@ import datetime
 
 totalDataPath = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 # totalDataPath =r"C:\Users\Sommer Lab\Documents\Data"
-date = '1/8/2024'
+date = '4/11/2024'
 dayFolder = ImageAnalysisCode.GetDataLocation(date, DataPath=totalDataPath)
 
 dataFolders = [
     # r'Andor/Bias Scan ODT at 1012',
-    r'Andor/Bias Scan ODT at 1012_1'
+    r'Andor/ODT 1900 Bias Scan'
     ]
 
-saveToCSV = 1
+saveToCSV = 0
 writeToExistingFile = 1
 Calculate = 1
 

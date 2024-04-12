@@ -440,14 +440,19 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
     
     
 def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
-                      subtract_burntin=0, loadVariableLog=1, dirLevelAfterDayFolder=2):
+                      subtract_burntin=0, skipFirstImg=1, 
+                      loadVariableLog=1, dirLevelAfterDayFolder=2):
 
-    pPI = 4 if subtract_burntin else 3    
+    pPI = 4 if (subtract_burntin or skipFirstImg) else 3
+    firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0   
+    
+    print('first frame is', firstFrame)
+    
     rawImgs, fileTime, fileFolder = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
                                                         return_fileTime=loadVariableLog, 
                                                         examFrom=examFrom, examUntil=examUntil)
     
-    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, firstFrame=0, correctionFactorInput=1.0,
+    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     variableLog = None
@@ -1500,7 +1505,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
     if not title:
         title=['Column Density', '1D density vs ', '1D density vs ']
         
-    if variablesToDisplay and not logTime:
+    if variablesToDisplay and not logTime is not None:
                 logTime = variableLog.index
     
     for n in range(N):
@@ -1857,6 +1862,8 @@ def DataFilter(info, *filterLists, imgs=None):
         DESCRIPTION.
 
     '''
+    if len(filterLists) == 0:
+        return info
     masks = []
     for fltlist in filterLists:
         maskSingleList = []

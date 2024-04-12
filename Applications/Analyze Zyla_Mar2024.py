@@ -15,9 +15,11 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/21/2024'
+date = '4/12/2024'
 data_folder = [
-    r'Andor/MOT 1900',
+    r'Andor/ODT 1150 Bias Scan',
+    r'Andor/ODT 1150 Bias Scan_1',
+
     # r'Andor/ODT 1900',
     # r'Andor/Test'
     ]
@@ -25,10 +27,11 @@ data_folder = [
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 1
-examNum = 6 #The number of runs to exam.
+subtract_burntin = 0
+skipFirstImg = 1
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 3
+plotPWindow = 6
 intermediatePlot = 1
 uniformscale = 0
 rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
@@ -72,8 +75,8 @@ columnend = -10
 # columnstart = 600
 # columnend = -200
 
-# columnstart = 750
-# columnend = 1200
+columnstart = 770
+columnend = 1100
 
 
 # rowstart =250
@@ -92,6 +95,8 @@ columnend = -10
 # # rowend = 651
 # rowstart =570 #ODT1900
 # rowend = 670
+rowstart =790 #ODT1150
+rowend = 890
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -103,8 +108,8 @@ columnend = -10
 # rowstart = 443 #ODT3800
 # rowend = 478
 
-# rowstart -= 50
-# rowend += 50
+rowstart -= 50
+rowend += 50
 
 ####################################
 ####################################
@@ -117,7 +122,8 @@ pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examFrom=examFrom, examUntil=examUntil, 
-                                                                   rotateAngle=rotateAngle, subtract_burntin=subtract_burntin)
+                                                                   rotateAngle=rotateAngle, subtract_burntin=subtract_burntin, 
+                                                                   skipFirstImg=skipFirstImg)
 columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
 
 dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 
@@ -146,6 +152,24 @@ if variableLog is not None:
 # results.to_csv('0305.csv')
 
 # %%
+ImageAnalysisCode.PlotFromDataCSV(results, 'ZSBiasCurrent', 'YatomNumber', 
+                                  iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  groupbyX=1, threeD=0,
+                                  figSize = 0.5
+                                  )
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 
+#                                   'ZSBiasCurrent',
+#                                   'YatomNumber', 
+#                                   ['VerticalBiasCurrent>2.4', 'VerticalBiasCurrent<2.8'],
+#                                   iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   groupbyX=1, threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+# %%
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
     ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
@@ -165,16 +189,16 @@ if intermediatePlot:
     # axes[-1].set(xlim=[c-15*w, c+15*w])
     
 # %%
-import matplotlib.dates as mdates
+# import matplotlib.dates as mdates
 
-fig, ax = plt.subplots(1,1, figsize=(8,6), layout='constrained')
-# plt.plot(results.wait, results.YatomNumber)
+# fig, ax = plt.subplots(1,1, figsize=(8,6), layout='constrained')
+# # plt.plot(results.wait, results.YatomNumber)
 
 
-ax.plot(results.index, results.Ycenter.values, '.')
-ax.set(xlabel='time (Day HH:MM)', ylabel='y center (µm)')
-ax.set_xticks(ax.get_xticks()[::2])
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %H:%M'))
+# ax.plot(results.index, results.Ycenter.values, '.')
+# ax.set(xlabel='time (Day HH:MM)', ylabel='y center (µm)')
+# ax.set_xticks(ax.get_xticks()[::2])
+# ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %H:%M'))
 
 # %%
 

@@ -12,12 +12,12 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/20/2024'
+date = '4/11/2024'
 
 ODT_Position = '1900'
 task = 'Misalign'
 task = 'Align'
-expectedValues = [748.056, 1917.761]
+expectedValues = [775.280, 1889.313]
 
 data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
 Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
@@ -27,7 +27,8 @@ Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
 ####################################
 repetition = 3 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = 3 #The number of runs to exam.
+skipFirstImg = 1
+examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 3
 intermediatePlot = True
@@ -59,15 +60,15 @@ subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-rotateAngle= 0.5 #rotates ccw
+rotateAngle= 0.56 #rotates ccw
 
 rowstart = 10
 rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart = 750
-columnend = 1200
+columnstart = 770
+columnend = 1100
 
 # rowstart =750 #ODT 2675
 # rowend = 830
@@ -100,7 +101,7 @@ pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, 
-                                                                   rotateAngle=rotateAngle, subtract_burntin=0, )
+                                                                   rotateAngle=rotateAngle, subtract_burntin=0, skipFirstImg=skipFirstImg)
 # %%
 columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
 
