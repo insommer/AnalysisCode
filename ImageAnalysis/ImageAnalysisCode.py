@@ -1483,8 +1483,8 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 
 
 def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
-                        axlist=['y', 'x'], dx=1, 
-                        plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
+                        axlist=['y', 'x'], dx=1,
+                        plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
                         variableLog=None, variablesToDisplay=[], logTime=[], showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
@@ -1498,6 +1498,17 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
 
     N = len(popts)
     imgNo = len(imgs)
+    
+    if plotRate < 1:
+        mask = np.random.rand(imgNo) < plotRate
+        imgs = imgs[mask]
+        imgNo = mask.sum()
+        
+        popts = list(popts)
+        for n in range(N):
+            popts[n] = np.array(popts[n])[mask]
+            if bgs and bgs[0] is not None:
+                bgs[n] = np.array(bgs[n])[mask]            
     
     oneD_imgs = []
     xx = []
@@ -1534,7 +1545,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
         for n in range(N):
             axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
             if popts[n][ind] is not None:
-                if bgs and bgs[0] is not None:
+                if bgs is not None and bgs[0] is not None:
                     axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[ind])
                     axes[plotInd, n+1].plot(xx[n], bgs[ind], '.', markersize=0.3)
                 else:
