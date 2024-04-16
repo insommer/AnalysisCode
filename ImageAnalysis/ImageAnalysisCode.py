@@ -1482,8 +1482,8 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     return widthx, center_x, widthy, center_y
 
 
-def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
-                        axlist=['y', 'x'], dx=1,
+def cd plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
+                        fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
                         variableLog=None, variablesToDisplay=[], logTime=[], showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
@@ -1491,12 +1491,18 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], fitFunc=MultiGaussian,
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
                         title=[], 
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
+    
     plt.rcParams.update(rcParams)
     plt.rcParams['image.cmap'] = 'jet'
     
     axDict = {'x': 0, 'y':1}
 
     N = len(popts)
+    
+    if filterLists:
+        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, filterLists=filterLists)
+        imgs, popts, bgs = items[0], items[1: N+1], items[N+1:]
+
     imgNo = len(imgs)
     
     if plotRate < 1:
@@ -1852,7 +1858,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
     return df
 
 
-def DataFilter(info, *filterLists, imgs=None):   
+def DataFilter(info, *otheritems, filterLists=[]):   
     '''
     
     Parameters
@@ -1874,7 +1880,8 @@ def DataFilter(info, *filterLists, imgs=None):
 
     '''
     if len(filterLists) == 0:
-        return info
+        return info, otheritems
+    
     masks = []
     for fltlist in filterLists:
         maskSingleList = []
@@ -1889,11 +1896,14 @@ def DataFilter(info, *filterLists, imgs=None):
     if len(filterLists) > 1:
         for mask in masks[1:]:
             masks[0] |= mask
+    
+    if otheritems:
+        otheritems = list(otheritems)
+        for ii in range(len(otheritems)):
+            otheritems[ii] = np.array(otheritems[ii])[mask[0]]
             
-    if imgs is not None:
-        return info[ masks[0] ], imgs[ masks[0] ]
     else:
-        return info[ masks[0] ]
+        return info[ masks[0] ], otheritems
 
 
 def FilterByOr(df, filterLists):
@@ -1916,7 +1926,7 @@ def FilterByOr(df, filterLists):
 
 
 
-def PlotFromDataCSV(df, xVariable, yVariable, *filterLists,
+def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
                     groupby=None, groupbyX=0, iterateVariable=None,
                     figSize=1, legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
@@ -1978,7 +1988,7 @@ def PlotFromDataCSV(df, xVariable, yVariable, *filterLists,
     
     # df = pd.read_csv(filePath)
     df = df[ ~np.isnan(df[yVariable]) ]
-    df = DataFilter(df, *filterLists)
+    df, _ = DataFilter(df, filterLists)
     
     columnlist = [xVariable, yVariable]
     
