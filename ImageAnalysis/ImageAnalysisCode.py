@@ -19,6 +19,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy import signal
 from skimage.filters import threshold_otsu
 from scipy.ndimage import rotate
+from scipy import constants
 
 import os
 import PIL
@@ -251,7 +252,7 @@ def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_na
         images = np.reshape(image_array_corrected,(params.number_of_iterations, params.picturesPerIteration, params.height, params.width))
         return images
     
-def LoadVariableLog(path):
+def LoadVariableLog(path, timemode='ctime'):
     if not os.path.exists(path):
         print('The path for variable logs does not exist, no logs were loded.')
         return None
@@ -263,7 +264,11 @@ def LoadVariableLog(path):
     
     for filename in filenames:
         variable_dict = {}
-        variable_dict['time'] = datetime.datetime.fromtimestamp( os.path.getctime(os.path.join(path,filename)) )
+        
+        if timemode == 'ctime':
+            variable_dict['time'] = datetime.datetime.fromtimestamp( os.path.getctime(os.path.join(path,filename)) )
+        if timemode == 'mtime':
+            variable_dict['time'] = datetime.datetime.fromtimestamp( os.path.getmtime(os.path.join(path,filename)) )
         
         # datetime.datetime.strptime(filename, 'Variables_%Y_%m_%d_%H_%M_%S_0.txt')
         # print(parameter_dict['time'])
@@ -440,7 +445,7 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
     
     
 def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
-                      subtract_burntin=0, skipFirstImg=1, 
+                      subtract_burntin=0, skipFirstImg=1, showRawImgs=0,
                       loadVariableLog=1, dirLevelAfterDayFolder=2):
 
     pPI = 4 if (subtract_burntin or skipFirstImg) else 3
@@ -452,6 +457,9 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
                                                         return_fileTime=loadVariableLog, 
                                                         examFrom=examFrom, examUntil=examUntil)
     
+    if showRawImgs:
+        ShowImagesTranspose(rawImgs, uniformscale=False)
+        
     _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
@@ -493,7 +501,7 @@ def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None)
     return filenames[examFrom: examUntil]
 
 def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  background_file_name= "",
-                      examFrom=None, examUntil=None, return_fileTime=0):
+                      examFrom=None, examUntil=None, return_fileTime=0, timemode='ctime'):
         """
         Parameters
         ----------
@@ -552,8 +560,12 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
             filename = data_folder + "\\" + fileNames[ind] 
                 
             if ind % picturesPerIteration == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filename) ) )
-            
+                
+                if timemode == 'ctime':
+                    fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filename) ) )
+                if timemode == 'mtime':
+                    fileTime.append( datetime.datetime.fromtimestamp( os.path.getmtime(filename) ) )
+                    
             file = open(filename,"rb")
             content = file.read()
             data_array = np.frombuffer(content, dtype=data_type)
@@ -1133,14 +1145,15 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
 
 def DetectPeaks(yy, amp=1, width=3, denoise=0, doPlot=0):
     
-    yycopy = yy.copy()
     
     if denoise:
-        yycopy = gaussian_filter1d(yy, 3)
+        yycopy = gaussian_filter1d(yy, 5)
+    else:
+        yycopy = yy.copy()
     
     # Determine the background with the otsu method and set to 0.
     # thr = threshold_otsu(yycopy)
-    thr = 0.1 * (yy.max() - yy.min()) + yy.min()
+    thr = 0.3 * (yy.max() - yy.min()) + yy.min()
     yycopy[yycopy < thr] = yy.min()    
 
     peaks, properties = signal.find_peaks(yycopy, prominence=amp*0.01*(yycopy.max()-yycopy.min()), width=width)
@@ -1202,7 +1215,7 @@ def fitSingleGaussian(data, xdata=None, dx=1,
 
 def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', 
                      subtract_bg=0, signal_feature='wide', signal_width=10, fitbgDeg=5,
-                     amp=1, width=3, denoise=0):
+                     amp=1, width=3, denoise=0, peakplot=0):
     
     if subtract_bg:
         bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
@@ -1212,7 +1225,7 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
         offset = min( data[:10].mean(), data[-10:].mean() )
         bg = None
     
-    peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=0)
+    peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=peakplot)
     
     #initial guess:
     amps = properties['width_heights'] + properties['prominences'] / 2
@@ -1482,7 +1495,7 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     return widthx, center_x, widthy, center_y
 
 
-def cd plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
+def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
                         variableLog=None, variablesToDisplay=[], logTime=[], showTimestamp=False,
@@ -1562,7 +1575,7 @@ def cd plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
             axes[plotInd, n+1].tick_params('y', direction='in', pad=-5)
             plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
             
-        if variablesToDisplay:
+        if variablesToDisplay and variableLog is not None:
 
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axes[plotInd,0].text(-0.05, textLocationY, 
@@ -2068,7 +2081,7 @@ def temperature_model(t, w0, T):
     # model = w0*np.sqrt((kb*T*(t-t0)**2)/(m*w0**2))
     return model
 
-def temperature_fit(params, widths_array, tof_array,label="",do_plot=False):
+def temperature_fit(params, widths_array, tof_array,label="",do_plot=False, ax=None):
     #Inputs: params object, widths in meters, times in seconds
     #Optional: label like "x" or "y"
     
@@ -2091,13 +2104,20 @@ def temperature_fit(params, widths_array, tof_array,label="",do_plot=False):
     
     if (do_plot):
         #plot the widths vs. position
-        plt.figure(figsize=(3,2))
-        plt.title("{} T = {:.2f} uK".format(label, popt[1]*1e6))
-        plt.xlabel("Time of flight (ms)")
-        plt.ylabel("width of atom cloud (um)")
-        plt.scatter(1e3*tof_array, 1e6*widths_array)
-        plt.plot(1e3*times_fit, 1e6*widths_fit)
-        plt.tight_layout()
+        if ax is None:
+            plt.figure(figsize=(3,2))
+            plt.title("{} T = {:.2f} uK".format(label, popt[1]*1e6))
+            plt.xlabel("Time of flight (ms)")
+            plt.ylabel("width of atom cloud (um)")
+            plt.scatter(1e3*tof_array, 1e6*widths_array)
+            plt.plot(1e3*times_fit, 1e6*widths_fit)
+            plt.tight_layout()
+        else:
+            ax.set(title="{} T = {:.2f} uK".format(label, popt[1]*1e6), 
+                   xlabel='Time of flight (ms)',
+                   ylabel="width of atom cloud (um)")
+            ax.scatter(1e3*tof_array, 1e6*widths_array)
+            ax.plot(1e3*times_fit, 1e6*widths_fit)
         # if data_folder:
         #     plt.savefig(data_folder+r'\\'+"temperature x.png", dpi = 500)
     
@@ -2207,7 +2227,53 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
     return popt, pcov
    
     
+def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
+                             atomNum='AtomNumber_yfit', sigma1='width_x', sigma2='width_y', sigma3='width_y',
+                             do_plot=1):
+    params = ExperimentParams( t_exp = 10e-6, picturesPerIteration= 4, cam_type = "zyla")
 
+    dfmean = df.groupby(list(variables) + [fitXVar]).mean()
+    df1 = dfmean[fitYVar].unstack()
+        
+    if do_plot:
+        indices = list(zip(*df1.index))
+        runNo = np.prod( [len(np.unique(i)) for i in indices] )
+        rowNo = int(runNo**0.5 / 1.3)
+        colNo = int(np.ceil(runNo / rowNo))
+        fig, axes = plt.subplots(rowNo, colNo, layout='constrained', sharex=True, sharey=True)
+        axes = axes.flatten()
+        
+    T = []
+    for ii, (ind, row) in enumerate(df1.iterrows()):
+        
+        ax = axes[ii] if do_plot else None
+        _,_,_,popt,_= temperature_fit(params, row.values*1e-6, row.index*1e-3, do_plot=1, ax=ax)
+        
+        if do_plot:
+            ax.text(0, 20, '{} = '.format(variables) + str(ind), ha='left', va='bottom')
+            # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
+
+        T.append( popt[1] )
+    df1['T (K)'] = T
+        
+    df2 = dfmean.reset_index(level=fitXVar)
+    df2 = df2[df2[fitXVar] == df2[fitXVar].min()]
+    
+#     return df2
+    a = df2[atomNum]
+    s1 = df2[sigma1] * 2**0.5 / 1e6
+    s2 = df2[sigma2] / 1e6
+    s3 = df2[sigma3] / 1e6
+    
+#     print(PhaseSpaceDensity(a, s1, s2, s3, df1.T))
+    df1['AtomNum'] = a
+    df1['PSD'] = PhaseSpaceDensity(a, s1, s2, s3, df1['T (K)'])
+    
+    return df1
+    
+def PhaseSpaceDensity(atomNum, sigma1, sigma2, sigma3, T):
+    waveLengthCubed = constants.h**3 / (2 * np.pi * 9.9883414e-27 * constants.k * T)**1.5
+    return  waveLengthCubed * atomNum / (sigma1 * sigma2 * sigma3 * (2*np.pi)**1.5)
 
    
 def exponential(x, a, tau, c):
