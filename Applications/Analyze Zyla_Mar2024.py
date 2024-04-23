@@ -16,7 +16,7 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/19/2024'
+date = '4/22/2024'
 data_folder = [
     # r'Andor/ODT 2650',
     # r'Andor/ODT 2650_1',
@@ -42,7 +42,7 @@ data_folder = [
     # r'Andor/ODT 3400 Coarse Scan_5',
     # r'Andor/ODT 3400 Coarse Scan_6',
     # r'Andor/ODT 1150 Scan',
-    r'Andor/Varied Evap t1 and Tau',
+    r'Andor/Vary EvapTime and Tau_2',
     ]
 ####################################
 #Parameter Setting
@@ -50,8 +50,8 @@ data_folder = [
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
 skipFirstImg = 1
-examNum = None #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
+examNum = 5#The number of runs to exam.
+examFrom = None#Set to None if you want to check the last several runs. 
 intermediatePlot = 1
 plotPWindow = 7
 plotRate = 1
@@ -64,8 +64,8 @@ variablesToDisplay = [
                         # 'ODT Misalign',
                         'Evap_Time_1',
                         'Evap_Tau',
-                      'ZSBiasCurrent',
-                      'VerticalBiasCurrent',
+                      # 'ZSBiasCurrent',
+                      # 'VerticalBiasCurrent',
                         # 'CamBiasCurrent'
                       ]
 showTimestamp = False
@@ -73,11 +73,12 @@ showTimestamp = False
 textY = 1
 textVA = 'bottom'
 
-variableFilterList = None
-variableFilterList = [
+variableFilterList = [[
     # 'wait==50', 
     # 'VerticalBiasCurrent==0'
-    ] # NO SPACE around the operator!
+    'TOF==0',
+    'Evap_Tau==0.1'
+    ]] # NO SPACE around the operator!
 
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
@@ -95,7 +96,7 @@ columnstart = 10
 columnend = -10
 
 columnstart=700
-columnend=1150
+columnend=1200
 
 # # ODT 400
 # rowstart = 1000
@@ -173,12 +174,14 @@ for ydata in YcolumnDensities:
     popts.append(popt)
     bgs.append(bg)
     
-# XcolumnDensities = columnDensities.sum(axis=1) * dx / 1e6**2
-# poptsX = []
-# for xdata in XcolumnDensities:
-#     poptx,_ = ImageAnalysisCode.fitSingleGaussian(xdata, dx=dx,
-#                                                   subtract_bg=1, signal_feature='wide')
-#     poptsX.append(poptx)
+XcolumnDensities = columnDensities.sum(axis=1) * dx / 1e6**2
+poptsX = []
+bgXs = []
+for xdata in XcolumnDensities:
+    popt, bg = ImageAnalysisCode.fitSingleGaussian(xdata, dx=dx,
+                                                  subtract_bg=0, signal_feature='wide')
+    poptsX.append(popt)
+    bgXs.append(bg)
 
 results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index)
 
@@ -207,11 +210,13 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'YatomNumber',
 # %%
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
-    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
+    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, poptsX, bgs=[bgs, bgXs], 
                                           dx=dx, 
-                                          plotRate=plotRate, plotPWindow=plotPWindow,
+                                            # filterLists=variableFilterList,
+                                           plotRate=plotRate, plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
-                                          variableLog=variableLog, logTime=variableLog.index,
+                                          variableLog=variableLog, 
+                                          logTime=variableLog.index,
                                           textLocationY=0.8, rcParams=rcParams)
     
     # ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
