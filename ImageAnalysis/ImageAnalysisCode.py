@@ -1041,7 +1041,7 @@ def fitbg(data, signal_feature='narrow', signal_width=10, fitbgDeg=5):
         bg_mask = np.full(xdata.shape, True)
         bg_mask[signalcenter - mask_hw: signalcenter + mask_hw] = False  
         
-        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=2 )        
+        p = np.polyfit( xdata[bg_mask], data[bg_mask], deg=min(2, fitbgDeg) )        
         
     else:
         mask_hw = int(datalength/signal_width)
@@ -2234,10 +2234,10 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
                              atomNum='AtomNumber_yfit', sigma1='width_x', sigma2='width_y', sigma3='width_y',
                              do_plot=1):
     params = ExperimentParams( t_exp = 10e-6, picturesPerIteration= 4, cam_type = "zyla")
-
+    
     dfmean = df.groupby(list(variables) + [fitXVar]).mean()
-    df1 = dfmean[fitYVar].unstack()
-        
+    df1 = dfmean[fitYVar].unstack()    
+
     if do_plot:
         indices = list(zip(*df1.index))
         runNo = np.prod( [len(np.unique(i)) for i in indices] )
@@ -2250,22 +2250,25 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
         axes = axes.flatten()
         
     T = []
-    for ii, (ind, row) in enumerate(df1.iterrows()):
+    
+    for ii, (ind, item) in enumerate( df.groupby(list(variables)) ):
         
         ax = axes[ii] if do_plot else None
-        _,_,_,popt,_= temperature_fit(params, row.values*1e-6, row.index*1e-3, do_plot=1, ax=ax)
+        _,_,_,popt,_= temperature_fit(params, 
+                                                        item[fitYVar]*1e-6, item[fitXVar]*1e-3, 
+                                                        do_plot=1, ax=ax)
         
         if do_plot:
             ax.text(0, 20, '{} = '.format(variables) + str(ind), ha='left', va='bottom')
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
-        T.append( popt[1] )
+        T.append( popt[1] )        
+    
     df1['T (K)'] = T
         
     df2 = dfmean.reset_index(level=fitXVar)
     df2 = df2[df2[fitXVar] == df2[fitXVar].min()]
     
-#     return df2
     a = df2[atomNum]
     s1 = df2[sigma1] * 2**0.5 / 1e6
     s2 = df2[sigma2] / 1e6
