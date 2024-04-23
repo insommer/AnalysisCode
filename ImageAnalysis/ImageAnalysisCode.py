@@ -1498,7 +1498,7 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
-                        variableLog=None, variablesToDisplay=[], logTime=[], showTimestamp=False,
+                        variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
@@ -1513,8 +1513,8 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
     N = len(popts)
     
     if filterLists:
-        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, filterLists=filterLists)
-        imgs, popts, bgs = items[0], items[1: N+1], items[N+1:]
+        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, logTime, filterLists=filterLists)
+        imgs, popts, bgs, logTime = items[0], items[1: N+1], items[N+1:], items[-1]
 
     imgNo = len(imgs)
     
@@ -1535,8 +1535,8 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
     if not title:
         title=['Column Density', '1D density vs ', '1D density vs ']
         
-    if variablesToDisplay and not logTime is not None:
-                logTime = variableLog.index
+    if variablesToDisplay and logTime is None:
+        logTime = variableLog.index
     
     for n in range(N):
         oneD = imgs.sum( axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
@@ -1564,9 +1564,9 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
         for n in range(N):
             axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
             if popts[n][ind] is not None:
-                if bgs is not None and bgs[0] is not None:
-                    axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[ind])
-                    axes[plotInd, n+1].plot(xx[n], bgs[ind], '.', markersize=0.3)
+                if bgs is not None and bgs[n] is not None and bgs[n][0] is not None:
+                    axes[plotInd, n+1].plot(xx[n], fitFunc(xx[n], *popts[n][ind]) + bgs[n][ind])
+                    axes[plotInd, n+1].plot(xx[n], bgs[n][ind], '.', markersize=0.3)
                 else:
                     axes[plotInd, n+1].plot(xxfit[n], fitFunc(xxfit[n], *popts[n][ind]))
             
@@ -1576,7 +1576,7 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
             plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
             
         if variablesToDisplay and variableLog is not None:
-
+            
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
@@ -1912,11 +1912,14 @@ def DataFilter(info, *otheritems, filterLists=[]):
     
     if otheritems:
         otheritems = list(otheritems)
-        for ii in range(len(otheritems)):
-            otheritems[ii] = np.array(otheritems[ii])[mask[0]]
+        for ii, item in enumerate(otheritems):
+            if item is not None:
+                otheritems[ii] = np.array(item)[masks[0]]
             
-    else:
         return info[ masks[0] ], otheritems
+    else:
+        return info
+
 
 
 def FilterByOr(df, filterLists):
@@ -2238,9 +2241,12 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
     if do_plot:
         indices = list(zip(*df1.index))
         runNo = np.prod( [len(np.unique(i)) for i in indices] )
-        rowNo = int(runNo**0.5 / 1.3)
+        rowNo = int(runNo**0.5 / 1.1)
+        if rowNo == 0:
+            rowNo = 1
         colNo = int(np.ceil(runNo / rowNo))
-        fig, axes = plt.subplots(rowNo, colNo, layout='constrained', sharex=True, sharey=True)
+        fig, axes = plt.subplots(rowNo, colNo, layout='constrained', squeeze = False,
+                                 sharex=True, sharey=True)
         axes = axes.flatten()
         
     T = []
@@ -2268,6 +2274,8 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
 #     print(PhaseSpaceDensity(a, s1, s2, s3, df1.T))
     df1['AtomNum'] = a
     df1['PSD'] = PhaseSpaceDensity(a, s1, s2, s3, df1['T (K)'])
+    df1['Size1'] = s1
+    df1['Size2'] = s2
     
     return df1
     
