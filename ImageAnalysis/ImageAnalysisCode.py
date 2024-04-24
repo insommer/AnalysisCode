@@ -1277,7 +1277,6 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
         bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
         originalData = data.copy()
         data = data - bg        
-        
         offset_g = 0
     else:
         offset_g = min( data[:10].mean(), data[-10:].mean() )
@@ -1288,9 +1287,9 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
         xdata = np.arange( datalength ) * dx  
         
     #initial guess:
-    amp_g = data.max()
+    amp_g = data.max() - offset_g
     center_g = xdata[ data.argmax() ]    
-    w_g = ( data > 0.6*data.max() ).sum() * dx / 2
+    w_g = ( data > (0.6*amp_g + offset_g) ).sum() * dx / 2
     
     guess = [amp_g, center_g, w_g, offset_g]
     
@@ -1310,6 +1309,7 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
         else:
             ax.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))
+            # ax.plot(xdata*xscale_factor, Gaussian(xdata,*guess) * yscale_factor, label="{} fit".format(label))
             
         ax.ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
         ax.tick_params('y', direction='in', pad=-5)
@@ -2254,12 +2254,16 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
     for ii, (ind, item) in enumerate( df.groupby(list(variables)) ):
         
         ax = axes[ii] if do_plot else None
-        _,_,_,popt,_= temperature_fit(params, 
-                                                        item[fitYVar]*1e-6, item[fitXVar]*1e-3, 
-                                                        do_plot=1, ax=ax)
+        # print('=====', ii)
+
+        # print('=====', item)
+        _,_,_,popt,_= temperature_fit(params,
+                                      item[fitYVar]*1e-6, 
+                                      item[fitXVar]*1e-3, 
+                                      do_plot=1, ax=ax)
         
         if do_plot:
-            ax.text(0, 20, '{} = '.format(variables) + str(ind), ha='left', va='bottom')
+            ax.text(0, 20, '{}\n= '.format(variables) + str(ind), ha='left', va='bottom')
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
         T.append( popt[1] )        
