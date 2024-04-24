@@ -1080,9 +1080,9 @@ def fitgaussian1D(data , xdata=None, dx=1, doplot = False,
         xdata = np.arange( datalength )*dx  
         
     #initial guess:
-    amp_g = data.max()
+    amp_g = data.max() - offset_g 
     center_g = xdata[ data.argmax() ]    
-    w_g = ( data > 0.6*data.max() ).sum() * dx / 2
+    w_g = ( data > (0.6*amp_g + offset_g) ).sum() * dx / 2
     
     guess = [amp_g, center_g, w_g, offset_g]
     
@@ -1195,9 +1195,9 @@ def fitSingleGaussian(data, xdata=None, dx=1,
         xdata = np.arange( len(data) )
         
     #initial guess:
-    amp = data.max()
+    amp = data.max() - offset
     center = xdata[ data.argmax() ]    
-    w = ( data > 0.6*data.max() ).sum() * dx / 2
+    w = ( data > (0.6*amp + offset) ).sum() * dx / 2
     
     guess = [amp, center, w, offset]
     
