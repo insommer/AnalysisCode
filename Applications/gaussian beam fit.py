@@ -16,9 +16,9 @@ from ImageAnalysis import ImageAnalysisCode
 ####################################
 
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '3/26/2024'
-data_folder = r'\FLIR\Beam Waist 2nd Pass'
-filename = r'\1st Pass 70% Laser Power High AOM 2.raw'
+date = '5/2/2024'
+data_folder = r'\FLIR\Beam Waist'
+filename = r'\ODT 3400.raw'
 
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
@@ -114,8 +114,8 @@ popt,pcov =fitgaussian(xvalues, slice_vs_x, (x0)*pixelsize_um, plot_title = "sli
 plt.figure()
 popt2,pcov2 = fitgaussian(yvalues, slice_vs_y, y0*pixelsize_um, plot_title = "slice vs. y")
 
-print("X radius = {} um".format(popt[2]))
-print("Y radius = {} um".format(popt2[2]))
+print("X radius = {} um".format(round(popt[2],2)))
+print("Y radius = {} um".format(round(popt2[2],2)))
 
 print("X center = {} um".format(popt[1]))
 print("Y center = {} um".format(popt2[1]))
