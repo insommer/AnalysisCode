@@ -26,6 +26,7 @@ import PIL
 import datetime
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import pickle
 
 from ImageAnalysis.ExperimentParameters import ExperimentParams
 
@@ -418,13 +419,13 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
         image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
         
         fileTime = []
-        fileFolder = []
+        fistImgPath = []
         
         for ind, filepath in enumerate(filePaths):
             
             if ind % picturesPerIteration == 0 and return_fileTime:
                 fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filepath) ) )
-                fileFolder.append( '/'.join(filepath.replace('\\', '/').rsplit('/', 4)[1:-1]) )
+                fistImgPath.append( '/'.join(filepath.replace('\\', '/').rsplit('/', 2)[1:]) )
             
             file = open(filepath, "rb")
             content = file.read()
@@ -441,10 +442,79 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
         #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
         images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
         
-        return images, fileTime, fileFolder
+        return images, fileTime, fistImgPath
+    
+def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3, 
+                                    background_folder = ".",  background_file_name= ""):
+        """
+        Modified from LoadSpooledSeries, works with multiple folders. 
+        
+        Parameters
+        ----------
+        paths : string
+            path to the folder with the spooled series data, and the background image
+        background_file_name : string
+            name of background image, assumed to be in the data_folder
+       
+        Returns
+        -------
+        4D array of integers giving the background-subtracted camera 
+        in each pixel.
+        Format: images[iterationNumber, pictureNumber, row, col]
+    
+        """
+        
+
+        # #Load meta data
+        # metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig")
+        # height =int( metadata["data"]["AOIHeight"])
+        # width = int( metadata["data"]["AOIWidth"])
+        # pix_format = metadata["data"]["PixelEncoding"]
+        # if pix_format.lower() == "mono16":
+        #     data_type=np.uint16
+        # else:
+        #     raise Exception("Unknown pixel format " + pix_format)
+        # number_of_pixels = height*width
+                
+        # #Get the filenames and select the range needed.
+        # filePaths = GetFilePaths(*paths, picsPerIteration=picturesPerIteration, 
+        #                          examFrom=examFrom, examUntil=examUntil)
+        # number_of_pics = len(filePaths)        
+        # number_of_iterations = int(number_of_pics/picturesPerIteration)
+        
+        # #Load background image into background_array
+        # if background_file_name:
+        #     background_img = os.path.join(background_folder, background_file_name)
+        #     file = open(background_img,"rb")
+        #     content = file.read()
+        #     background_array = np.frombuffer(content, dtype=data_type)
+        #     background_array = background_array[0:number_of_pixels]
+        #     file.close()
+        # #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
+        # image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
+        
+        # for ind, filepath in enumerate(filePaths):
+                        
+        #     file = open(filepath, "rb")
+        #     content = file.read()
+        #     data_array = np.frombuffer(content, dtype=data_type)
+        #     data_array = data_array[:number_of_pixels] # a spool file that is not bg corrected
+        #     if background_file_name:
+        #         data_array = data_array - background_array #spool file that is background corrected
+        #     image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array            
+
+        # # reshape the total_image_array_corrected into a 4D array
+        # # outermost dimension's size is equal to the number of iterations, 
+        # # 2nd outer dimensions size is number of pictures per iteration
+        # # 3rd dimensions size is equal to the height of the images
+        # #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
+        # images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+        
+        # return images
     
     
 def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
+                      rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, skipFirstImg=1, showRawImgs=0,
                       loadVariableLog=1, dirLevelAfterDayFolder=2):
 
@@ -453,7 +523,7 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     
     print('first frame is', firstFrame)
     
-    rawImgs, fileTime, fileFolder = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
+    rawImgs, fileTime, fistImgPath = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
                                                         return_fileTime=loadVariableLog, 
                                                         examFrom=examFrom, examUntil=examUntil)
     
@@ -465,6 +535,11 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     
     variableLog = None
     if loadVariableLog:
+        
+        # if 
+        
+        
+        
         dayfolders = np.unique( [ii.replace('\\', '/').rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
 
         variableLog = []
@@ -475,9 +550,52 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
         variableLog = pd.concat(variableLog)
         logTime = Filetime2Logtime(fileTime, variableLog)
         variableLog = variableLog.loc[logTime]
-        variableLog.insert(0, 'Folder', fileFolder)
+        variableLog.insert(0, 'FirstImg', fistImgPath)
     
-    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False), variableLog        
+    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend], variableLog
+
+    
+def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
+                     subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow',
+                     rowstart=10, rowend=-10, columnstart=10, columnend=-10):
+    
+    popts = []
+    bgs = []
+    
+    if mode.lower() == 'y' or mode.lower()=='both':
+        CD1D = columnDensities.sum(axis=2) * dx / 1e6**2
+        
+        poptsY = []
+        bgsY = []
+        for ydata in CD1D:
+            if yFitMode.lower() == 'single':
+                popt, bg = fitSingleGaussian(ydata, dx=dx,
+                                             subtract_bg=subtract_bg, signal_feature=Ysignal_feature)
+            elif yFitMode.lower() == 'multiple':                
+                popt, bg = fitMultiGaussian(ydata, dx=dx, 
+                                            subtract_bg=subtract_bg, signal_feature=Ysignal_feature, 
+                                            fitbgDeg=3, amp=1, width=3, denoise=1, peakplot=1)                
+            else: 
+                raise ValueError("The yFitMode shoud be 'single' or 'multiple'.")
+                
+            poptsY.append(popt)
+            bgsY.append(bg)
+        popts.append(poptsY)
+        bgs.append(bgsY)
+        
+    if mode.lower() == 'x' or mode.lower()=='both':        
+        CD1D = columnDensities.sum(axis=1) * dx / 1e6**2
+        poptsX = []
+        bgsX = []
+        for xdata in CD1D:
+            popt, bg = fitSingleGaussian(xdata, dx=dx,
+                                                          subtract_bg=0, signal_feature=Ysignal_feature)
+            poptsX.append(popt)
+            bgsX.append(bg)
+        popts.append(poptsX)
+        bgs.append(bgsX)
+        
+    return popts, bgs
 
 
 def GetFileNames(data_folder, picsPerIteration=3, examFrom=None, examUntil=None):
@@ -1018,7 +1136,7 @@ def Gaussian(x, amp, center, w, offset=0):
 def MultiGaussian(x, *params):
     L = len(params)        
     if  L % 3 != 1:
-        raise TypeError('The number of parameters provided to MultiGaussian() besides x variable should be 3N+1, N is the number of Gaussian curves.')
+        raise ValueError('The number of parameters provided to MultiGaussian() besides x variable should be 3N+1, N is the number of Gaussian curves.')
 
     result = np.zeros(len(x))
     N = L//3
@@ -1495,7 +1613,7 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     return widthx, center_x, widthy, center_y
 
 
-def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
+def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
                         variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
@@ -1584,26 +1702,31 @@ def plotImgAndFitResult(imgs, *popts, bgs=[], filterLists=[],
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
 
 
-def AnalyseFittingResults(popts, ax='Y', logTime=None, 
+def AnalyseFittingResults(poptsList, ax=['Y', 'X'], logTime=None, 
                           columns=['center', 'width', 'atomNumber']):
-    results = []
-    for p in popts:
-        center, width, atomNumber = [np.nan] * 3
-        
-        if p is not None:
-            N = len(p) // 3
-            amp = p[0:N]
-            center = p[N:2*N]
-            width = p[2*N:3*N]
-            atomNumber = (amp * width * (2*np.pi)**0.5).sum()
-            if N == 1:
-                center = center[0]
-                width = width[0]                
-
-        results.append([center, width, atomNumber])
     
-    columns = [ax.upper() + ii for ii in columns]
-    return pd.DataFrame(results, index=logTime, columns=columns).rename_axis('time')
+    resutsList = []
+    for ii, popts in enumerate(poptsList):    
+        results = []
+        for p in popts:
+            center, width, atomNumber = [np.nan] * 3
+            
+            if p is not None:
+                N = len(p) // 3
+                amp = p[0:N]
+                center = p[N:2*N]
+                width = p[2*N:3*N]
+                atomNumber = (amp * width * (2*np.pi)**0.5).sum()
+                if N == 1:
+                    center = center[0]
+                    width = width[0]                
+    
+            results.append([center, width, atomNumber])
+        
+        # columns =         
+        resutsList.append( pd.DataFrame(results, index=logTime, columns=[ax[ii].upper() + jj for jj in columns]) )
+
+    return pd.concat(resutsList, axis=1).rename_axis('time')
 
 
 def fit2Lines(x, ys, xMean, y1Mean, y2Mean, pointsForGuess=3):

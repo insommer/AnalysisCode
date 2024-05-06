@@ -16,7 +16,7 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/22/2024'
+date = '4/17/2024'
 data_folder = [
     # r'Andor/ODT 2650',
     # r'Andor/ODT 2650_1',
@@ -42,15 +42,17 @@ data_folder = [
     # r'Andor/ODT 3400 Coarse Scan_5',
     # r'Andor/ODT 3400 Coarse Scan_6',
     # r'Andor/ODT 1150 Scan',
-    r'Andor/Vary EvapTime and Tau_2',
+    # r'Andor/Vary EvapTime and Tau',
+    r'Andor/D1 bias scan Negative Polarity', 
+    r'Andor/D1 bias scan Positive Polarity'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 0
+subtract_burntin = 1
 skipFirstImg = 1
-examNum = 5#The number of runs to exam.
+examNum = None#The number of runs to exam.
 examFrom = None#Set to None if you want to check the last several runs. 
 intermediatePlot = 1
 plotPWindow = 7
@@ -62,10 +64,10 @@ variablesToDisplay = [
                     # # 'Coil_medB', 
                         'TOF',
                         # 'ODT Misalign',
-                        'Evap_Time_1',
-                        'Evap_Tau',
-                      # 'ZSBiasCurrent',
-                      # 'VerticalBiasCurrent',
+                        # 'Evap_Time_1',
+                        # 'Evap_Tau',
+                       # 'ZSBiasCurrent',
+                       'VerticalBiasCurrent',
                         # 'CamBiasCurrent'
                       ]
 showTimestamp = False
@@ -73,12 +75,17 @@ showTimestamp = False
 textY = 1
 textVA = 'bottom'
 
-variableFilterList = [[
-    # 'wait==50', 
-    # 'VerticalBiasCurrent==0'
-    'TOF==0',
-    'Evap_Tau==0.1'
-    ]] # NO SPACE around the operator!
+variableFilterList = [
+    # [# 'wait==50', 
+    # # 'VerticalBiasCurrent==0'
+    # 'TOF==0.4',
+    # 'Evap_Tau==0.1',
+    # 'Evap_Time_1==2'], 
+    # [
+    # 'TOF==0',
+    # 'Evap_Tau==0.1',
+    # 'Evap_Time_1==2']
+    ] # NO SPACE around the operator!
 
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
@@ -95,8 +102,8 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart=700
-columnend=1200
+# columnstart=700
+# columnend=1200
 
 # # ODT 400
 # rowstart = 1000
@@ -128,8 +135,8 @@ columnend=1200
 # rowend = 900
 # # rowstart =616 #ODT1675
 # # rowend = 651
-rowstart =570 #ODT1900
-rowend = 670
+# rowstart =570 #ODT1900
+# rowend = 670
 # # rowstart = 800 #ODT990
 # # rowend = 835
 
@@ -141,8 +148,8 @@ rowend = 670
 # rowstart = 443 #ODT3800
 # rowend = 478
 
-rowstart -= 200
-rowend += 200
+# rowstart -= 200
+# rowend += 200
 
 ####################################
 ####################################
@@ -153,44 +160,31 @@ examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetiti
 
 pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
+dxMicron = params.camera.pixelsize_microns/params.magnification    #The length in micron that 1 pixel correspond to. 
+dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
+
+
 
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examFrom=examFrom, examUntil=examUntil, 
-                                                                   rotateAngle=rotateAngle, subtract_burntin=subtract_burntin, 
+                                                                   rotateAngle=rotateAngle, 
+                                                                   rowstart=rowstart, rowend=rowend, 
+                                                                   columnstart=columnstart, columnend=columnend,
+                                                                   subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, showRawImgs=0)
-columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
+#%%
+        
+popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
+                                                subtract_bg=0, Xsignal_feature='wide', Ysignal_feature='narrow',
+                                                rowstart=rowstart, rowend=rowend, columnstart=columnstart, columnend=columnend)
 
-dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 
-YcolumnDensities = columnDensities.sum(axis=2) * dx / 1e6**2
-
-popts = []
-bgs = []
-for ydata in YcolumnDensities:
-    # popt, bg = ImageAnalysisCode.fitMultiGaussian(ydata, dx=dx, 
-    #                                               subtract_bg=subtract_bg, signal_feature=signal_feature, 
-    #                                               fitbgDeg=3, amp=1, width=3, denoise=1, peakplot=1)
-    
-    popt, bg = ImageAnalysisCode.fitSingleGaussian(ydata, dx=dx,
-                                                  subtract_bg=subtract_bg, signal_feature='wide')
-    popts.append(popt)
-    bgs.append(bg)
-    
-XcolumnDensities = columnDensities.sum(axis=1) * dx / 1e6**2
-poptsX = []
-bgXs = []
-for xdata in XcolumnDensities:
-    popt, bg = ImageAnalysisCode.fitSingleGaussian(xdata, dx=dx,
-                                                  subtract_bg=0, signal_feature='wide')
-    poptsX.append(popt)
-    bgXs.append(bg)
-
-results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index)
+results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index) 
 
 if variableLog is not None:
     results = results.join(variableLog)
-# results.to_csv('0305.csv')
+results.to_csv('Test.csv')
 
 # %%
-ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'IterationNum', 'YatomNumber', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   groupbyX=1, threeD=0,
@@ -210,9 +204,9 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'YatomNumber',
 # %%
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
-    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, poptsX, bgs=[bgs, bgXs], 
-                                          dx=dx, 
-                                            # filterLists=variableFilterList,
+    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
+                                          dx=dxMicron, 
+                                            filterLists=variableFilterList,
                                            plotRate=plotRate, plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
                                           variableLog=variableLog, 
