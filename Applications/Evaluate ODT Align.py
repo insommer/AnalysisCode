@@ -12,12 +12,12 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/11/2024'
+date = '5/7/2024'
 
 ODT_Position = '1900'
 task = 'Misalign'
-task = 'Align'
-expectedValues = [775.280, 1889.313]
+# task = 'Align'
+expectedValues = [902.161, 1884.195]
 
 data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
 Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
@@ -28,7 +28,7 @@ Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
 repetition = 3 #The number of identical runs to be averaged.
 subtract_burntin = 0
 skipFirstImg = 1
-examNum = 5 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 3
 intermediatePlot = True
@@ -67,13 +67,13 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart = 770
-columnend = 1100
+columnstart = 500
+columnend = 1400
 
 # rowstart =750 #ODT 2675
 # rowend = 830
-# # rowstart =616 #ODT1675
-# # rowend = 651
+# rowstart =616 #ODT1675
+# rowend = 651
 rowstart =570 #ODT1900
 rowend = 670
 # # rowstart = 800 #ODT990
@@ -87,7 +87,7 @@ rowend = 670
 # rowstart = 543 #ODT3400
 # rowend = 578
 
-rowstart -= 150
+rowstart -= 180
 rowend += 150
 
 ####################################
@@ -101,9 +101,10 @@ pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, 
+                                                                   rowstart=rowstart, rowend=rowend, 
+                                                                   columnstart=columnstart, columnend=columnend,
                                                                    rotateAngle=rotateAngle, subtract_burntin=0, skipFirstImg=skipFirstImg)
 # %%
-columnDensities = columnDensities[:, rowstart:rowend, columnstart:columnend]
 
 dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 
 YcolumnDensities = columnDensities.sum(axis=2) * dx / 1e6**2
@@ -124,7 +125,7 @@ for ydata in YcolumnDensities:
 #                                                   subtract_bg=1, signal_feature='wide')
 #     poptsX.append(poptx)
 
-results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index)
+results = ImageAnalysisCode.AnalyseFittingResults([popts], logTime=variableLog.index)
 
 if variableLog is not None:
     results = results.join(variableLog)
@@ -165,7 +166,7 @@ elif task.startswith('Misalign'):
 # %%
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
-    ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
+    ImageAnalysisCode.plotImgAndFitResult(columnDensities, [popts], bgs=bgs, dx=dx, 
                                           plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
                                           variableLog=variableLog, logTime=variableLog.index,

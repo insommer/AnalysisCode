@@ -85,7 +85,8 @@ def AnalyzeZyla(date,
     examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
     
     
-    params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= picturesPerIteration, cam_type = "zyla")
+    params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= picturesPerIteration,
+                                                axis='side', cam_type = "zyla")
     images_array = None
     log("Loading spooling series...")
     for ff in data_folders:
@@ -122,7 +123,7 @@ def AnalyzeZyla(date,
     if (plot_raw_images):
         ImageAnalysisCode.ShowImagesTranspose(images_array)
     log("Calculating column densities...")
-    Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
+    Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, params,
                     firstFrame=firstFrame, correctionFactorInput=1.0,  
                     subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     # plt.figure()
