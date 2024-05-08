@@ -27,7 +27,6 @@ Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
 ####################################
 repetition = 3 #The number of identical runs to be averaged.
 subtract_burntin = 0
-skipFirstImg = 1
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 plotPWindow = 3
@@ -103,7 +102,7 @@ params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIter
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, 
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
-                                                                   rotateAngle=rotateAngle, subtract_burntin=0, skipFirstImg=skipFirstImg)
+                                                                   rotateAngle=rotateAngle, subtract_burntin=0)
 # %%
 
 dx = params.camera.pixelsize_microns/params.magnification #The length in micron that 1 pixel correspond to. 

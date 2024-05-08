@@ -515,15 +515,20 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
     
 def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
-                      subtract_burntin=0, skipFirstImg=1, showRawImgs=0,
+                      subtract_burntin=0, showRawImgs=0,
                       loadVariableLog=1, dirLevelAfterDayFolder=2):
     
-
+    date = datetime.datetime.strptime( paths[0].replace('\\', '/').split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
+    
+    if date > datetime.datetime(2024, 4, 3):
+        skipFirstImg = 1
+    else:
+        skipFirstImg = 0
 
     pPI = 4 if (subtract_burntin or skipFirstImg) else 3
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0   
     
-    params = ExperimentParams('5/7/2024', t_exp = 10e-6, picturesPerIteration=pPI, axis='side', cam_type = "zyla")
+    params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=pPI, axis='side', cam_type = "zyla")
     
     print('first frame is', firstFrame)
     

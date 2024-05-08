@@ -52,8 +52,7 @@ data_folder = [
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
-skipFirstImg = 1
-examNum = None #The number of runs to exam.
+examNum = 5 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 
 
@@ -141,8 +140,7 @@ dataPath = [ os.path.join(dayfolder, f) for f in data_folder]
 # variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-pPI = 4 if subtract_burntin else 3
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, cam_type = "zyla")
 dxMicron = params.camera.pixelsize_microns/params.magnification    #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
@@ -151,7 +149,7 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
-                                                                   skipFirstImg=skipFirstImg, showRawImgs=0)
+                                                                   showRawImgs=1)
 #%%
         
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
