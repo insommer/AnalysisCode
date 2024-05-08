@@ -517,9 +517,13 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, skipFirstImg=1, showRawImgs=0,
                       loadVariableLog=1, dirLevelAfterDayFolder=2):
+    
+
 
     pPI = 4 if (subtract_burntin or skipFirstImg) else 3
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0   
+    
+    params = ExperimentParams('5/7/2024', t_exp = 10e-6, picturesPerIteration=pPI, axis='side', cam_type = "zyla")
     
     print('first frame is', firstFrame)
     
@@ -530,7 +534,7 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
         
-    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
+    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     variableLog = None
@@ -589,7 +593,7 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
         bgsX = []
         for xdata in CD1D:
             popt, bg = fitSingleGaussian(xdata, dx=dx,
-                                                          subtract_bg=0, signal_feature=Ysignal_feature)
+                                         subtract_bg=0, signal_feature=Ysignal_feature)
             poptsX.append(popt)
             bgsX.append(bg)
         popts.append(poptsX)
@@ -1053,12 +1057,12 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     N_abs = np.zeros((iteration))
     Number_of_atoms = np.zeros((iteration))
     
-    if params:
-        pixelsize=params.camera.pixelsize_microns*1e6
-        magnification=params.magnification
-    else:
-        pixelsize=6.5e-6 #Andor Zyla camera
-        magnification = 0.55 #75/125 (ideally) updated from 0.6 to 0.55 on 12/08/2022
+    # if params:
+    pixelsize=params.camera.pixelsize_microns*1e-6
+    magnification=params.magnification
+    # else:
+    #     pixelsize=6.5e-6 #Andor Zyla camera
+    #     magnification = 0.55 #75/125 (ideally) updated from 0.6 to 0.55 on 12/08/2022
         
     for i in range(iteration):
         # print("dimensions of the data for testing purposes:", np.shape(abs_img_data))
@@ -1092,10 +1096,17 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
         ratio_array[i] = ratio
         opticalDensity = -1 * np.log(ratio)
         N_abs[i] = np.sum(opticalDensity) 
-        detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
-        linewidth = 36.898e6 #units Hz
-        wavevector =2*np.pi/(671e-9) #units 1/m
-        cross_section = (6*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+        
+        ###################
+        # detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
+        # linewidth = 36.898e6 #units Hz
+        # wavevector =2*np.pi/(671e-9) #units 1/m
+        # cross_section = (3*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+        
+        #####################
+        cross_section = params.cross_section
+
+        
         n2d = opticalDensity / cross_section
         #n2d[~np.isfinite(columnDensities)] = 0
         deltaX = pixelsize/magnification #pixel size in atom plane
@@ -1324,7 +1335,7 @@ def fitSingleGaussian(data, xdata=None, dx=1,
         
     except Exception as e:
         print(e)
-        return None
+        return None, None
     
     popt[1:-1] *= dx
     
@@ -2148,10 +2159,10 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
         columnlist.append(groupby)
     
     if threeD:
-        fig, ax = plt.subplots(figsize=(9*figSize, 9*figSize), subplot_kw=dict(projection='3d'))
+        fig, ax = plt.subplots(figsize=(9*figSize, 9*figSize), subplot_kw=dict(projection='3d'), layout='constrained')
         ax.view_init(elev=viewElev, azim=viewAzim)
     else:
-        fig, ax = plt.subplots(figsize=(10*figSize, 8*figSize))
+        fig, ax = plt.subplots(figsize=(10*figSize, 8*figSize), layout='constrained')
     
     for ii in iterable:
         if ii is None:
@@ -2190,7 +2201,6 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
     else:
         ax.set(xlabel=xVariable, ylabel=yVariable)
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
-    fig.tight_layout()
     if iterateVariable and legend:
         plt.legend(loc=legendLoc)
     plt.show()

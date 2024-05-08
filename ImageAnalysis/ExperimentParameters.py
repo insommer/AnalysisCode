@@ -60,6 +60,17 @@ def getImagingSystemByDate(date_mdy, axis, debug=True):
             objective_distance = 125.00 # in mm
             return ImagingSystem(magnification, objective_distance, aperture_radius)
         
+        
+def CrossSection(axis='side'):
+    if axis == 'side':    
+        detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
+        linewidth = 36.898e6 #units Hz
+        wavevector = 2*np.pi/(671e-9) #units 1/m
+        cross_section = 1/2 * (6*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+        return cross_section
+    else: 
+        raise ValueError('The cross section is not set!')
+        
 class ExperimentParams:
     def __init__(self, date="2/8/2024", config=None, t_exp = None, picturesPerIteration=1, axis="side", cam_type = "zyla"):
         """        
@@ -119,6 +130,7 @@ class ExperimentParams:
         self.R_scat = self.gamma*.5*self.s/(1+self.s+(2*self.delta/self.gamma)**2)
         self.kB = 1.380649e-23 #Boltzmann's constant
         self.m = 9.9883414e-27 #Li-6 mass in kg
+        self.cross_section = CrossSection(axis)
         
         imgSys = getImagingSystemByDate(date, axis)
         self.magnification = imgSys.magnification

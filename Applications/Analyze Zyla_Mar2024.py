@@ -16,11 +16,12 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/17/2024'
+date = '5/7/2024'
 data_folder = [
-    # r'Andor/ODT 2650',
-    # r'Andor/ODT 2650_1',
-    # r'Andor/ODT 2650_2',
+    # r'Andor/Potential Modulation_5',
+    r'Andor/Potential Modulation ODT 400 Low Frequency 500 ms',
+
+
     # r'Andor/ODT 2650 ZS bias 5_2',
     # r'Andor/ODT 2650 ZS bias 5_3',
     # r'Andor/ODT 2650 ZS bias 5_1',
@@ -43,44 +44,26 @@ data_folder = [
     # r'Andor/ODT 3400 Coarse Scan_6',
     # r'Andor/ODT 1150 Scan',
     # r'Andor/Vary EvapTime and Tau',
-    r'Andor/D1 bias scan Negative Polarity', 
-    r'Andor/D1 bias scan Positive Polarity'
+    # r'Andor/D1 bias scan Negative Polarity', 
+    # r'Andor/D1 bias scan Positive Polarity'
     ]
 ####################################
 #Parameter Setting
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 1
+subtract_burntin = 0
 skipFirstImg = 1
-examNum = None#The number of runs to exam.
-examFrom = None#Set to None if you want to check the last several runs. 
-intermediatePlot = 1
-plotPWindow = 7
-plotRate = 1
-uniformscale = 0
-rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
+examNum = None #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
 
-variablesToDisplay = [
-                    # # 'Coil_medB', 
-                        'TOF',
-                        # 'ODT Misalign',
-                        # 'Evap_Time_1',
-                        # 'Evap_Tau',
-                       # 'ZSBiasCurrent',
-                       'VerticalBiasCurrent',
-                        # 'CamBiasCurrent'
-                      ]
-showTimestamp = False
-# variablesToDisplay=None
-textY = 1
-textVA = 'bottom'
 
 variableFilterList = [
     # [# 'wait==50', 
     # # 'VerticalBiasCurrent==0'
-    # 'TOF==0.4',
-    # 'Evap_Tau==0.1',
-    # 'Evap_Time_1==2'], 
+    # 'fmod_kHz==0',
+    # # 'Evap_Tau==0.1',
+    # # 'Evap_Time_1==2'
+    # ], 
     # [
     # 'TOF==0',
     # 'Evap_Tau==0.1',
@@ -90,24 +73,24 @@ variableFilterList = [
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 0
+subtract_bg = 1
 signal_feature = 'wide' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
 rotateAngle = 0.5 #rotates ccw
 
 
-rowstart = 10
-rowend = -10
-columnstart = 10
-columnend = -10
+# rowstart = 10
+# rowend = -10
+# columnstart = 10
+# columnend = -10
 
-# columnstart=700
-# columnend=1200
+columnstart=800
+columnend=1200
 
 # # ODT 400
-# rowstart = 1000
-# rowend = 1125
+rowstart = 1000
+rowend = 1125
 # columnstart=750
 # columnend=1150
 
@@ -148,8 +131,8 @@ columnend = -10
 # rowstart = 443 #ODT3800
 # rowend = 478
 
-# rowstart -= 200
-# rowend += 200
+rowstart -= 50
+rowend += 50
 
 ####################################
 ####################################
@@ -162,8 +145,6 @@ pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 dxMicron = params.camera.pixelsize_microns/params.magnification    #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
-
-
 
 columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examFrom=examFrom, examUntil=examUntil, 
                                                                    rotateAngle=rotateAngle, 
@@ -181,10 +162,19 @@ results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.ind
 
 if variableLog is not None:
     results = results.join(variableLog)
-results.to_csv('Test.csv')
+# results.to_csv('Test.csv')
+#%%
+# results = results[ results.YatomNumber < 1e7 ]
 
 # %%
-ImageAnalysisCode.PlotFromDataCSV(results, 'IterationNum', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'YatomNumber', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  groupbyX=1, threeD=0,
+                                  figSize = 0.5
+                                  )
+
+ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   groupbyX=1, threeD=0,
@@ -202,11 +192,33 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'IterationNum', 'YatomNumber',
 #                                   )
 
 # %%
+
+intermediatePlot = 1
+plotPWindow = 6
+plotRate = 1
+uniformscale = 0
+rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
+
+variablesToDisplay = [
+                    # # 'Coil_medB', 
+                        'TOF',
+                        'fmod_kHz',
+                        'tmod_ms',
+                        # 'Evap_Tau',
+                       # 'ZSBiasCurrent',
+                       # 'VerticalBiasCurrent',
+                        # 'CamBiasCurrent'
+                      ]
+showTimestamp = False
+# variablesToDisplay=None
+textY = 1
+textVA = 'bottom'
+
 if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
     ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
                                           dx=dxMicron, 
-                                            filterLists=variableFilterList,
+                                            # filterLists=[['fmod_kHz>32']],
                                            plotRate=plotRate, plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
                                           variableLog=variableLog, 
