@@ -382,13 +382,13 @@ def LoadSpooledSeriesV2(*paths, picturesPerIteration=3,
         
         for path in paths:
             if not os.path.exists(path):
-                raise Exception("Data folder not found:" + str(path))
+                raise Exception("Data folder not found:" + str(path).replace('\\', '/'))
         
             number_of_pics = len(glob.glob1(path,"*spool.dat"))
             if number_of_pics == 0:
-                print('Warning!\n{}\ndoes not contain any data file!'.format(path))
+                print('Warning!\n{}\ndoes not contain any data file!'.format(path.replace('\\', '/')))
             elif number_of_pics % picturesPerIteration:
-                raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
+                raise Exception('The number of data files in\n{}\nis not correct!'.format(path.replace('\\', '/')))
             
         #Load meta data
         metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig")
@@ -513,10 +513,18 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # return images
     
     
-def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
+def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, showRawImgs=0,
                       loadVariableLog=1, dirLevelAfterDayFolder=2):
+    
+    
+    '''
+    Check if the variableLog.pkl exist
+    create the catalogue if not
+    
+    filter 
+    '''
     
     date = datetime.datetime.strptime( paths[0].replace('\\', '/').split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
     
@@ -532,6 +540,7 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     
     print('first frame is', firstFrame)
     
+    examFrom, examUntil = examRange    
     rawImgs, fileTime, fistImgPath = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
                                                         return_fileTime=loadVariableLog, 
                                                         examFrom=examFrom, examUntil=examUntil)
@@ -566,7 +575,8 @@ def PreprocessZylaImg(*paths, examFrom=None, examUntil=None, rotateAngle=1,
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
                      subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow',
-                     rowstart=10, rowend=-10, columnstart=10, columnend=-10):
+                     rowstart=10, rowend=-10, columnstart=10, columnend=-10
+                     ):
     
     popts = []
     bgs = []
@@ -2010,7 +2020,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
     return df
 
 
-def DataFilter(info, *otheritems, filterLists=[]):   
+def DataFilter(dfInfo, *otheritems, filterLists=[]):   
     '''
     
     Parameters
@@ -2032,20 +2042,32 @@ def DataFilter(info, *otheritems, filterLists=[]):
 
     '''
     if len(filterLists) == 0:
-        return info, otheritems
+        if otheritems:
+            return dfInfo, otheritems
+        else:
+            return dfInfo
     
     masks = []
     for fltlist in filterLists:
-        maskSingleList = []
-        for flt in fltlist:
-            maskSingleList.append(eval( 'info.' + flt.replace(' ', '_') ))   
-           
-        if len(fltlist) > 1:
-            for mask in maskSingleList[1:]:
-                maskSingleList[0] &= mask
-        masks.append(maskSingleList[0])
+        if len(fltlist) == 0:
+            continue
         
-    if len(filterLists) > 1:
+        maskAnd = []
+        for flt in fltlist:              
+            maskAnd.append(eval( 'dfInfo.' + flt.replace(' ', '_') ))   
+                
+        if len(maskAnd) > 1:
+            for mask in maskAnd[1:]:
+                maskAnd[0] &= mask
+        masks.append(maskAnd[0])
+        
+    if len(masks) == 0:
+        if otheritems:
+            return dfInfo, otheritems
+        else:
+            return dfInfo
+        
+    if len(masks) > 1:
         for mask in masks[1:]:
             masks[0] |= mask
     
@@ -2055,9 +2077,9 @@ def DataFilter(info, *otheritems, filterLists=[]):
             if item is not None:
                 otheritems[ii] = np.array(item)[masks[0]]
             
-        return info[ masks[0] ], otheritems
+        return dfInfo[ masks[0] ], otheritems
     else:
-        return info
+        return dfInfo
 
 
 
@@ -2143,7 +2165,7 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
     
     # df = pd.read_csv(filePath)
     df = df[ ~np.isnan(df[yVariable]) ]
-    df, _ = DataFilter(df, filterLists)
+    df = DataFilter(df, filterLists=filterLists)
     
     columnlist = [xVariable, yVariable]
     
