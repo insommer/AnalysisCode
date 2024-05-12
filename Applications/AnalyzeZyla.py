@@ -92,15 +92,14 @@ def AnalyzeZyla(date,
     for ff in data_folders:
         log("loading "+os.path.split(ff)[-1],1)
         if images_array is None:
-            images_array, fileTime, _ = ImageAnalysisCode.LoadSpooledSeriesV2(ff, picturesPerIteration=picturesPerIteration, 
-                                                                return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
-            
+            images_array, fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
+                                                           return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
             
             # LoadSpooledSeries(params = params, data_folder = ff, 
             #                                                            return_fileTime=1)
-        else:
-            _images_array, _fileTime, _ = ImageAnalysisCode.LoadSpooledSeriesV2(ff, picturesPerIteration=picturesPerIteration, 
-                                                                return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
+        else:            
+            _images_array, _fileTime = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder = ff, 
+                                                               return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
             images_array = np.concatenate([images_array, _images_array], axis=0)
             fileTime = fileTime + _fileTime
     
