@@ -15,35 +15,13 @@ from scipy import constants
 ####################################
 #Set the date and the folder name
 ####################################
+reAnalyze = 1
+reBuildVariableLog = 0
+
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/7/2024'
+date = '4/17/2024'
 data_folder = [
-    # r'Andor/Potential Modulation_5',
-    r'Andor/Potential Modulation ODT 400 Low Frequency 500 ms',
-
-
-    # r'Andor/ODT 2650 ZS bias 5_2',
-    # r'Andor/ODT 2650 ZS bias 5_3',
-    # r'Andor/ODT 2650 ZS bias 5_1',
-    # r'Andor/ODT 2650 ZS bias 5_4',
-    # r'Andor/ODT 2650 ZS bias Negative Vertical',
-    # r'Andor/ODT 2650 ZS bias Negative Vertical_1',
-    # r'Andor/ODT 3400 Bias Scan',
-    # r'Andor/ODT 3400 Bias Scan_1'
-    # r'Andor/ODT 3400 Bias Fine Scan',
-    # r'Andor/ODT 3400 Bias Fine Scan_2',
-    # r'Andor/ODT 400 ZS bias 5.1_1',
-    # r'Andor/ODT 400 ZS bias 5.1',
-    # r'Andor/ODT 400 ZS bias 4.8',
-    # r'Andor/ODT 400 ZS bias 4.8_1',
-    # r'Andor/ODT 1150 Bias Scan_1',
-    # r'Andor/ODT 1150 Bias Scan_2',
-    # r'Andor/ODT 1150 Bias Scan_3',
-    # r'Andor/ODT 3400 Coarse Scan_4',
-    # r'Andor/ODT 3400 Coarse Scan_5',
-    # r'Andor/ODT 3400 Coarse Scan_6',
-    # r'Andor/ODT 1150 Scan',
-    # r'Andor/Vary EvapTime and Tau',
+    r'Andor/ODTs',
     # r'Andor/D1 bias scan Negative Polarity', 
     # r'Andor/D1 bias scan Positive Polarity'
     ]
@@ -52,7 +30,7 @@ data_folder = [
 ####################################
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
-examNum = 5 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 
 
@@ -79,59 +57,19 @@ fitbgDeg = 5
 rotateAngle = 0.5 #rotates ccw
 
 
-# rowstart = 10
-# rowend = -10
-# columnstart = 10
-# columnend = -10
+rowstart = 10
+rowend = -10
+columnstart = 10
+columnend = -10
 
 columnstart=800
 columnend=1200
 
-# # ODT 400
-rowstart = 1000
-rowend = 1125
-# columnstart=750
-# columnend=1150
+# rowstart = 1000	#ODT 400
+# rowend = 1125	
 
-# # ODT 2560
-# rowstart = 350
-# rowend = 450
-# columnstart=800
-# columnend=1150
-
-# # ODT 3400
-# rowstart = 120
-# rowend = 230
-# columnstart=800
-# columnend=1150
-
-# rowstart = 660
-# rowstart = 500
-# rowend = -10
-# columnstart = 600
-# columnend = -200
-
-# rowstart =750 #ODT 2675
-# rowend = 830
-# rowstart =800 #ODT1150
-# rowend = 900
-# # rowstart =616 #ODT1675
-# # rowend = 651
-# rowstart =570 #ODT1900
-# rowend = 670
-# # rowstart = 800 #ODT990
-# # rowend = 835
-
-# rowstart = 888 #ODT700
-# rowend = 923
-# rowstart = 1078 #ODT50
-# rowend = 1113
-
-# rowstart = 443 #ODT3800
-# rowend = 478
-
-rowstart -= 50
-rowend += 50
+# rowstart -= 50
+# rowend += 50
 
 ####################################
 ####################################
@@ -144,17 +82,20 @@ params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIter
 dxMicron = params.camera.pixelsize_microns/params.magnification    #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
-columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examFrom=examFrom, examUntil=examUntil, 
+
+
+#%%
+
+columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examRange=[examFrom, examUntil], 
                                                                    rotateAngle=rotateAngle, 
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
-                                                                   showRawImgs=1)
+                                                                   showRawImgs=0, rebuildCatalogue=1)
 #%%
         
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
-                                                subtract_bg=0, Xsignal_feature='wide', Ysignal_feature='narrow',
-                                                rowstart=rowstart, rowend=rowend, columnstart=columnstart, columnend=columnend)
+                                                subtract_bg=0, Xsignal_feature='wide', Ysignal_feature='narrow')
 
 results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index) 
 
@@ -162,20 +103,21 @@ if variableLog is not None:
     results = results.join(variableLog)
 # results.to_csv('Test.csv')
 #%%
-# results = results[ results.YatomNumber < 1e7 ]
+# results = results[ results.YatomNumber < 1e6 ]
 
 # %%
-ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'ODT_Position', 'YatomNumber', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   groupbyX=1, threeD=0,
                                   figSize = 0.5
                                   )
 
-ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'Ycenter', 'YatomNumber', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-                                  groupbyX=1, threeD=0,
+                                  groupby='ODT_Position', 
+                                  threeD=0,
                                   figSize = 0.5
                                   )
 
@@ -239,32 +181,3 @@ if intermediatePlot:
     # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
     # axes[-1].set(xlim=[c-15*w, c+15*w])
     
-# %%
-# import matplotlib.dates as mdates
-
-# fig, ax = plt.subplots(1,1, figsize=(8,6), layout='constrained')
-# # plt.plot(results.wait, results.YatomNumber)
-
-
-# ax.plot(results.index, results.Ycenter.values, '.')
-# ax.set(xlabel='time (Day HH:MM)', ylabel='y center (µm)')
-# ax.set_xticks(ax.get_xticks()[::2])
-# ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %H:%M'))
-
-# %%
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 
-#                                   xVariable='ZSBiasCurrent',
-#                                   yVariable='YatomNumber', 
-#                                   iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   groupbyX=1, threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-# # %%
-
-# atomNumber = results[['YatomNumber', 'ZSBiasCurrent', 'VerticalBiasCurrent']].groupby(['ZSBiasCurrent', 'VerticalBiasCurrent']).mean().YatomNumber.unstack()
-# fig, ax = plt.subplots(1,1, figsize=(8,6), layout='constrained')
-
-# plt.pcolormesh(atomNumber.columns.values, atomNumber.index.values, atomNumber.values)

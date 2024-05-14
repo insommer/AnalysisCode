@@ -27,7 +27,7 @@ class ImagingSystem:
         cos_theta = objective_distance/np.sqrt(aperture_radius**2+objective_distance**2)
         self.solid_angle = 2*np.pi*(1-cos_theta)
 
-def getImagingSystemByDate(date_mdy, axis, debug=True):
+def getImagingSystemByDate(date_mdy, axis, debug=0):
     """
     Parameters
     ----------
