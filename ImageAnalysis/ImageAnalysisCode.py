@@ -344,7 +344,7 @@ def GetFilePaths(*paths, picsPerIteration=3, examFrom=None, examUntil=None):
     for path in paths:
     
         filenames = glob.glob1(path,"*spool.dat")
-        filenamesInd = [ ii[6::-1] for ii in filenames]
+        filenamesInd = [ ii[9::-1] for ii in filenames]
     
         indexedFilenames = list(zip(filenamesInd, filenames))
         indexedFilenames.sort()
@@ -359,90 +359,98 @@ def GetFilePaths(*paths, picsPerIteration=3, examFrom=None, examUntil=None):
         
     return FilePaths[examFrom: examUntil]
 
-def LoadSpooledSeriesV2(*paths, picturesPerIteration=3, 
-                        background_folder = ".",  background_file_name= "",
-                        examFrom=None, examUntil=None, return_fileTime=0):
-        """
-        Modified from LoadSpooledSeries, works with multiple folders. 
-        
-        Parameters
-        ----------
-        paths : string
-            path to the folder with the spooled series data, and the background image
-        background_file_name : string
-            name of background image, assumed to be in the data_folder
-       
-        Returns
-        -------
-        4D array of integers giving the background-subtracted camera 
-        in each pixel.
-        Format: images[iterationNumber, pictureNumber, row, col]
+def FillFilePathList(firstImgPaths, picsPerIteration=4):
     
-        """
+    fullList = []
+    
+    for p in firstImgPaths:
+        folderPath, firstfname = p.replace('\\', '/').rsplit('/', 1)
         
-        for path in paths:
-            if not os.path.exists(path):
-                raise Exception("Data folder not found:" + str(path).replace('\\', '/'))
+        firstInd = int(firstfname[9::-1])
+        fileInd = np.arange(firstInd, firstInd + picsPerIteration)
         
-            number_of_pics = len(glob.glob1(path,"*spool.dat"))
-            if number_of_pics == 0:
-                print('Warning!\n{}\ndoes not contain any data file!'.format(path.replace('\\', '/')))
-            elif number_of_pics % picturesPerIteration:
-                raise Exception('The number of data files in\n{}\nis not correct!'.format(path.replace('\\', '/')))
-            
-        #Load meta data
-        metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig")
-        height =int( metadata["data"]["AOIHeight"])
-        width = int( metadata["data"]["AOIWidth"])
-        pix_format = metadata["data"]["PixelEncoding"]
-        if pix_format.lower() == "mono16":
-            data_type=np.uint16
-        else:
-            raise Exception("Unknown pixel format " + pix_format)
-        number_of_pixels = height*width
-                
-        #Get the filenames and select the range needed.
-        filePaths = GetFilePaths(*paths, picsPerIteration=picturesPerIteration, 
-                                 examFrom=examFrom, examUntil=examUntil)
-        number_of_pics = len(filePaths)        
-        number_of_iterations = int(number_of_pics/picturesPerIteration)
-        
-        #Load background image into background_array
-        if background_file_name:
-            background_img = os.path.join(background_folder, background_file_name)
-            file=open(background_img,"rb")
-            content=file.read()
-            background_array = np.frombuffer(content, dtype=data_type)
-            background_array = background_array[0:number_of_pixels]
-            file.close()
-        #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
-        image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
-        
-        fileTime = []
-        fistImgPath = []
-        
-        for ind, filepath in enumerate(filePaths):
-            
-            if ind % picturesPerIteration == 0 and return_fileTime:
-                fileTime.append( datetime.datetime.fromtimestamp( os.path.getctime(filepath) ) )
-                fistImgPath.append( '/'.join(filepath.replace('\\', '/').rsplit('/', 2)[1:]) )
-            
-            file = open(filepath, "rb")
-            content = file.read()
-            data_array = np.frombuffer(content, dtype=data_type)
-            data_array = data_array[:number_of_pixels] # a spool file that is not bg corrected
-            if background_file_name:
-                data_array = data_array - background_array #spool file that is background corrected
-            image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array            
+        paths = [ folderPath + '/' + '{:010d}'.format(ii)[::-1] + 'spool.dat' for ii in fileInd ]
+        fullList.extend(paths)
+    
+    return fullList
+    
 
-        # reshape the total_image_array_corrected into a 4D array
-        # outermost dimension's size is equal to the number of iterations, 
-        # 2nd outer dimensions size is number of pictures per iteration
-        # 3rd dimensions size is equal to the height of the images
-        #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
-        images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+def LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration, metadata,                          
+                        background_folder = ".",  background_file_name= ""):
+    """
+    Modified from LoadSpooledSeries, works with multiple folders. 
+    
+    Parameters
+    ----------
+    paths : string
+        path to the folder with the spooled series data, and the background image
+    background_file_name : string
+        name of background image, assumed to be in the data_folder
+       
+    Returns
+    -------
+    4D array of integers giving the background-subtracted camera 
+    in each pixel.
+    Format: images[iterationNumber, pictureNumber, row, col]
+    
+    """
+    
+    # for path in paths:
+    #     if not os.path.exists(path):
+    #         raise Exception("Data folder not found:" + str(path).replace('\\', '/'))
+    
+    #     number_of_pics = len(glob.glob1(path,"*spool.dat"))
+    #     if number_of_pics == 0:
+    #         print('Warning!\n{}\ndoes not contain any data file!'.format(path.replace('\\', '/')))
+    #     elif number_of_pics % picturesPerIteration:
+    #         raise Exception('The number of data files in\n{}\nis not correct!'.format(path.replace('\\', '/')))
         
-        return images, fileTime, fistImgPath
+    #Load meta data
+    height =int( metadata["data"]["AOIHeight"])
+    width = int( metadata["data"]["AOIWidth"])
+    pix_format = metadata["data"]["PixelEncoding"]
+    if pix_format.lower() == "mono16":
+        data_type=np.uint16
+    else:
+        raise Exception("Unknown pixel format " + pix_format)
+    number_of_pixels = height*width
+            
+    #Get the filenames and select the range needed.
+    filePaths = FillFilePathList(firstImgPaths, picsPerIteration=picturesPerIteration)
+    
+    number_of_pics = len(filePaths)        
+    number_of_iterations = int(number_of_pics/picturesPerIteration)
+    
+    #Load background image into background_array
+    if background_file_name:
+        background_img = os.path.join(background_folder, background_file_name)
+        file=open(background_img,"rb")
+        content=file.read()
+        background_array = np.frombuffer(content, dtype=data_type)
+        background_array = background_array[0:number_of_pixels]
+        file.close()
+    #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
+    image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
+        
+    for ind, filepath in enumerate(filePaths):
+                
+        with open(filepath, 'rb') as f:
+            content = f.read()
+            
+        data_array = np.frombuffer(content, dtype=data_type)
+        data_array = data_array[:number_of_pixels] # a spool file that is not bg corrected
+        if background_file_name:
+            data_array = data_array - background_array #spool file that is background corrected
+        image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array            
+    
+    # reshape the total_image_array_corrected into a 4D array
+    # outermost dimension's size is equal to the number of iterations, 
+    # 2nd outer dimensions size is number of pictures per iteration
+    # 3rd dimensions size is equal to the height of the images
+    #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
+    images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+    
+    return images
     
 def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3, 
                                     background_folder = ".",  background_file_name= ""):
@@ -511,13 +519,53 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
         
         # return images
+
+
+def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
+    paths = [ii.replace('\\', '/') for ii in paths]    
+    dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
+
+    variableLog = []
+    for ff in dayfolders:
+        variablelogfolder = os.path.join(ff, 'Variable Logs')
+        variableLog.append( LoadVariableLog(variablelogfolder) )
+        
+    variableLog = pd.concat(variableLog)
     
+    catalogue = []
+    for pp in paths:
+        
+        fistImgPath = GetFilePaths(pp)[::picturesPerIteration]
+        
+        fileTime = []
+        for ff in fistImgPath:
+            fileTime.append( datetime.datetime.fromtimestamp(os.path.getmtime(ff)) )            
+        
+        logTime = Filetime2Logtime(fileTime, variableLog)
+        df = variableLog.loc[logTime]
+        
+        # fistImgPath = ['/'.join(ff.replace('\\', '/').rsplit('/', 2)[1:]) for ff in fistImgPath]
+        # df.insert(0, 'FirstImg', fistImgPath)
+        
+        fistImgName = [ ff.replace('\\', '/').rsplit('/', 1)[-1] for ff in fistImgPath]
+        df.insert(0, 'FirstImg', fistImgName)
+        
+        df.to_csv(os.path.join(pp, 'Catalogue.csv'))
+        with open(os.path.join(pp, 'Catalogue.pkl'), 'wb') as f:
+            pickle.dump(df, f)
+        
+        df.insert(0, 'FolderPath', pp)
+        catalogue.append( df )
+    
+    return catalogue
+
     
 def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, showRawImgs=0,
-                      loadVariableLog=1, dirLevelAfterDayFolder=2):
-    
+                      filterLists=[], 
+                      loadVariableLog=1, rebuildCatalogue=0,
+                      dirLevelAfterDayFolder=2):
     
     '''
     Check if the variableLog.pkl exist
@@ -525,8 +573,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     
     filter 
     '''
+    paths = [ii.replace('\\', '/') for ii in paths]
     
-    date = datetime.datetime.strptime( paths[0].replace('\\', '/').split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
+    date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
     
     if date > datetime.datetime(2024, 4, 3):
         skipFirstImg = 1
@@ -538,12 +587,52 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     
     params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=pPI, axis='side', cam_type = "zyla")
     
-    print('first frame is', firstFrame)
+    print('subtract burntin\t', subtract_burntin)
+    print('picture/iteration\t', pPI)
+    print('skip firstImg\t\t', skipFirstImg)
+    print('first frame\t\t\t', firstFrame)
     
-    examFrom, examUntil = examRange    
-    rawImgs, fileTime, fistImgPath = LoadSpooledSeriesV2(*paths, picturesPerIteration=pPI, 
-                                                        return_fileTime=loadVariableLog, 
-                                                        examFrom=examFrom, examUntil=examUntil)
+    N = 0
+    pathNeedCatalogue = []
+    catalogue = []
+    
+    for path in paths:
+        if not os.path.exists(path):
+            print("Warning! Data folder not found:" + str(path))
+            continue
+        
+        number_of_pics = len(glob.glob1(path,"*spool.dat"))
+        if number_of_pics == 0:
+            print('Warning!\n{}\ndoes not contain any data file!'.format(path))
+        elif number_of_pics % pPI:
+            raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
+            
+        cataloguePath = os.path.join(path, 'Catalogue.pkl')
+        existCatalogue = os.path.exists(cataloguePath)
+        
+        if loadVariableLog and (rebuildCatalogue or not existCatalogue):
+            pathNeedCatalogue.append(path)            
+        elif existCatalogue:
+            with open(cataloguePath, 'rb') as f:
+                df = pickle.load(f)
+            
+            df.insert(0, 'FolderPath', path)
+            catalogue.append( df )  
+            
+        N += number_of_pics        
+    if N == 0:
+        raise Exception('No data file was found in all provided folders!')
+        
+    if loadVariableLog and pathNeedCatalogue:        
+        catalogue.extend( BuildCatalogue(*pathNeedCatalogue, picturesPerIteration=pPI, 
+                                         dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
+            
+    catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
+    
+    firstImgPaths = catalogue[['FolderPath', 'FirstImg']].apply(lambda row: os.path.join(*row), axis=1).values
+    
+    rawImgs = LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration=pPI, 
+                                  metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
     
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
@@ -551,32 +640,15 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
-    variableLog = None
-    if loadVariableLog:
-        
-        # if 
-        
-        
-        
-        dayfolders = np.unique( [ii.replace('\\', '/').rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
+    folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
+    catalogue = catalogue.drop('FolderPath', axis=1)
+    catalogue.insert(0, 'Folder', folderNames)
 
-        variableLog = []
-        for ff in dayfolders:
-            variablelogfolder = os.path.join(ff, 'Variable Logs')
-            variableLog.append( LoadVariableLog(variablelogfolder) )
-            
-        variableLog = pd.concat(variableLog)
-        logTime = Filetime2Logtime(fileTime, variableLog)
-        variableLog = variableLog.loc[logTime]
-        variableLog.insert(0, 'FirstImg', fistImgPath)
-    
-    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend], variableLog
+    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend], catalogue
 
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
-                     subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow',
-                     rowstart=10, rowend=-10, columnstart=10, columnend=-10
-                     ):
+                     subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow'):
     
     popts = []
     bgs = []
@@ -705,6 +777,10 @@ def LoadSpooledSeries(params, data_folder= "." ,background_folder = ".",  backgr
                     
             file = open(filename,"rb")
             content = file.read()
+            
+            # with open(filename, 'rb') as f:
+            #     content = f.read()
+
             data_array = np.frombuffer(content, dtype=data_type)
             data_array = data_array[0:number_of_pixels] # a spool file that is not bg corrected
             data_array_corrected = data_array - background_array #spool file that is background corrected
