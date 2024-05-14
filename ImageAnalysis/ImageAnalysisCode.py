@@ -554,7 +554,7 @@ def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
         with open(os.path.join(pp, 'Catalogue.pkl'), 'wb') as f:
             pickle.dump(df, f)
         
-        df.insert(0, 'FolderPath', pp)
+        df['FolderPath'] = pp
         catalogue.append( df )
     
     return catalogue
@@ -616,7 +616,7 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
             with open(cataloguePath, 'rb') as f:
                 df = pickle.load(f)
             
-            df.insert(0, 'FolderPath', path)
+            df['FolderPath'] = path
             catalogue.append( df )  
             
         N += number_of_pics        
@@ -641,11 +641,25 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
-    catalogue = catalogue.drop('FolderPath', axis=1)
+    # catalogue = catalogue.drop('FolderPath', axis=1)
     catalogue.insert(0, 'Folder', folderNames)
 
     return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend], catalogue
 
+
+def SaveResultsDftoEachFolder(df, overwrite=1):
+    
+    paths = np.unique( df.FolderPath )
+    
+    for pp in paths:
+        resultsPath = os.path.join(pp, 'Results.pkl')
+        
+        if not os.path.exists(resultsPath) or overwrite:
+            df1 = df[ df.FolderPath == pp ]
+            df1.to_csv( os.path.join(pp, 'Results.csv') )
+            with open(resultsPath, 'wb' ) as f:
+                pickle.dump(df1, f)
+            print('Results saved to folder: {}.'.format(pp.replace('\\', '/').strip('/').rsplit('/', 1)[-1]))
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
                      subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow'):
