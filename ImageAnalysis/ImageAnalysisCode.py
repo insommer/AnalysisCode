@@ -615,18 +615,17 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         cataloguePath = os.path.join(path, 'Catalogue.pkl')
         existCatalogue = os.path.exists(cataloguePath)
         
-        ### if the mtime of the folder is later than the ctime of the catalogue, force rebuild
-        # fmtime = os.path.gmtime(paht)
-        # cataloguemtim = 
-        
-        if loadVariableLog and (rebuildCatalogue or not existCatalogue):
+        if loadVariableLog and (rebuildCatalogue or not existCatalogue ):
             pathNeedCatalogue.append(path)            
         elif existCatalogue:
             with open(cataloguePath, 'rb') as f:
                 df = pickle.load(f)
             
-            df['FolderPath'] = path
-            catalogue.append( df )  
+            if len(df) < (number_of_pics / pPI):
+                pathNeedCatalogue.append(path)
+            else:
+                df['FolderPath'] = path                
+                catalogue.append( df )
             
         N += number_of_pics        
     if N == 0:
