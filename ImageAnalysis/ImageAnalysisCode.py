@@ -431,7 +431,8 @@ def LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration, metadata,
         file.close()
     #read the whole kinetic series, bg correct, and load all images into a numpy array called image-array_correcpted
     image_array = np.zeros(shape = (number_of_pixels * number_of_pics))
-        
+    
+    print('Loading pictures: ', end='')
     for ind, filepath in enumerate(filePaths):
                 
         with open(filepath, 'rb') as f:
@@ -441,7 +442,11 @@ def LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration, metadata,
         data_array = data_array[:number_of_pixels] # a spool file that is not bg corrected
         if background_file_name:
             data_array = data_array - background_array #spool file that is background corrected
-        image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array            
+        image_array[ind*number_of_pixels: (ind+1)*number_of_pixels] = data_array
+        
+        if ind % (10*picturesPerIteration) == 0:
+            print('|', end='')
+    print('\nFinish loading pictures, {} raw images loaded.'.format(ind+1))          
     
     # reshape the total_image_array_corrected into a 4D array
     # outermost dimension's size is equal to the number of iterations, 
@@ -610,6 +615,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         cataloguePath = os.path.join(path, 'Catalogue.pkl')
         existCatalogue = os.path.exists(cataloguePath)
         
+        ### if the mtime of the folder is later than the ctime of the catalogue, force rebuild
+        # fmtime = os.path.gmtime(paht)
+        # cataloguemtim = 
+        
         if loadVariableLog and (rebuildCatalogue or not existCatalogue):
             pathNeedCatalogue.append(path)            
         elif existCatalogue:
@@ -672,7 +681,9 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
         
         poptsY = []
         bgsY = []
-        for ydata in CD1D:
+        
+        print('Fitting y data: ', end='')
+        for ii, ydata in enumerate(CD1D):
             if yFitMode.lower() == 'single':
                 popt, bg = fitSingleGaussian(ydata, dx=dx,
                                              subtract_bg=subtract_bg, signal_feature=Ysignal_feature)
@@ -685,6 +696,10 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
                 
             poptsY.append(popt)
             bgsY.append(bg)
+            
+            if ii % 10 == 0:
+                print('|', end='')
+        print()
         popts.append(poptsY)
         bgs.append(bgsY)
         
@@ -692,13 +707,21 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
         CD1D = columnDensities.sum(axis=1) * dx / 1e6**2
         poptsX = []
         bgsX = []
-        for xdata in CD1D:
+        
+        print('Fitting x data: ', end='')
+        for ii, xdata in enumerate(CD1D):
             popt, bg = fitSingleGaussian(xdata, dx=dx,
                                          subtract_bg=0, signal_feature=Ysignal_feature)
             poptsX.append(popt)
             bgsX.append(bg)
+            
+            if ii % 10 == 0:
+                print('|', end='')
+        print()            
+            
         popts.append(poptsX)
         bgs.append(bgsX)
+    print('Finish fitting data.')
         
     return popts, bgs
 
