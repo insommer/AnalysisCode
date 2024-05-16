@@ -15,15 +15,16 @@ from scipy import constants
 ####################################
 #Set the date and the folder name
 ####################################
-reAnalyze = 1
-reBuildVariableLog = 0
-
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '4/17/2024'
+date = '5/16/2024'
 data_folder = [
-    r'Andor/ODTs',
+    # r'Andor/ODT 3400 Modulation 0.1 V 10-50 kHz Variable tmod_1',
     # r'Andor/D1 bias scan Negative Polarity', 
     # r'Andor/D1 bias scan Positive Polarity'
+    # 'Andor\Med Field Wait_1',
+    # 'Andor\Med Field Wait_2',
+    'Andor\ODT 4150 Bias Scan',
+    # 'Andor\Test_1',
     ]
 ####################################
 #Parameter Setting
@@ -62,14 +63,17 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart=800
+columnstart=900
 columnend=1200
+
+rowstart = 200
+rowend = 300
 
 # rowstart = 1000	#ODT 400
 # rowend = 1125	
 
-# rowstart -= 50
-# rowend += 50
+rowstart -= 100
+rowend += 100
 
 ####################################
 ####################################
@@ -91,7 +95,7 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
-                                                                   showRawImgs=0, rebuildCatalogue=1)
+                                                                   showRawImgs=1, rebuildCatalogue=0)
 #%%
         
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
@@ -101,22 +105,24 @@ results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.ind
 
 if variableLog is not None:
     results = results.join(variableLog)
-# results.to_csv('Test.csv')
+    
+ImageAnalysisCode.SaveResultsDftoEachFolder(results)    
 #%%
-# results = results[ results.YatomNumber < 1e6 ]
+# results = results[ results.fmod_kHz <12 ]
 
 # %%
-ImageAnalysisCode.PlotFromDataCSV(results, 'ODT_Position', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'VerticalBiasCurrent', 'YatomNumber', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   groupbyX=1, threeD=0,
                                   figSize = 0.5
                                   )
 
-ImageAnalysisCode.PlotFromDataCSV(results, 'Ycenter', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-                                  groupby='ODT_Position', 
+                                  # groupby='ODT_Position', 
+                                   groupbyX=1, 
                                   threeD=0,
                                   figSize = 0.5
                                   )
@@ -141,12 +147,12 @@ rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
 
 variablesToDisplay = [
                     # # 'Coil_medB', 
-                        'TOF',
+                        # 'TOF',
                         'fmod_kHz',
                         'tmod_ms',
                         # 'Evap_Tau',
                        # 'ZSBiasCurrent',
-                       # 'VerticalBiasCurrent',
+                        'VerticalBiasCurrent',
                         # 'CamBiasCurrent'
                       ]
 showTimestamp = False
@@ -158,7 +164,7 @@ if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
     ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
                                           dx=dxMicron, 
-                                            # filterLists=[['fmod_kHz>32']],
+                                            # filterLists=[['fmod_kHz<12']],
                                            plotRate=plotRate, plotPWindow=plotPWindow,
                                           variablesToDisplay = variablesToDisplay,
                                           variableLog=variableLog, 

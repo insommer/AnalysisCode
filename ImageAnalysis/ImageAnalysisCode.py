@@ -1473,6 +1473,10 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
                      subtract_bg=0, signal_feature='wide', signal_width=10, fitbgDeg=5,
                      amp=1, width=3, denoise=0, peakplot=0):
     
+    # if xdata is not None:
+    #     xunik = np.
+        
+    
     if subtract_bg:
         bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
         data = data - bg        
@@ -1495,12 +1499,6 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
         amps = np.concatenate( (amps, [amps.mean()]*D) )
         peaks = np.concatenate( (peaks, [int(amps.mean()-20)]*D) )
         widths = np.concatenate( (widths, [int(widths.mean())]*D) )
-        
-    # print(amps)
-    # print(peaks)
-    # print(widths)
-    # print(offset)
-
 
     guess = [*amps, *peaks, *widths, offset]
     
