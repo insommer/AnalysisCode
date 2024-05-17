@@ -1474,7 +1474,8 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
                      amp=1, width=3, denoise=0, peakplot=0):
     
     # if xdata is not None:
-    #     xunik = np.
+    #     x_unik = np.unique(xdata)
+    # for x in x_unik
         
     
     if subtract_bg:
