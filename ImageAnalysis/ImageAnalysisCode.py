@@ -2785,7 +2785,7 @@ def exponential(x, m, t, b):
 #     squaredDiffs = np.square(N_atoms - exp(Picture_Time, m, t, b))
 #     squaredDiffsFromMean = np.square(N_atoms - np.mean(N_atoms))
 #     rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
-#     print(f"RÂ² = {rSquared}")
+#     print(f"R² = {rSquared}")
 #     print(f"Y = {m} * e^(-{t} * x) + {b}")
         
 #     # plot the results
@@ -2807,7 +2807,7 @@ def exponential(x, m, t, b):
 #     squaredDiffs = np.square(N_atoms - exponential(Picture_Time, m, t, b))
 #     squaredDiffsFromMean = np.square(N_atoms - np.mean(N_atoms))
 #     rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
-#     print(f"RÂ² = {rSquared}")
+#     print(f"R² = {rSquared}")
 #     print(f"Y = {m} * e^(-{t} * x) + {b}")
 #     # plot the results
 #     plt.plot(Picture_Time, N_atoms-min(N_atoms), '.', label="data")
