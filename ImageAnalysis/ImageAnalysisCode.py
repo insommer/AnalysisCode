@@ -1399,24 +1399,39 @@ def fitgaussian2(array, dx=1, do_plot = False, title="",xlabel1D="",ylabel1D="",
     return popts[0], popts[1]
 
 
-def DetectPeaks(yy, amp=1, width=3, denoise=0, doPlot=0):
-    
-    
+
+def DetectPeaks(yy, xx=None, amp=1, width=3, denoise=0, doPlot=0):
+
+    if xx is not None:
+        x_unik = np.unique(xx)
+
+        y_unik = []
+        for x in x_unik:
+            y_unik = xx[xx==x].mean()
+
+        xx = x_unik
+        yy = y_unik
+
     if denoise:
         yycopy = gaussian_filter1d(yy, 5)
     else:
         yycopy = yy.copy()
-    
+
     # Determine the background with the otsu method and set to 0.
     # thr = threshold_otsu(yycopy)
     thr = 0.3 * (yy.max() - yy.min()) + yy.min()
-    yycopy[yycopy < thr] = yy.min()    
+    yycopy[yycopy < thr] = yy.min()
 
     peaks, properties = signal.find_peaks(yycopy, prominence=amp*0.01*(yycopy.max()-yycopy.min()), width=width)
 
+    if xx is not None:
+        peaks = xx[peaks]
+
+
+
     if doPlot:
         fig, ax = plt.subplots(1,1, layout='constrained')
-        
+
         ymin = yy[peaks] - properties["prominences"]
         ymax = yy[peaks]
         amp = ymax - ymin
@@ -1431,7 +1446,6 @@ def DetectPeaks(yy, amp=1, width=3, denoise=0, doPlot=0):
         ax.plot(yycopy, '.g')
 
     return peaks, properties
-
 
 
 def fitSingleGaussian(data, xdata=None, dx=1, 
@@ -1469,55 +1483,55 @@ def fitSingleGaussian(data, xdata=None, dx=1,
     return popt, bg
     
 
-def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', 
+def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', guess=[],
                      subtract_bg=0, signal_feature='wide', signal_width=10, fitbgDeg=5,
                      amp=1, width=3, denoise=0, peakplot=0):
-    
-    # if xdata is not None:
-    #     x_unik = np.unique(xdata)
-    # for x in x_unik
-        
-    
+
     if subtract_bg:
-        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
-        data = data - bg        
+        bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg)
+        data = data - bg
         offset = 0
     else:
         offset = min( data[:10].mean(), data[-10:].mean() )
         bg = None
-    
-    peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=peakplot)
-    
-    #initial guess:
-    amps = properties['width_heights'] + properties['prominences'] / 2
-    widths = (properties['right_ips'] - properties['left_ips']) / 2    
-    
-    N = len(peaks)
-    # print(peaks)
-    if NoOfModel != 'auto' and NoOfModel > N:
-        D = NoOfModel - N
-        N = NoOfModel
-        amps = np.concatenate( (amps, [amps.mean()]*D) )
-        peaks = np.concatenate( (peaks, [int(amps.mean()-20)]*D) )
-        widths = np.concatenate( (widths, [int(widths.mean())]*D) )
 
-    guess = [*amps, *peaks, *widths, offset]
-    
+    if not guess:
+        peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=peakplot)
+
+        #initial guess:
+        amps = properties['width_heights'] + properties['prominences'] / 2
+        widths = (properties['right_ips'] - properties['left_ips']) / 2
+
+        N = len(peaks)
+        # print(peaks)
+
+        if NoOfModel != 'auto' and NoOfModel > N:
+            D = NoOfModel - N
+            N = NoOfModel
+            amps = np.concatenate( (amps, [amps.mean()]*D) )
+            peaks = np.concatenate( (peaks, [int(amps.mean()-20)]*D) )
+            widths = np.concatenate( (widths, [int(widths.mean())]*D) )
+
+        guess = [*amps, *peaks, *widths, offset]
+
+    else:
+        N = len(guess) // 3
+
     if xdata is None:
         xdata = np.arange( len(data) )
-    
+
     try:
         # minamps = 0.1*(data.max()-data.min())
         minamps = 0
         popt, _ = curve_fit(MultiGaussian, xdata, data, p0 = guess,
                             bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1)))
-        
+
     except Exception as e:
         print(e)
         return None, None
-    
+
     popt[N:-1] *= dx
-    
+
     return popt, bg
 
 
@@ -1527,6 +1541,8 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
                            add_title = False, add_xlabel=False, add_ylabel=False, no_xticklabel=True,
                            label="", title="", newfig=True, xlabel="", ylabel="", 
                            xscale_factor=1, legend=False, yscale_factor=1):
+    
+    # datasmooth = gaussian_filter1d(data, 5)
     
     if subtract_bg:
         bg = fitbg(data, signal_feature=signal_feature, signal_width=signal_width, fitbgDeg=fitbgDeg) 
@@ -1560,11 +1576,11 @@ def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None,
             ax.plot(xdata*xscale_factor, originalData*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, (Gaussian(xdata,*popt)+bg) * yscale_factor, label="{} fit".format(label))
             ax.plot(xdata*xscale_factor, bg*yscale_factor, '.', markersize=0.3)
-            # ax.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
+            ax.plot(xdata*xscale_factor, (Gaussian(xdata,*guess)+bg) * yscale_factor, label="{} fit".format(label))
         else:
             ax.plot(xdata*xscale_factor, data*yscale_factor, '.', label="{} data".format(label))
             ax.plot(xdata*xscale_factor, Gaussian(xdata,*popt) * yscale_factor, label="{} fit".format(label))
-            # ax.plot(xdata*xscale_factor, Gaussian(xdata,*guess) * yscale_factor, label="{} fit".format(label))
+            ax.plot(xdata*xscale_factor, Gaussian(xdata,*guess) * yscale_factor, label="{} fit".format(label))
             
         ax.ticklabel_format(axis='both', style='sci', scilimits=(-3,3))
         ax.tick_params('y', direction='in', pad=-5)
