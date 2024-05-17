@@ -1474,7 +1474,8 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto',
                      amp=1, width=3, denoise=0, peakplot=0):
     
     # if xdata is not None:
-    #     xunik = np.
+    #     x_unik = np.unique(xdata)
+    # for x in x_unik
         
     
     if subtract_bg:
@@ -2784,7 +2785,7 @@ def exponential(x, m, t, b):
 #     squaredDiffs = np.square(N_atoms - exp(Picture_Time, m, t, b))
 #     squaredDiffsFromMean = np.square(N_atoms - np.mean(N_atoms))
 #     rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
-#     print(f"R² = {rSquared}")
+#     print(f"RÂ² = {rSquared}")
 #     print(f"Y = {m} * e^(-{t} * x) + {b}")
         
 #     # plot the results
@@ -2806,7 +2807,7 @@ def exponential(x, m, t, b):
 #     squaredDiffs = np.square(N_atoms - exponential(Picture_Time, m, t, b))
 #     squaredDiffsFromMean = np.square(N_atoms - np.mean(N_atoms))
 #     rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
-#     print(f"R² = {rSquared}")
+#     print(f"RÂ² = {rSquared}")
 #     print(f"Y = {m} * e^(-{t} * x) + {b}")
 #     # plot the results
 #     plt.plot(Picture_Time, N_atoms-min(N_atoms), '.', label="data")
