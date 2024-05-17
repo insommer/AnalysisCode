@@ -16,15 +16,15 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/16/2024'
+date = '5/17/2024'
 data_folder = [
-    # r'Andor/ODT 3400 Modulation 0.1 V 10-50 kHz Variable tmod_1',
+    r'Andor/ODT 4900 Modulation 0.1 V 20-50 kHz Variable tmod',
     # r'Andor/D1 bias scan Negative Polarity', 
     # r'Andor/D1 bias scan Positive Polarity'
     # 'Andor\Med Field Wait_1',
     # 'Andor\Med Field Wait_2',
-    'Andor\ODT 4150 Bias Scan',
-    # 'Andor\Test_1',
+    # 'Andor\ODT 4150 Bias Scan_3',
+    # 'Andor\ODT 4150',
     ]
 ####################################
 #Parameter Setting
@@ -33,6 +33,10 @@ repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
+
+#reanalyze
+#saveresults
+#overwritresults
 
 
 variableFilterList = [
@@ -63,11 +67,14 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart=900
-columnend=1200
+columnstart=850
+columnend=1400
 
-rowstart = 200
-rowend = 300
+# # rowstart = 550
+# # rowend = 650
+
+rowstart = 250
+rowend = 500
 
 # rowstart = 1000	#ODT 400
 # rowend = 1125	
@@ -83,7 +90,7 @@ dataPath = [ os.path.join(dayfolder, f) for f in data_folder]
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, cam_type = "zyla")
-dxMicron = params.camera.pixelsize_microns/params.magnification    #The length in micron that 1 pixel correspond to. 
+dxMicron = params.camera.pixelsize_microns/params.magnification + 660    #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
 
@@ -95,7 +102,7 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
-                                                                   showRawImgs=1, rebuildCatalogue=0)
+                                                                   showRawImgs=0, rebuildCatalogue=0)
 #%%
         
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
@@ -111,7 +118,7 @@ ImageAnalysisCode.SaveResultsDftoEachFolder(results)
 # results = results[ results.fmod_kHz <12 ]
 
 # %%
-ImageAnalysisCode.PlotFromDataCSV(results, 'VerticalBiasCurrent', 'YatomNumber', 
+ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'YatomNumber', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   groupbyX=1, threeD=0,
@@ -127,20 +134,20 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth',
                                   figSize = 0.5
                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 
-#                                   'ZSBiasCurrent',
-#                                   'YatomNumber', 
-#                                   ['VerticalBiasCurrent>2.4', 'VerticalBiasCurrent<2.8'],
-#                                   iterateVariable='VerticalBiasCurrent', 
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'IterationNum', 'YatomNumber', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   groupbyX=1, threeD=0,
+#                                   # groupby='ODT_Position', 
+#                                    groupbyX=1, 
+#                                   threeD=0,
 #                                   figSize = 0.5
 #                                   )
 
 # %%
 
 intermediatePlot = 1
-plotPWindow = 6
+plotPWindow = 5
 plotRate = 1
 uniformscale = 0
 rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
@@ -152,7 +159,7 @@ variablesToDisplay = [
                         'tmod_ms',
                         # 'Evap_Tau',
                        # 'ZSBiasCurrent',
-                        'VerticalBiasCurrent',
+                        'TOF',
                         # 'CamBiasCurrent'
                       ]
 showTimestamp = False

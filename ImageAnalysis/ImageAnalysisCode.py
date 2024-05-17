@@ -1761,6 +1761,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
     
     plt.rcParams.update(rcParams)
     plt.rcParams['image.cmap'] = 'jet'
+    # plt.rcParams['image.interpolation'] = 'nearest'
     
     axDict = {'x': 0, 'y':1}
 
