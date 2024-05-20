@@ -255,7 +255,7 @@ def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_na
     
 def LoadVariableLog(path, timemode='ctime'):
     if not os.path.exists(path):
-        print('The path for variable logs does not exist, no logs were loded.')
+        print('Warning!!!\nThe path for variable logs does not exist, no logs were loded.')
         return None
         
     filenames = os.listdir(path)
@@ -535,6 +535,9 @@ def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
         variablelogfolder = os.path.join(ff, 'Variable Logs')
         variableLog.append( LoadVariableLog(variablelogfolder) )
         
+    if len(variableLog) == 0:
+        raise ValueError('No variable logs were found!')
+        
     variableLog = pd.concat(variableLog)
     
     catalogue = []
@@ -636,6 +639,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                                          dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
             
     catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
+    
+    if len(catalogue) == 0:
+        raise ValueError('Len(Catalogue) is ZERO! No item satisfy the conditions!')
     
     firstImgPaths = catalogue[['FolderPath', 'FirstImg']].apply(lambda row: os.path.join(*row), axis=1).values
     
