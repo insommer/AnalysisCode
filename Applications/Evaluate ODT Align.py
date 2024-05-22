@@ -12,12 +12,12 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/7/2024'
+date = '5/21/2024'
 
 ODT_Position = '1900'
 task = 'Misalign'
-# task = 'Align'
-expectedValues = [902.161, 1884.195]
+task = 'Align'
+expectedValues = [878.966, 1918.697]
 
 data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
 Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
@@ -66,8 +66,8 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart = 500
-columnend = 1400
+# columnstart = 500
+# columnend = 1400
 
 # rowstart =750 #ODT 2675
 # rowend = 830
@@ -99,7 +99,7 @@ examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetiti
 pPI = 4 if subtract_burntin else 3
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=pPI, cam_type = "zyla")
 
-columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examFrom=examFrom, examUntil=examUntil, 
+columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(dataPath, examRange=[examFrom, examUntil], 
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    rotateAngle=rotateAngle, subtract_burntin=0)
@@ -111,7 +111,7 @@ YcolumnDensities = columnDensities.sum(axis=2) * dx / 1e6**2
 popts = []
 bgs = []
 for ydata in YcolumnDensities:
-    popt, bg = ImageAnalysisCode.fitMultiGaussian(ydata, dx=dx, 
+    popt, _, bg = ImageAnalysisCode.fitMultiGaussian(ydata, dx=dx, 
                                                   subtract_bg=subtract_bg, signal_feature=signal_feature, 
                                                   fitbgDeg=3, amp=1, width=3, denoise=0)
     popts.append(popt)

@@ -16,27 +16,30 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/17/2024'
+date = '5/21/2024'
 data_folder = [
-    r'Andor/ODT 4900 Modulation 0.1 V 20-50 kHz Variable tmod',
+    # r'Andor/ODT 400 Modulation 0.1 V 10-50 kHz Variable tmod_1',
     # r'Andor/D1 bias scan Negative Polarity', 
     # r'Andor/D1 bias scan Positive Polarity'
     # 'Andor\Med Field Wait_1',
     # 'Andor\Med Field Wait_2',
-    # 'Andor\ODT 4150 Bias Scan_3',
-    # 'Andor\ODT 4150',
+    # 'Andor\Misaligned ODT vs wait',
+    # 'Andor\Test_4',
+    'Andor\Test for Align',
     ]
 ####################################
 #Parameter Setting
 ####################################
+reanalyze = 1
+saveresults = 1
+overwriteOldResults = 1
+
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 
-#reanalyze
-#saveresults
-#overwritresults
+
 
 
 variableFilterList = [
@@ -67,30 +70,46 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-columnstart=850
-columnend=1400
+# columnstart=800
+# columnend=1150 
 
-# # rowstart = 550
-# # rowend = 650
+rowstart = 570
+rowend = 670
 
-rowstart = 250
-rowend = 500
+# rowstart = 250
+# rowend = 500
 
 # rowstart = 1000	#ODT 400
 # rowend = 1125	
 
-rowstart -= 100
-rowend += 100
+rowstart -= 300
+rowend += 300
+
+# columnstart -= 400
+# columnstart += 200
 
 ####################################
 ####################################
 dayfolder = ImageAnalysisCode.GetDataLocation(date, DataPath=dataRootFolder)
 dataPath = [ os.path.join(dayfolder, f) for f in data_folder]
+
+# dataPath = [
+#     # r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\15 May 2024\Andor\ODT 400 Modulation 0.1 V 10-50 kHz Variable tmod',
+#     # r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\15 May 2024\Andor\ODT 1150 Modulation 0.1 V 10-50 kHz Variable tmod',
+#     # r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\15 May 2024\Andor\ODT 1900 Modulation 0.1 V 10-50 kHz Variable tmod',
+#     # r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\15 May 2024\Andor\ODT 2650 Modulation 0.1 V 10-50 kHz Variable tmod',
+#     r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\15 May 2024\Andor\ODT 3400 Modulation 0.1 V 10-50 kHz Variable tmod_1',
+#     r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2024\05-2024\16 May 2024\Andor\ODT 4150 Modulation 0.1 V 10-50 kHz Variable tmod'
+# ]
+    
+
+
+
 # variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, cam_type = "zyla")
-dxMicron = params.camera.pixelsize_microns/params.magnification + 660    #The length in micron that 1 pixel correspond to. 
+dxMicron = params.camera.pixelsize_microns/params.magnification   #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
 
@@ -112,8 +131,9 @@ results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.ind
 
 if variableLog is not None:
     results = results.join(variableLog)
-    
-ImageAnalysisCode.SaveResultsDftoEachFolder(results)    
+
+if saveresults:
+    ImageAnalysisCode.SaveResultsDftoEachFolder(results, overwrite=overwriteOldResults)    
 #%%
 # results = results[ results.fmod_kHz <12 ]
 
@@ -154,11 +174,12 @@ rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
 
 variablesToDisplay = [
                     # # 'Coil_medB', 
-                        # 'TOF',
-                        'fmod_kHz',
-                        'tmod_ms',
+                        'wait',
+                        'ODT_Position',
+                        # 'fmod_kHz',
+                        # 'tmod_ms',
                         # 'Evap_Tau',
-                       # 'ZSBiasCurrent',
+                        'VerticalBiasCurrent',
                         'TOF',
                         # 'CamBiasCurrent'
                       ]
@@ -173,7 +194,8 @@ if intermediatePlot:
                                           dx=dxMicron, 
                                             # filterLists=[['fmod_kHz<12']],
                                            plotRate=plotRate, plotPWindow=plotPWindow,
-                                          variablesToDisplay = variablesToDisplay,
+                                            variablesToDisplay = variablesToDisplay,
+                                           showTimestamp=showTimestamp,
                                           variableLog=variableLog, 
                                           logTime=variableLog.index,
                                           textLocationY=0.8, rcParams=rcParams)
@@ -193,4 +215,4 @@ if intermediatePlot:
 
     # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
     # axes[-1].set(xlim=[c-15*w, c+15*w])
-    
+#%%
