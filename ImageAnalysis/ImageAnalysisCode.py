@@ -574,13 +574,8 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                       filterLists=[], 
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
-    
-    '''
-    Check if the variableLog.pkl exist
-    create the catalogue if not
-    
-    filter 
-    '''
+
+
     paths = [ii.replace('\\', '/') for ii in paths]
     
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
@@ -661,19 +656,46 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend], catalogue
 
 
-def SaveResultsDftoEachFolder(df, overwrite=1):
+def SaveResultsDftoEachFolder(df, overwrite=0):
     
     paths = np.unique( df.FolderPath )
     
     for pp in paths:
+        df1 = df[ df.FolderPath == pp ]
         resultsPath = os.path.join(pp, 'Results.pkl')
         
-        if not os.path.exists(resultsPath) or overwrite:
-            df1 = df[ df.FolderPath == pp ]
-            df1.to_csv( os.path.join(pp, 'Results.csv') )
-            with open(resultsPath, 'wb' ) as f:
-                pickle.dump(df1, f)
-            print('Results saved to folder: {}.'.format(pp.replace('\\', '/').strip('/').rsplit('/', 1)[-1]))
+        if os.path.exists(resultsPath):            
+            with open(resultsPath, 'rb') as f:
+                df0 = pickle.load(f)
+                
+            intersection = df1.index.intersection(df0.index)
+            
+            if overwrite:
+                df1 = pd.concat( [df0.drop(intersection), df1] )
+            else:
+                df1 = pd.concat( [df1.drop(intersection), df0] )            
+        
+        df1 = df1.sort_index()
+        df1.to_csv( os.path.join(pp, 'Results.csv') )
+        with open(resultsPath, 'wb' ) as f:
+            pickle.dump(df1, f)
+        print('Results saved to folder: {}.'.format(pp.replace('\\', '/').strip('/').rsplit('/', 1)[-1]))
+        
+def LoadDfResults(*paths):
+    
+    paths = [ii.replace('\\', '/') for ii in paths]
+    
+    dfs = []
+    for pp in paths:
+        resultsPath = os.path.join(pp, 'Results.pkl')
+    
+        if not os.path.exists(resultsPath):
+            print("Warning! Results not found in folder:" + str(pp))
+            continue
+        
+        
+    
+    
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
                      subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow'):
@@ -693,7 +715,7 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
                 popt, bg = fitSingleGaussian(ydata, dx=dx,
                                              subtract_bg=subtract_bg, signal_feature=Ysignal_feature)
             elif yFitMode.lower() == 'multiple':                
-                popt, bg = fitMultiGaussian(ydata, dx=dx, 
+                popt, _, bg = fitMultiGaussian(ydata, dx=dx, 
                                             subtract_bg=subtract_bg, signal_feature=Ysignal_feature, 
                                             fitbgDeg=3, amp=1, width=3, denoise=1, peakplot=1)                
             else: 
@@ -1261,6 +1283,94 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     #     print("This spooled series does not have the correct number of exposures per iteration for Absorption Imaging")        
         
     # return signal
+    
+    
+    
+def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactorInput=1, 
+                     rowstart = 0, rowend = -1, columnstart =0, columnend = -1, subtract_burntin = False,
+                     preventNAN_and_INF = False):
+    """
+    Assume that we took a picture of one spin state, then probe without atoms, then dark field
+    In total, we assume three picture per iteration
+
+    Parameters
+    ----------
+    images : array
+        4D array
+    
+    firstFrame : int
+        which frame has the probe with atoms (earlier frames are thrown out)
+    Returns
+    -------
+    signal : array
+        4D array, with one image per run of the experiment
+
+    """
+    iteration, picsPerIteration, rows, cols = np.shape(abs_img_data)
+    
+    ratio_array = np.zeros((iteration, rows, cols), dtype=np.float64)
+    columnDensities = np.zeros((iteration, rows, cols))
+    N_abs = np.zeros((iteration))
+    Number_of_atoms = np.zeros((iteration))
+    
+    # if params:
+    pixelsize=params.camera.pixelsize_microns*1e-6
+    magnification=params.magnification
+    # else:
+    #     pixelsize=6.5e-6 #Andor Zyla camera
+    #     magnification = 0.55 #75/125 (ideally) updated from 0.6 to 0.55 on 12/08/2022
+        
+    for i in range(iteration):
+        # print("dimensions of the data for testing purposes:", np.shape(abs_img_data))
+        # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
+        # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
+        if (subtract_burntin):
+            subtracted1 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+0,:,:]   
+            subtracted2 = abs_img_data[i,firstFrame+2,:,:] - abs_img_data[i,firstFrame+3,:,:]
+        else:
+            subtracted1 = abs_img_data[i,firstFrame+0,:,:] - abs_img_data[i,firstFrame+2,:,:]
+            subtracted2 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+2,:,:]
+        
+        if (preventNAN_and_INF):
+            #if no light in first image
+            subtracted1[ subtracted1<= 0 ] = 1
+            subtracted2[ subtracted1<= 0 ] = 1
+            
+            #if no light in second image
+            subtracted1[ subtracted2<= 0] = 1
+            subtracted2[ subtracted2<= 0] = 1
+            
+        ratio = subtracted1 / subtracted2
+        
+        if correctionFactorInput:
+            correctionFactor = correctionFactorInput
+        else:
+            correctionFactor = np.mean(ratio[-5:][:])
+        
+        # print("correction factor iteration", i+1, "=",correctionFactor)
+        ratio /= correctionFactor #this is I/I0
+        ratio_array[i] = ratio
+        opticalDensity = -1 * np.log(ratio)
+        N_abs[i] = np.sum(opticalDensity) 
+        
+        ###################
+        # detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
+        # linewidth = 36.898e6 #units Hz
+        # wavevector =2*np.pi/(671e-9) #units 1/m
+        # cross_section = (3*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+        
+        #####################
+        cross_section = params.cross_section
+
+        
+        n2d = opticalDensity / cross_section
+        #n2d[~np.isfinite(columnDensities)] = 0
+        deltaX = pixelsize/magnification #pixel size in atom plane
+        deltaY = deltaX
+        Number_of_atoms[i] = np.sum(n2d[rowstart:rowend][columnstart:columnend]) * deltaX * deltaY
+        # print("number of atoms iteration", i+1, ": ", Number_of_atoms[i]/1e6,"x10^6")
+        columnDensities[i] = n2d
+    return Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY
 
 
 
@@ -1502,8 +1612,9 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', guess=[],
         bg = None
 
     if not guess:
-        peaks, properties = DetectPeaks(data, amp, width, denoise, doPlot=peakplot)
-
+        peaks, properties = DetectPeaks(data, xx=xdata, amp=amp, width=width, 
+                                        denoise=denoise, doPlot=peakplot)
+        
         #initial guess:
         amps = properties['width_heights'] + properties['prominences'] / 2
         widths = (properties['right_ips'] - properties['left_ips']) / 2
@@ -1529,16 +1640,16 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', guess=[],
     try:
         # minamps = 0.1*(data.max()-data.min())
         minamps = 0
-        popt, _ = curve_fit(MultiGaussian, xdata, data, p0 = guess,
+        popt, pcov = curve_fit(MultiGaussian, xdata, data, p0 = guess,
                             bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1)))
 
     except Exception as e:
         print(e)
-        return None, None
+        return None, None, None
 
     popt[N:-1] *= dx
 
-    return popt, bg
+    return popt, pcov.diagonal()**0.5, bg
 
 
 def fitgaussian1D_June2023(data , xdata=None, dx=1, doplot = False, ax=None, 
