@@ -526,7 +526,7 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # return images
 
 
-def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2):
+def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2, writetodrive=1):
     paths = [ii.replace('\\', '/') for ii in paths]    
     dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
 
@@ -560,9 +560,10 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
         df.insert(0, 'PPI', picturesPerIteration)
         df.insert(0, 'FirstImg', fistImgName)
         
-        df.to_csv(os.path.join(pp, 'Catalogue.csv'))
-        with open(os.path.join(pp, 'Catalogue.pkl'), 'wb') as f:
-            pickle.dump(df, f)
+        if writetodrive:
+            df.to_csv(os.path.join(pp, 'Catalogue.csv'))
+            with open(os.path.join(pp, 'Catalogue.pkl'), 'wb') as f:
+                pickle.dump(df, f)
         
         df['FolderPath'] = pp
         catalogue.append( df )
@@ -594,8 +595,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
     
     print('subtract burntin\t', subtract_burntin)
-    print('picture/iteration\t', PPI)
     print('skip firstImg\t\t', skipFirstImg)
+    print('picture/iteration\t', PPI)
+
     # print('first frame\t\t\t', firstFrame)
     
     N = 0
@@ -623,14 +625,19 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
             with open(cataloguePath, 'rb') as f:
                 df = pickle.load(f)
                         
-            if (len(df) < (number_of_pics / PPI)) or (df.PPI[0] != PPI) or (df.SkipFI != skipFirstImg):
-                
+            if (len(df) != (number_of_pics / PPI)):
                 # If current time is 12 hours later than the data were took, prevent auto rebuild the catalogue. 
                 dt = datetime.datetime.now() - df.index[0]
-                if dt > pd.Timedelta(0.5, "d"):
-                    raise ValueError('The input of subtract_burntin or skipFirstImg does not match the record!\nCorrect the input or set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                
+                if (df.PPI[0] != PPI) or (df.SkipFI[0] != skipFirstImg):
+                    if dt > pd.Timedelta(0.5, "d"):
+                        raise ValueError('The input of subtract_burntin or skipFirstImg does not match the record!\nCorrect the input or set rebuildCatalogue to 1 to force rebuild the catalogue.')
                 else:
-                    pathNeedCatalogue.append(path)
+                    if dt > pd.Timedelta(7, "d"):
+                        raise ValueError('The number of files in {}\nis different from recorded, set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                        
+                pathNeedCatalogue.append(path)
+                            
             else:
                 df['FolderPath'] = path                
                 catalogue.append( df )                
@@ -652,7 +659,7 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     firstImgPaths = catalogue[['FolderPath', 'FirstImg']].apply(lambda row: os.path.join(*row), axis=1).values
     
     rawImgs = LoadSpooledSeriesV2(firstImgPaths, 
-                                  picturesPerIteration=PPI,              ####change PPI
+                                  picturesPerIteration=PPI,              ####change PPI, add SkipFI
                                   # picturesPerIteration=catalogue.PPI, 
                                   metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
     
