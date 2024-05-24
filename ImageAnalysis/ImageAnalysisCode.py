@@ -526,7 +526,7 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # return images
 
 
-def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
+def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2):
     paths = [ii.replace('\\', '/') for ii in paths]    
     dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
 
@@ -556,6 +556,8 @@ def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
         # df.insert(0, 'FirstImg', fistImgPath)
         
         fistImgName = [ ff.replace('\\', '/').rsplit('/', 1)[-1] for ff in fistImgPath]
+        df.insert(0, 'SkipFI', skipFirstImg)
+        df.insert(0, 'PPI', picturesPerIteration)
         df.insert(0, 'FirstImg', fistImgName)
         
         df.to_csv(os.path.join(pp, 'Catalogue.csv'))
@@ -570,7 +572,7 @@ def BuildCatalogue(*paths, picturesPerIteration, dirLevelAfterDayFolder=2):
     
 def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
-                      subtract_burntin=0, showRawImgs=0,
+                      subtract_burntin=0, skipFirstImg='auto', showRawImgs=0,
                       filterLists=[], 
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
@@ -580,20 +582,21 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
     
-    if date > datetime.datetime(2024, 4, 3):
-        skipFirstImg = 1
-    else:
-        skipFirstImg = 0
+    if skipFirstImg == 'auto':    
+        if date > datetime.datetime(2024, 4, 3):
+            skipFirstImg = 1
+        else:
+            skipFirstImg = 0
 
-    pPI = 4 if (subtract_burntin or skipFirstImg) else 3
+    PPI = 4 if (subtract_burntin or skipFirstImg) else 3
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0   
     
-    params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=pPI, axis='side', cam_type = "zyla")
+    params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
     
     print('subtract burntin\t', subtract_burntin)
-    print('picture/iteration\t', pPI)
+    print('picture/iteration\t', PPI)
     print('skip firstImg\t\t', skipFirstImg)
-    print('first frame\t\t\t', firstFrame)
+    # print('first frame\t\t\t', firstFrame)
     
     N = 0
     pathNeedCatalogue = []
@@ -607,30 +610,38 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         number_of_pics = len(glob.glob1(path,"*spool.dat"))
         if number_of_pics == 0:
             print('Warning!\n{}\ndoes not contain any data file!'.format(path))
-        elif number_of_pics % pPI:
+        elif number_of_pics % PPI:
             raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
             
         cataloguePath = os.path.join(path, 'Catalogue.pkl')
         existCatalogue = os.path.exists(cataloguePath)
         
         if loadVariableLog and (rebuildCatalogue or not existCatalogue ):
-            pathNeedCatalogue.append(path)            
+            pathNeedCatalogue.append(path)
+            
         elif existCatalogue:
             with open(cataloguePath, 'rb') as f:
                 df = pickle.load(f)
-            
-            if len(df) < (number_of_pics / pPI):
-                pathNeedCatalogue.append(path)
+                        
+            if (len(df) < (number_of_pics / PPI)) or (df.PPI[0] != PPI) or (df.SkipFI != skipFirstImg):
+                
+                # If current time is 12 hours later than the data were took, prevent auto rebuild the catalogue. 
+                dt = datetime.datetime.now() - df.index[0]
+                if dt > pd.Timedelta(0.5, "d"):
+                    raise ValueError('The input of subtract_burntin or skipFirstImg does not match the record!\nCorrect the input or set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                else:
+                    pathNeedCatalogue.append(path)
             else:
                 df['FolderPath'] = path                
-                catalogue.append( df )
+                catalogue.append( df )                
             
         N += number_of_pics        
     if N == 0:
         raise Exception('No data file was found in all provided folders!')
         
     if loadVariableLog and pathNeedCatalogue:        
-        catalogue.extend( BuildCatalogue(*pathNeedCatalogue, picturesPerIteration=pPI, 
+        catalogue.extend( BuildCatalogue(*pathNeedCatalogue, picturesPerIteration=PPI, 
+                                         skipFirstImg=skipFirstImg,
                                          dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
             
     catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
@@ -640,7 +651,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     
     firstImgPaths = catalogue[['FolderPath', 'FirstImg']].apply(lambda row: os.path.join(*row), axis=1).values
     
-    rawImgs = LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration=pPI, 
+    rawImgs = LoadSpooledSeriesV2(firstImgPaths, 
+                                  picturesPerIteration=PPI,              ####change PPI
+                                  # picturesPerIteration=catalogue.PPI, 
                                   metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
     
     if showRawImgs:
@@ -953,8 +966,8 @@ def PreprocessZylaPictures(dataRootFolder, date, dataFolder, subtract_burntin=0,
     variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
     examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
     
-    pPI = 4 if subtract_burntin else 3    
-    params = ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= pPI, cam_type = "zyla")
+    PPI = 4 if subtract_burntin else 3    
+    params = ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= PPI, cam_type = "zyla")
 
     images_array, fileTime = LoadSpooledSeries(params=params, data_folder=dataFolder, 
                                                return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
@@ -1965,7 +1978,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
             plt.setp(axes[plotInd, n+1].get_yticklabels(), ha='left')
             
         if variablesToDisplay and variableLog is not None:
-            
+                        
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
