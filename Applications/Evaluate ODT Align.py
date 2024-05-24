@@ -12,12 +12,12 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/21/2024'
+date = '5/24/2024'
 
-ODT_Position = '1900'
+ODT_Position = '400'
 task = 'Misalign'
-task = 'Align'
-expectedValues = [878.966, 1918.697]
+# task = 'Align'
+expectedValues = [None, None]
 
 data_folder = ' '.join([r'Andor/ODT',  ODT_Position, task])
 Basler_folder = ' '.join([r'Basler/ODT',  ODT_Position, task])
@@ -66,28 +66,32 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-# columnstart = 500
-# columnend = 1400
+# columnstart=800
+# columnend=1150 
 
-# rowstart =750 #ODT 2675
-# rowend = 830
-# rowstart =616 #ODT1675
-# rowend = 651
-rowstart =570 #ODT1900
-rowend = 670
-# # rowstart = 800 #ODT990
-# # rowend = 835
+# columnstart=500
+# columnend=800
 
-# rowstart = 888 #ODT700
-# rowend = 923
-# rowstart = 1032 #ODT400
-# rowend = 1068
+# columnstart=300
+# columnend=1000 
 
-# rowstart = 543 #ODT3400
-# rowend = 578
+rowstart = 1010
+rowend = 1110
 
-rowstart -= 180
-rowend += 150
+# rowstart = 250
+# rowend = 500
+
+# rowstart = 1000	#ODT 400
+# rowend = 1125	
+
+rowstart -= 200
+rowend += 200
+
+# rowstart += 20
+# rowend -= 20
+
+# columnstart -= 300
+# columnend += 300
 
 ####################################
 ####################################

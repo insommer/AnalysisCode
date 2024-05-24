@@ -25,15 +25,15 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '3/7/2024'
+date = '5/24/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_folder = r'/FLIR/Test'
+data_folder = r'/FLIR/Test ODT 400'
 
 
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 5 #The number of runs to exam.
+examNum = 6 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
@@ -70,7 +70,7 @@ binsize=4
 
 centerx = 165 * binsize
 centery = 80 * binsize
-radius = 150
+radius = 300
 
 ####################################
 ####################################
@@ -112,8 +112,9 @@ ImageAnalysisCode.ShowImagesTranspose(images_array, logTime, variableLog,
 
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
-                firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart, columnend = columnend, 
-                subtract_burntin=0, preventNAN_and_INF=True)
+                                                                                                          params=params,
+                firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart,
+                columnend = columnend, subtract_burntin=0, preventNAN_and_INF=True)
 
 
 # columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
@@ -143,14 +144,14 @@ for count, img in enumerate(columnDensities):
     
     sutter_widthx, sutter_center_x, sutter_widthy, sutter_center_y = ImageAnalysisCode.fitgaussian(images_array[count, 1], 
                                                                                                    title='shutter fitting', do_plot=0)
-    _, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
+    masked, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
                                                       radius=radius/binsize)
     
-    widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count],title = "Vertical Column Density",
+    widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
                                                                         vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
-                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=False)
+                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=True)
     center_x_array[count] = center_x
     center_y_array[count] = center_y
     print("Center x:",center_x)
