@@ -560,6 +560,8 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
         df.insert(0, 'PPI', picturesPerIteration)
         df.insert(0, 'FirstImg', fistImgName)
         
+        # df.Lens_Position = 1.85
+
         if writetodrive:
             df.to_csv(os.path.join(pp, 'Catalogue.csv'))
             with open(os.path.join(pp, 'Catalogue.pkl'), 'wb') as f:
@@ -567,7 +569,7 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
         
         df['FolderPath'] = pp
         catalogue.append( df )
-    
+            
     return catalogue
 
     
@@ -595,10 +597,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
     
     print('subtract burntin\t', subtract_burntin)
-    print('skip firstImg\t\t', skipFirstImg)
+    # print('skip firstImg\t\t', skipFirstImg)
     print('picture/iteration\t', PPI)
-
-    # print('first frame\t\t\t', firstFrame)
+    print('first frame\t\t\t', firstFrame)
+    
     
     N = 0
     pathNeedCatalogue = []
@@ -666,17 +668,18 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
         
-    _, _, _, columnDensities, _, _ = absImagingSimpleV2(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
+    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
                                                       subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
     # catalogue = catalogue.drop('FolderPath', axis=1)
     catalogue.insert(0, 'Folder', folderNames)
     
-    columnDensities = rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)[:, rowstart:rowend, columnstart:columnend]
-    print('ColumnDensities rotated.')
+    if rotateAngle:
+        columnDensities = rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)
+        print('\nColumnDensities rotated.\n')
 
-    return columnDensities, catalogue
+    return columnDensities[:, rowstart:rowend, columnstart:columnend], catalogue
 
 
 def SaveResultsDftoEachFolder(df, overwrite=0):
@@ -1352,7 +1355,10 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
     
     if preventNAN_and_INF:
         #set to 1 if no light in the first or second image 
-        mask = (subtracted1 <= 0) | (subtracted2 <= 0)
+        mask = (subtracted1 <= 0)
+        subtracted1[ mask ] = 1
+        
+        mask = (subtracted2 <= 0)
         subtracted1[ mask ] = 1
         subtracted2[ mask ] = 1
         
@@ -1600,9 +1606,14 @@ def fitSingleGaussian(data, xdata=None, dx=1,
     #initial guess:
     amp = data.max() - offset
     center = xdata[ data.argmax() ]    
-    w = ( data > (0.6*amp + offset) ).sum() * dx / 2
+    w = ( data > (0.6*amp + offset) ).sum() *1.5
     
     guess = [amp, center, w, offset]
+    
+    # if 1:
+    #     plt.figure()
+    #     plt.plot(xdata, data, '.')
+    #     plt.plot(xdata, Gaussian(xdata,*guess))
     
     try:
         popt, _ = curve_fit(Gaussian, xdata, data, p0 = guess, bounds=([-np.inf, -np.inf, 0, -np.inf],[np.inf]*4) )
@@ -1611,7 +1622,12 @@ def fitSingleGaussian(data, xdata=None, dx=1,
         print(e)
         return None, None
     
+    # if 1:
+    #     plt.plot(xdata, Gaussian(xdata,*popt))
+    
     popt[1:-1] *= dx
+    
+
     
     return popt, bg
     
@@ -1903,6 +1919,7 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
 def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
+                        uniformscale=0, 
                         variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
@@ -1952,6 +1969,11 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
         xxfit.append(np.arange(0, L, 0.1) * dx)
         title[n+1] += axlist[n]
         
+    if uniformscale:
+        vmax = imgs.max()
+    else:
+        vmax = None
+        
     for ind in range(imgNo):
         #Creat figures
         plotInd = ind % plotPWindow
@@ -1965,7 +1987,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                 axes[0, n].set_title(title[n])
         
         #Plot the Images
-        axes[plotInd, 0].imshow(imgs[ind], vmin=0)
+        axes[plotInd, 0].imshow(imgs[ind], vmin=0, vmax=vmax)
        
         
         for n in range(N):
@@ -2539,7 +2561,7 @@ def temperature_fit(params, widths_array, tof_array,label="",do_plot=False, ax=N
             plt.plot(1e3*times_fit, 1e6*widths_fit)
             plt.tight_layout()
         else:
-            ax.set(title="{} T = {:.2f} uK".format(label, popt[1]*1e6), 
+            ax.set(title="{} T = {:.3e} uK".format(label, popt[1]*1e6), 
                    xlabel='Time of flight (ms)',
                    ylabel="width of atom cloud (um)")
             ax.scatter(1e3*tof_array, 1e6*widths_array)
@@ -2653,9 +2675,9 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
     return popt, pcov
    
     
-def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
-                             atomNum='AtomNumber_yfit', sigma1='width_x', sigma2='width_y', sigma3='width_y',
-                             do_plot=1):
+def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
+                             atomNum='YatomNumber', sigma1='Xwidth', sigma2='Ywidth', sigma3='Ywidth',
+                             do_plot=1, add_Text=1):
     params = ExperimentParams( t_exp = 10e-6, picturesPerIteration= 4, cam_type = "zyla")
     
     dfmean = df.groupby(list(variables) + [fitXVar]).mean()
@@ -2669,7 +2691,7 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
             rowNo = 1
         colNo = int(np.ceil(runNo / rowNo))
         fig, axes = plt.subplots(rowNo, colNo, layout='constrained', squeeze = False,
-                                 sharex=True, sharey=True)
+                                 sharex=True, sharey=True)#, figsize=(4,3))
         axes = axes.flatten()
         
     T = []
@@ -2685,8 +2707,8 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
                                       item[fitXVar]*1e-3, 
                                       do_plot=1, ax=ax)
         
-        if do_plot:
-            ax.text(0, 20, '{}\n= '.format(variables) + str(ind), ha='left', va='bottom')
+        if do_plot and add_Text:
+            ax.text(0.03, 0.05, '{}\n= '.format(variables) + str(ind), ha='left', va='bottom', transform=ax.transAxes)
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
         T.append( popt[1] )        
@@ -2706,7 +2728,7 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='width_y',
     df1['PSD'] = PhaseSpaceDensity(a, s1, s2, s3, df1['T (K)'])
     df1['Size1'] = s1
     df1['Size2'] = s2
-    
+   # plt.tight_layout()
     return df1
     
 def PhaseSpaceDensity(atomNum, sigma1, sigma2, sigma3, T):
