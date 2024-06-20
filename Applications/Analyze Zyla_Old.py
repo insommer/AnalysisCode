@@ -16,7 +16,7 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/21/2024'
+date = '6/19/2024'
 data_folder = [
     # r'/Andor/ODT 1900 Bias Scan',
     # r'/Andor/MOT 1900',
@@ -24,7 +24,7 @@ data_folder = [
     # r'/Andor/Test_3',
     # r'/Andor/Test_4',
     # r'/Andor/Test_5',
-    r'/Andor/Test for Align',
+    r'/Andor/Move Lens_3',
 
     ]
 ####################################
@@ -33,9 +33,9 @@ data_folder = [
 repetition = 1 #The number of identical runs to be averaged.
 subtract_burntin = 0
 skipFirtImg = 1
-examNum = 14 #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
-plotPWindow = 7
+examNum = 6 #The number of runs to exam.
+examFrom = 3#Set to None if you want to check the last several runs. 
+plotPWindow = 3
 do_plot = True
 uniformscale = 0
 
@@ -65,7 +65,7 @@ subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-angle_deg= 0.5 #rotates ccw
+angle_deg= 1 #rotates ccw
 
 rowstart = 10
 rowend = -10
@@ -78,39 +78,14 @@ columnend = -10
 # columnstart = 600
 # columnend = -200
 
-# columnstart = 750
-# columnend = 1200
+columnstart=1050
+columnend=1350 
 
+rowstart = 970
+rowend = 1050
 
-# rowstart =250
-# rowend = -500
-# columnstart = 600
-# columnend = -550
-
-# rowstart =200
-# # rowend = -150
-# columnstart = 500
-# columnend = -300
-
-# rowstart =750 #ODT 2675
-# rowend = 830
-# # rowstart =616 #ODT1675
-# # rowend = 651
-rowstart =570 #ODT1900
-rowend = 670
-# # rowstart = 800 #ODT990
-# # rowend = 835
-
-# rowstart = 888 #ODT700
-# rowend = 923
-# rowstart = 1078 #ODT50
-# rowend = 1113
-
-# rowstart = 443 #ODT3800
-# rowend = 478
-
-rowstart -= 100
-rowend += 100
+# rowstart -= 100
+# rowend += 100
 
 ####################################
 ####################################

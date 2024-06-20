@@ -25,15 +25,15 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '5/24/2024'
+date = '6/10/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_folder = r'/FLIR/Test ODT 400'
+data_folder = r'/FLIR/Test'
 
 
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 6 #The number of runs to exam.
+examNum = 10 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
