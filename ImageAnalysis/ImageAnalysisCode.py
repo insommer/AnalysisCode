@@ -701,9 +701,7 @@ def AutoCrop(imgs, xsize=200, ysize=50):
     # imgs = np.pad(imgs, ( (0,0), (ysize, ysize), (xsize, xsize) ), constant_values=np.nan)
 
     for ii, img in enumerate(imgs):
-        print(DetectPeak2D(img))
         y0, x0 = np.round(DetectPeak2D(img)).astype(int) 
-        print(y0, x0)
         output[ii] = np.pad( img, ((ysize, ysize), (xsize, xsize)), constant_values=np.nan )[ y0: y0+2*ysize, x0: x0+2*xsize ]
         
     return output        
@@ -757,7 +755,7 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
     bgs = []
     
     if mode.lower() == 'y' or mode.lower()=='both':
-        CD1D = columnDensities.sum(axis=2) * dx / 1e6**2
+        CD1D = np.nansum(columnDensities, axis=2) * dx / 1e6**2
         
         poptsY = []
         bgsY = []
@@ -784,7 +782,7 @@ def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single',
         bgs.append(bgsY)
         
     if mode.lower() == 'x' or mode.lower()=='both':        
-        CD1D = columnDensities.sum(axis=1) * dx / 1e6**2
+        CD1D = np.nansum(columnDensities, axis=1) * dx / 1e6**2
         poptsX = []
         bgsX = []
         
@@ -1951,7 +1949,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
         logTime = variableLog.index
     
     for n in range(N):
-        oneD = imgs.sum( axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
+        oneD = np.nansum(imgs, axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
         L = len(oneD[0])
         oneD_imgs.append(oneD)
         xx.append(np.arange(0, L) * dx)
@@ -2677,8 +2675,12 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
     df1 = dfmean[fitYVar].unstack()    
 
     if do_plot:
-        indices = list(zip(*df1.index))
-        runNo = np.prod( [len(np.unique(i)) for i in indices] )
+        runNo = []
+        for ii in range(df1.index.nlevels):
+            runNo.append(len(df1.index.get_level_values(ii).unique()))
+            
+        print(runNo)
+        runNo = np.prod( runNo )
         rowNo = round(runNo**0.5 / 1.1)
         if rowNo == 0:
             rowNo = 1
