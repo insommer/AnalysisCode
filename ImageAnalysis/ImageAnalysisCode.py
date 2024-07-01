@@ -18,7 +18,8 @@ from scipy.ndimage import rotate
 from scipy.ndimage import gaussian_filter1d
 from scipy import signal
 from skimage.filters import threshold_otsu
-from scipy.ndimage import rotate
+from scipy.ndimage import gaussian_filter
+from scipy.ndimage import center_of_mass
 from scipy import constants
 
 import os
@@ -529,11 +530,12 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
 def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2, writetodrive=1):
     paths = [ii.replace('\\', '/') for ii in paths]    
     dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
-
+    
     variableLog = []
     for ff in dayfolders:
         variablelogfolder = os.path.join(ff, 'Variable Logs')
-        variableLog.append( LoadVariableLog(variablelogfolder) )
+        variableLog.append( LoadVariableLog(variablelogfolder,timemode='ctime') )#Ariel changed to mtime to load data in dropbox
+    
         
     if len(variableLog) == 0:
         raise ValueError('No variable logs were found!')
@@ -652,7 +654,7 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         catalogue.extend( BuildCatalogue(*pathNeedCatalogue, picturesPerIteration=PPI, 
                                          skipFirstImg=skipFirstImg,
                                          dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
-            
+        
     catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
     
     if len(catalogue) == 0:
@@ -680,6 +682,31 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         print('\nColumnDensities rotated.\n')
 
     return columnDensities[:, rowstart:rowend, columnstart:columnend], catalogue
+
+
+def DetectPeak2D(img, sigma=10, thr=0.9):
+    # img = np.array(img)
+    
+    imgFlted = gaussian_filter(img, sigma=sigma)
+    # img = imgFlted
+    thr = thr*(imgFlted.max() - imgFlted.min()) + imgFlted.min()
+    imgFlted[ imgFlted < thr ] = 0
+    
+    return center_of_mass(imgFlted)
+
+
+def AutoCrop(imgs, xsize=200, ysize=50):
+    
+    output = np.full( [len(imgs), 2*ysize, 2*xsize], np.nan )
+    # imgs = np.pad(imgs, ( (0,0), (ysize, ysize), (xsize, xsize) ), constant_values=np.nan)
+
+    for ii, img in enumerate(imgs):
+        print(DetectPeak2D(img))
+        y0, x0 = np.round(DetectPeak2D(img)).astype(int) 
+        print(y0, x0)
+        output[ii] = np.pad( img, ((ysize, ysize), (xsize, xsize)), constant_values=np.nan )[ y0: y0+2*ysize, x0: x0+2*xsize ]
+        
+    return output        
 
 
 def SaveResultsDftoEachFolder(df, overwrite=0):
@@ -968,44 +995,6 @@ def LoadFromSpooledSeries(params, iterationNum, data_folder= "." ,background_fol
     
     
     
-    
-
-def PreprocessZylaPictures(dataRootFolder, date, dataFolder, subtract_burntin=0, rotateAngle=1,
-                           examNum=None, examFrom=None, repetition=1, return_fileTime=0,
-                           variableFilterList=[], pictureToHide=None):  
-        
-    dayfolder = GetDataLocation(date, DataPath=dataRootFolder)
-    dataFolder = os.path.join(dayfolder, dataFolder)
-    variableLog_folder = os.path.join(dayfolder, 'Variable Logs')
-    examFrom, examUntil = GetExamRange(examNum, examFrom, repetition)
-    
-    PPI = 4 if subtract_burntin else 3    
-    params = ExperimentParams(date, t_exp = 10e-6, picturesPerIteration= PPI, cam_type = "zyla")
-
-    images_array, fileTime = LoadSpooledSeries(params=params, data_folder=dataFolder, 
-                                               return_fileTime=1, examFrom=examFrom, examUntil=examUntil)
-    # images_array = images_array[examFrom: examUntil]
-    # fileTime = fileTime[examFrom: examUntil]
-    
-    variableLog = LoadVariableLog(variableLog_folder)
-    logTime = Filetime2Logtime(fileTime, variableLog)
-        
-    if variableFilterList and variableLog is not None:    
-        filteredList = VariableFilter(logTime, variableLog, variableFilterList)
-        images_array = np.delete(images_array, filteredList, 0)
-        logTime = np.delete(logTime, filteredList, 0)
-    
-    if pictureToHide is not None:
-        images_array = np.delete(images_array, pictureToHide, 0)
-        if logTime is not None:
-            logTime = np.delete(logTime, pictureToHide, 0)
-    
-    Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = absImagingSimple(images_array, 
-                    firstFrame=0, correctionFactorInput=1.0,  
-                    subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
-    
-    return rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False), params, variableLog, logTime
-
 
 
 def CountsToAtoms(params, counts):
@@ -1606,7 +1595,7 @@ def fitSingleGaussian(data, xdata=None, dx=1,
     #initial guess:
     amp = data.max() - offset
     center = xdata[ data.argmax() ]    
-    w = ( data > (0.6*amp + offset) ).sum() *1.5
+    w = ( data > (0.6*amp + offset) ).sum() / 2
     
     guess = [amp, center, w, offset]
     
@@ -2326,6 +2315,7 @@ def DataFilter(dfInfo, *otheritems, filterLists=[]):
         DESCRIPTION.
 
     '''
+    # If the len of Lists is 0, return the input data.
     if len(filterLists) == 0:
         if otheritems:
             return dfInfo, otheritems
@@ -2333,38 +2323,41 @@ def DataFilter(dfInfo, *otheritems, filterLists=[]):
             return dfInfo
     
     masks = []
+    # Loop through the Lists.
     for fltlist in filterLists:
         if len(fltlist) == 0:
             continue
         
+        # For flts in one list, use logic and to the results and appedn to masks. 
         maskAnd = []
         for flt in fltlist:              
             maskAnd.append(eval( 'dfInfo.' + flt.replace(' ', '_') ))   
                 
-        if len(maskAnd) > 1:
-            for mask in maskAnd[1:]:
-                maskAnd[0] &= mask
+        for mask in maskAnd[1:]:
+            maskAnd[0] &= mask
         masks.append(maskAnd[0])
         
+    # If the len of masks if 0, return the input data.        
     if len(masks) == 0:
         if otheritems:
             return dfInfo, otheritems
         else:
             return dfInfo
-        
-    if len(masks) > 1:
-        for mask in masks[1:]:
-            masks[0] |= mask
     
+    # Take logic or among the masks. 
+    for mask in masks[1:]:
+        masks[0] |= mask
+    
+    # Apply the mask to the other items if any. 
     if otheritems:
         otheritems = list(otheritems)
         for ii, item in enumerate(otheritems):
             if item is not None:
                 otheritems[ii] = np.array(item)[masks[0]]
             
-        return dfInfo[ masks[0] ], otheritems
+        return dfInfo[masks[0]], otheritems
     else:
-        return dfInfo
+        return dfInfo[masks[0]]
 
 
 
@@ -2561,7 +2554,7 @@ def temperature_fit(params, widths_array, tof_array,label="",do_plot=False, ax=N
             plt.plot(1e3*times_fit, 1e6*widths_fit)
             plt.tight_layout()
         else:
-            ax.set(title="{} T = {:.3e} uK".format(label, popt[1]*1e6), 
+            ax.set(title="{} T = {:.3g} uK".format(label, popt[1]*1e6), 
                    xlabel='Time of flight (ms)',
                    ylabel="width of atom cloud (um)")
             ax.scatter(1e3*tof_array, 1e6*widths_array)
@@ -2686,15 +2679,18 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
     if do_plot:
         indices = list(zip(*df1.index))
         runNo = np.prod( [len(np.unique(i)) for i in indices] )
-        rowNo = int(runNo**0.5 / 1.1)
+        rowNo = round(runNo**0.5 / 1.1)
         if rowNo == 0:
             rowNo = 1
         colNo = int(np.ceil(runNo / rowNo))
+        if rowNo > colNo:
+            rowNo, colNo = colNo, rowNo
         fig, axes = plt.subplots(rowNo, colNo, layout='constrained', squeeze = False,
                                  sharex=True, sharey=True)#, figsize=(4,3))
         axes = axes.flatten()
         
     T = []
+    # A = []
     
     for ii, (ind, item) in enumerate( df.groupby(list(variables)) ):
         
@@ -2711,21 +2707,23 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
             ax.text(0.03, 0.05, '{}\n= '.format(variables) + str(ind), ha='left', va='bottom', transform=ax.transAxes)
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
-        T.append( popt[1] )        
+        T.append( popt[1] )
+        # A.append( list( item[ item[fitXVar] == item[fitXVar].min() ][atomNum] ) )
     
     df1['T (K)'] = T
+    # df1['AtomNum'] = A
         
     df2 = dfmean.reset_index(level=fitXVar)
     df2 = df2[df2[fitXVar] == df2[fitXVar].min()]
     
-    a = df2[atomNum]
+    Amean = df2[atomNum]
     s1 = df2[sigma1] * 2**0.5 / 1e6
     s2 = df2[sigma2] / 1e6
     s3 = df2[sigma3] / 1e6
     
 #     print(PhaseSpaceDensity(a, s1, s2, s3, df1.T))
-    df1['AtomNum'] = a
-    df1['PSD'] = PhaseSpaceDensity(a, s1, s2, s3, df1['T (K)'])
+    df1['AtomNum'] = Amean
+    df1['PSD'] = PhaseSpaceDensity(Amean, s1, s2, s3, df1['T (K)'])
     df1['Size1'] = s1
     df1['Size2'] = s2
    # plt.tight_layout()
