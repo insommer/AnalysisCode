@@ -628,9 +628,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         elif existCatalogue:
             with open(cataloguePath, 'rb') as f:
                 df = pickle.load(f)
-                        
+            
+            # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
             if (len(df) != (number_of_pics / PPI)):
-                # If current time is 12 hours later than the data were took, prevent auto rebuild the catalogue. 
+                # If current time is 12 hours or 7 days later than the data were took, prevent auto rebuild the catalogue. 
                 dt = datetime.datetime.now() - df.index[0]
                 
                 if (df.PPI[0] != PPI) or (df.SkipFI[0] != skipFirstImg):
@@ -639,9 +640,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
                 else:
                     if dt > pd.Timedelta(7, "d"):
                         raise ValueError('The number of files in {}\nis different from recorded, set rebuildCatalogue to 1 to force rebuild the catalogue.')
-                        
+                # Rebuild the catalogue otherwise.        
                 pathNeedCatalogue.append(path)
-                            
+            # Add the folder path to the datalogue and load it.                
             else:
                 df['FolderPath'] = path                
                 catalogue.append( df )                
@@ -695,7 +696,9 @@ def DetectPeak2D(img, sigma=10, thr=0.9):
     return center_of_mass(imgFlted)
 
 
-def AutoCrop(imgs, xsize=200, ysize=50):
+def AutoCrop(imgs, sizes=[200, 50]):
+    
+    xsize, ysize = sizes
     
     output = np.full( [len(imgs), 2*ysize, 2*xsize], np.nan )
     # imgs = np.pad(imgs, ( (0,0), (ysize, ysize), (xsize, xsize) ), constant_values=np.nan)
@@ -2679,7 +2682,6 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
         for ii in range(df1.index.nlevels):
             runNo.append(len(df1.index.get_level_values(ii).unique()))
             
-        print(runNo)
         runNo = np.prod( runNo )
         rowNo = round(runNo**0.5 / 1.1)
         if rowNo == 0:
@@ -2706,7 +2708,7 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
                                       do_plot=1, ax=ax)
         
         if do_plot and add_Text:
-            ax.text(0.03, 0.05, '{}\n= '.format(variables) + str(ind), ha='left', va='bottom', transform=ax.transAxes)
+            ax.text(0.03, 0.05, '{}\n= {}'.format(variables, ind), ha='left', va='bottom', transform=ax.transAxes)
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
         T.append( popt[1] )
