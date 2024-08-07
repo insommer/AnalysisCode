@@ -2384,6 +2384,7 @@ def FilterByOr(df, filterLists):
 
 def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
                     groupby=None, groupbyX=0, iterateVariable=None,
+                    do_fit = 0,
                     figSize=1, legend=1, legendLoc=0,
                     threeD=0, viewElev=30, viewAzim=-45):
     '''
@@ -2475,6 +2476,23 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
             dfii = df[columnlist]
         else:
             dfii = df[columnlist][ (df[iterateVariable]==ii) ]
+        
+        label = '{} = {}'.format(iterateVariable, ii)
+            
+        if do_fit:                
+            xdata = dfii[xVariable]
+            p = np.polyfit(xdata, dfii[yVariable], 1)
+            xx = np.linspace(xdata.min(), xdata.max(), 30)
+            ax.plot(xx, np.polyval(p, xx), '.', ms=2)
+            # ax.text(0.02, 0.99, 
+            #           'slope: {:.3e}'.format(p[0]),
+            #           ha='left', va='top', transform=ax.transAxes)
+            print(label + ', slope {}'.format(p[0]))
+
+            label += ', slope: {:.3e}'.format(p[0])
+            
+
+
             
         if groupby:
             dfiimean = dfii.groupby(groupby).mean()
@@ -2491,15 +2509,12 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
                 xStd = dfiistd[xVariable]
             
             if threeD:
-                ax.plot3D( [ii]*len(xMean), xMean, yMean,
-                         label = '{} = {}'.format(iterateVariable, ii))                
+                ax.plot3D( [ii]*len(xMean), xMean, yMean, label=label)                
             else:
-                ax.errorbar(xMean, yMean, yStd, xStd, capsize=3,
-                            label = '{} = {}'.format(iterateVariable, ii)) 
+                ax.errorbar(xMean, yMean, yStd, xStd, capsize=3, label=label) 
                 #plt.scatter(xMean, yMean, s=8)
         else:
-            ax.plot( dfii[xVariable], dfii[yVariable], '.', 
-                     label = '{} = {}'.format(iterateVariable, ii))
+            ax.plot( dfii[xVariable], dfii[yVariable], '.', label=label)
             
     if threeD:
         ax.set(xlabel=iterateVariable, ylabel=xVariable, zlabel=yVariable)
