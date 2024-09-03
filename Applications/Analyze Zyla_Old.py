@@ -16,7 +16,7 @@ import os
 ####################################
 data_path =r"Z:\ats317group\Data"
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '6/19/2024'
+date = '7/17/2024'
 data_folder = [
     # r'/Andor/ODT 1900 Bias Scan',
     # r'/Andor/MOT 1900',
@@ -24,7 +24,7 @@ data_folder = [
     # r'/Andor/Test_3',
     # r'/Andor/Test_4',
     # r'/Andor/Test_5',
-    r'/Andor/Move Lens_3',
+    r'/Andor/Donut MOT',
 
     ]
 ####################################

@@ -25,15 +25,15 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '6/10/2024'
+date = '8/20/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_folder = r'/FLIR/Test'
+data_folder = r'/FLIR/Eval alignment short wait_4'
 
 
 ####################################|
 #Parameter Setting
 ####################################
-examNum = 10 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
@@ -41,10 +41,10 @@ showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
     'wait',
-    'ODT Position',
-    'ZSBiasCurrent',
-    'VerticalBiasCurrent',
-    'CamBiasCurrent'
+    # 'ODT Position',
+    # 'ZSBiasCurrent',
+    # 'VerticalBiasCurrent',
+    # 'CamBiasCurrent'
     ]
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
@@ -56,15 +56,15 @@ variableFilterList = [
     ] # NO SPACE around the operator!
 
 
-rowstart = 80
-rowend = 225
-columnstart = 130
-columnend = 320
+# rowstart = 80
+# rowend = 225
+# columnstart = 130
+# columnend = 320
 
-rowstart = 0
-rowend = -1
-columnstart = 0
-columnend = -1
+rowstart = 70
+rowend = 180 #-1
+columnstart = 140
+columnend = 280
 
 binsize=4
 

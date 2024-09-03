@@ -12,9 +12,9 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/24/2024'
+date = '8/15/2024'
 
-ODT_Position = '400'
+ODT_Position = '-1'
 task = 'Misalign'
 # task = 'Align'
 expectedValues = [None, None]
@@ -59,7 +59,7 @@ subtract_bg = 0
 signal_feature = 'narrow' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
-rotateAngle= 0.56 #rotates ccw
+rotateAngle= 1.5 #rotates ccw
 
 rowstart = 10
 rowend = -10
@@ -75,8 +75,8 @@ columnend = -10
 # columnstart=300
 # columnend=1000 
 
-rowstart = 1010
-rowend = 1110
+rowstart = 600
+rowend = -700
 
 # rowstart = 250
 # rowend = 500
@@ -84,8 +84,8 @@ rowend = 1110
 # rowstart = 1000	#ODT 400
 # rowend = 1125	
 
-rowstart -= 200
-rowend += 200
+# rowstart -= 200
+# rowend += 200
 
 # rowstart += 20
 # rowend -= 20
@@ -175,12 +175,12 @@ if intermediatePlot:
                                           variableLog=variableLog, logTime=variableLog.index,
                                           textLocationY=0.8, rcParams=rcParams)
 
-    # xx = np.arange(len(imgs_oneD[0]))
-    # fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')
-    # for ii in range(fileNo):        
-    #     axes[ii].plot(imgs_oneD[ii], '.')
-    #     axes[ii].plot(xx, ImageAnalysisCode.Gaussian(xx, *popt_Basler[ii]))
-    #     axes[ii].text(0.9,0.8, files[ii], transform=axes[ii].transAxes)
+    xx = np.arange(len(imgs_oneD[0]))
+    fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')
+    for ii in range(fileNo):        
+        axes[ii].plot(imgs_oneD[ii], '.')
+        axes[ii].plot(xx, ImageAnalysisCode.Gaussian(xx, *popt_Basler[ii]))
+        axes[ii].text(0.9,0.8, files[ii], transform=axes[ii].transAxes)
 
-    # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
-    # axes[-1].set(xlim=[c-15*w, c+15*w])
+    c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
+    axes[-1].set(xlim=[c-15*w, c+15*w])

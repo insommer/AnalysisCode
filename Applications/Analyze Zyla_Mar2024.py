@@ -16,37 +16,40 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '7/1/2024'
+date = '9/3/2024'
 # date = '11/07/2023'
 
 data_folder = [
-    # r'Andor/High Field Round-Trip Survival'
-    # r'Andor/B Field Scan_2'
-    # r'Andor/ODT 400 Modulation 0.1 V 10-50 kHz Variable tmod_1',
-    # r'Andor/D1 bias scan Negative Polarity', 
-    # r'Andor/D1 bias scan Positive Polarity'
-    # r'Andor\Misaligned ODT vs wait',
-    # r'Andor\Med Field Wait_2',
-    # r'Andor\Misaligned ODT vs wait',
-    # r'Andor\Vary Evap Time 2_1'
+    # r'Andor/Imaging Frequency Scan_6',
+    # r'Andor/Imaging Frequency Scan_4',
+
+    # r'Andor/Xcenter vs wait'
+    r'Andor/MF probe evap',
+    # r'Andor/Probe evap',
+    # r'Andor/ODT -1 Align',
     # r'Andor\gray molasses more D1 power_1'
     # r'Andor\With Low Servo Late ODT LowServo1 0.29 Changed Lens_1',
     # r'Andor\before evap thermometry low field Digital Mag Off',
-    r'Andor\GM temp longer tof'
-    # r'Andor\PSD Before Evap',
+    # r'Andor\GM Temp Vary D1 Re Attn_3',
+    # r'Andor\RF Freq Scan 225 - 235 RF for 5 ms'
+    # r'Andor\RF test with function output',
+    # r'Andor\RF Freq Scan ZSBiasCurrent 0.7_1',
     ]
 ####################################
 #Parameter Setting
 ####################################
 reanalyze = 1
-saveresults = 1
-overwriteOldResults = 1
+saveresults = 0
+overwriteOldResults = 0
 
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 1
-rotateAngle = 0 #rotates ccw
+subtract_burntin = 0
 skipFirstImg = 'auto'
 # skipFirstImg = 0
+
+rotateAngle = 1.5 #rotates ccw
+# rotateAngle = 0 #rotates ccw
+
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 showRawImgs = 0
@@ -79,25 +82,35 @@ columnstart = 10
 columnend = -10
 
 
-# # columnstart=1000
-# columnend=1100
+columnstart=600
+columnend= 1100
 
-# rowstart = 990
-# rowend = 1000
+# rowstart = 800
+# rowend = -900
 
-# # # rowstart -= -5
-# # # rowend += 5
+rowstart = 730
+rowend = 1070
 
-# rowstart -= 0
+# # second pass
+# rowstart = 1330
+# rowend = 1375
+
+# # first pass
+# rowstart = 1365
+# rowend = 1400
+
+# rowstart = 500
+# rowend = -500
+
+# rowstart -= 40
+# rowstart += 80
 # rowend += 80
 
-# rowstart -= 300
-# rowend += 300
+rowstart += 150
+rowend -= 110   
 
-
-
-# columnstart -= 700
-# # columnend += 200
+columnstart += 140
+columnend -= 200
 
 ####################################
 ####################################
@@ -129,10 +142,14 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, 
-                                                                   showRawImgs=showRawImgs, rebuildCatalogue=0)
+                                                                   showRawImgs=showRawImgs, rebuildCatalogue=0,
+                                                                   # filterLists=[['Evap_timestep>0.2']]
+                                                                   )
 
-# if autoCrop:
-#     columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, xsize=200, ysize=50)
+autoCrop = 0
+if autoCrop:
+    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[120, 80])
+    print('ColumnDensities auto cropped.')
 #%%
         
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
@@ -163,30 +180,20 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'HF_AOM_Freq', 'YatomNumber', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+# ImageAnalysisCode.PlotFromDataCSV(results, 'RF_FRQ_MHz', 'YatomNumber', 
+# #                                   # iterateVariable='VerticalBiasCurrent', 
+# #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   groupbyX=1, threeD=0,
 #                                   figSize = 0.5
 #                                   )
-ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'YatomNumber', 
-                                  # iterateVariable='VerticalBiasCurrent', 
-                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-                                   groupbyX=0, threeD=0,
-                                   figSize = 0.5
-                                   )
+# ImageAnalysisCode.PlotFromDataCSV(results, 'LF_AOM_freq', 'Ywidth', 
+#                                    iterateVariable='Lens_Position', 
+#                                    # filterLists=[['wait>=10', 'wait<=100']],
+#                                    groupbyX=1, threeD=0,
+#                                    figSize = 0.5, do_fit=0
+#                                    )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                    groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 'B_Field', 'YatomNumber', 
+# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'Xcenter', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   # groupby='ODT_Position', 
@@ -194,8 +201,28 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'YatomNumber',
 #                                   threeD=0,
 #                                   figSize = 0.5
 #                                   )
-fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
-results.YatomNumber.plot(title='Atom Number', linestyle='', marker='.')
+
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'CamBiasCurrent', 'YatomNumber', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'Xcenter', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+# fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
+# results.YatomNumber.plot(title='Atom Number', linestyle='', marker='.')
 
 # fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
 # results.Ycenter.plot(title='y Position', linestyle='', marker='.')
@@ -206,28 +233,28 @@ results.YatomNumber.plot(title='Atom Number', linestyle='', marker='.')
 # %%
 
 intermediatePlot = 1
-plotPWindow = 3
+plotPWindow = 4
 plotRate = 1
 uniformscale = 0
 rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
 
 variablesToDisplay = [
                     # # 'Coil_medB', 
-                        'Evap_Time_2',
-                        'TOF'
-                        #'HF_AOM_Freq',
+                        'TOF',
+                        # 'wait',
+                        # 'LF_AOM_freq',
+                        # 'Lens_Position',
                         # 'FB Voltage',
                         # 'B_Field',
-                        
                         # 'ODT_Position',
                         # 'fmod_kHz',
                         # 'tmod_ms',
                         # 'Evap_Tau',
                         # 'VerticalBiasCurrent',
-                        # 'YatomNumber',
+                        # 'B_spikeTime',
                         # 'HF_AOM_Freq',
                         # 'CamBiasCurrent',
-                        #'Lens Position'
+                        #'Lens Position',
                         
                       ]
 showTimestamp = False
@@ -247,7 +274,7 @@ if intermediatePlot:
                                           logTime=variableLog.index,
                                           uniformscale=uniformscale,
                                           textLocationY=0.9, rcParams=rcParams,
-                                          figSizeRate=1)
+                                          figSizeRate=1, sharey='col')
     
     # ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
     #                                       plotRate=1, plotPWindow=plotPWindow,
@@ -264,24 +291,58 @@ if intermediatePlot:
 
     # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
     # axes[-1].set(xlim=[c-15*w, c+15*w])
-#%%
 
 
-    # dataFrame = dataFrame[ dataFrame.width_y < 600 ]
-# # dataFrame = dataFrame[ dataFrame.Evap_Tau > 0.05 ]
+#%% LIFETIME MEASUREMENT
 
+# popt,_ = ImageAnalysisCode.fit_exponential(results['wait'], results['YatomNumber'],
+#     dx=1, doplot = True, label="", title="Trap Lifetime", newfig=True, xlabel="Wait Time (ms)", ylabel="Y Atom Number", 
+#     offset = None, 
+#     legend=True)
 
-# %%
-var2 = 'Evap_Time_2'
-var1 = 'LowServo1'
+#%% OSCILLATION OF CLOUD
+
+# dfmean = results.groupby('wait')[['Xcenter', 'Ycenter']].mean().reset_index()
+# dfstd = results.groupby('wait')[['Xcenter', 'Ycenter']].std().reset_index()
+
+# plt.figure()
+# plt.errorbar(dfmean['wait'], dfmean['Ycenter'], yerr=dfstd['Ycenter'], fmt='-o')
+# plt.ylabel('Ycenter')
+# plt.xlabel('wait')
+# plt.tight_layout()
+
+# plt.figure()
+# plt.errorbar(dfmean['wait'], dfmean['Xcenter'], yerr=dfstd['Xcenter'], fmt='-o')
+# plt.ylabel('Xcenter')
+# plt.xlabel('wait')
+# plt.tight_layout()
+
+# %% THERMOMETRY
+
+# # var2 = 'D1_Re_Attn'
+var2 = 'Evap_timestep'
+# var2 = 'LowServo1'
 df = ImageAnalysisCode.multiVariableThermometry(
-                                                # results[results.Ywidth<22], 
                                                 results, 
-                                                
-                                                var1, var2, 
-                                                fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=0)
+                                                # var1, 
+                                                var2, 
+                                                fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
 
-# %%
+
+#%% ASPECT RATIO CALCULATION
+# width_mean = results.groupby('TOF')[['Xwidth', 'Ywidth']].mean().reset_index()
+# width_std = results.groupby('TOF')[['Xwidth', 'Ywidth']].std().reset_index()
+
+
+# aspectRatio = width_mean['Ywidth'] / width_mean['Xwidth']
+# # aspectRatio_error = aspectRatio * np.sqrt( (width_std['Xwidth']/width_std['Xwidth'])**2 + (width_std['Ywidth']/width_std['Ywidth'])**2)
+
+# plt.figure()
+# plt.plot(width_mean['TOF'], aspectRatio, '-o')
+# plt.xlabel('Time-of-flight (ms)')
+# plt.ylabel('Aspect Ratio')
+
+# %% 2-D plot when have two variable parameters
 # cols = ['PSD', 'T (K)', 'AtomNum']
 
 # for r in cols:
@@ -291,35 +352,40 @@ df = ImageAnalysisCode.multiVariableThermometry(
 #     ax.set(xlabel=var2, ylabel=var1, title=r)
 #     fig.colorbar(cax, ax=ax)
 
-# %%
-# plt.rcParams['figure.figsize'] = [4, 3]
+# %% 1-D plot when only vary one parameter
+plt.rcParams['figure.figsize'] = [4, 3]
 
 colnames = ['PSD', 'AtomNum', 'T (K)']
 
 fig, axes = plt.subplots(1,3, figsize=[8, 2.5], layout='constrained')
 for ii, ax in enumerate(axes): 
     df[colnames[ii]].plot(ls='',marker='x', ax=ax)
-    ax.set(title=colnames[ii])
-    ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    ax.set(title=colnames[ii], )
+    # ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    ax.set_yscale('log')
 
-fig, ax = plt.subplots(1,1, figsize=[4, 3], layout='constrained')
+# fig, ax = plt.subplots(1,1, figsize=[4, 3], layout='constrained')
 
-Amean = results[results.TOF==0].groupby([var1, var2]).mean().YatomNumber.values
-Astd = results[results.TOF==0].groupby([var1, var2]).std().YatomNumber.values
-ax.errorbar(np.arange(len(Amean)), Amean, Astd)
-ax.set(title=colnames[1])
-ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+# Amean = results[results.TOF==0].groupby([var1, var2]).mean().YatomNumber.values
+# Astd = results[results.TOF==0].groupby([var1, var2]).std().YatomNumber.values
+# ax.errorbar(np.arange(len(Amean)), Amean, Astd, marker='.')
+# ax.set(title=colnames[1])
+# ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
 
 
-
-# fig, ax = plt.subplots(1,1, layout='constrained')
-# ax.plot(df['T (K)'], df.PSD, '.')
-# ax.set(xlabel='T (K)', ylabel='PSD')
 
 # fig, ax = plt.subplots(1,1, layout='constrained')
-# ax.plot(df['AtomNum'], df.PSD, '.')
+# ax.plot(df.AtomNum, df.PSD, '.')
 # ax.set(xlabel='AtomNum', ylabel='PSD')
+# ax.set_yscale('log')
+# ax.set_xscale('log')
 
-# %%
-print('======================')
-print('The phase space density is:\n{:.5e}'.format(df.PSD.iloc[0]))
+
+
+# # fig, ax = plt.subplots(1,1, layout='constrained')
+# # ax.plot(df['AtomNum'], df.PSD, '.')
+# # ax.set(xlabel='AtomNum', ylabel='PSD')
+
+# # %%
+# print('======================')
+# print('The phase space density is:\n{}'.format(df[['AtomNum', 'T (K)']]))
