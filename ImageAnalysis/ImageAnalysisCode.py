@@ -1548,7 +1548,7 @@ def DetectPeaks(yy, xx=None, amp=1, width=3, denoise=0, doPlot=0):
 
     # Determine the background with the otsu method and set to 0.
     # thr = threshold_otsu(yycopy)
-    thr = 0.3 * (yy.max() - yy.min()) + yy.min()
+    thr = 0.05 * (yy.max() - yy.min()) + yy.min()
     yycopy[yycopy < thr] = yy.min()
 
     peaks, properties = signal.find_peaks(yycopy, prominence=amp*0.01*(yycopy.max()-yycopy.min()), width=width)
@@ -1914,7 +1914,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
                         ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
-                        title=[], 
+                        title=[], sharex='col', sharey='col',
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
     
     plt.rcParams.update(rcParams)
@@ -1970,7 +1970,7 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
         if plotInd == 0:
             plotNo = min(plotPWindow, imgNo-ind)
             fig, axes = plt.subplots(plotNo , N+1, figsize=(figSizeRate*3*(N+1), figSizeRate*1.5*plotNo), 
-                                     squeeze = False, sharex='col', layout="constrained")
+                                     squeeze = False, sharex=sharex, sharey=sharey, layout="constrained")
             for n in range(N+1):
                 axes[-1, n].set_xlabel(xlabel[n])
                 axes[int(plotNo/2), n].set_ylabel(ylabel[n])
@@ -2778,6 +2778,7 @@ def fit_exponential(xdata, ydata ,dx=1, doplot = False, label="", title="",
     popt, pcov = curve_fit(func, xdata, ydata, p0=guess)       
 
     #poptarray([2.56274217, 1.37268521, 0.47427475])
+    plt.figure()
     plt.plot(xdata, ydata,'o')
     plt.plot(xfit, func(xfit, *popt), 'r-', label= label % tuple(popt))
 
