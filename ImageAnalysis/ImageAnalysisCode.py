@@ -2012,7 +2012,7 @@ def AxesFit(img, center=None, sigma=1, doplot=0):
     if center:
         x0, y0 = center
     else:
-        x0, y0 = DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1)
+        y0, x0 = DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1)
 
     ly, lx = img.shape
     x = np.arange(lx) - x0
