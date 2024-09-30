@@ -2076,7 +2076,7 @@ def AzimuthalAverage(img, radialRange=3, sigma=1, do_plot=0, plotRate=0.3):
             fig, ax = plt.subplots(1, 1, figsize=(6, 4))
             ax.imshow(img, cmap='gray')
             alpha = np.nan_to_num(mask, nan=0) / np.nan_to_num(mask, nan=0).max()
-            ax.imshow(mask, alpha=alpha)
+            ax.imshow(mask, alpha=alpha, cmap='viridis')
             plt.show()
 
     return np.insert(r_range, 0, 0), np.array(result)
