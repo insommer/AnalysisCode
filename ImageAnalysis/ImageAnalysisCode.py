@@ -306,7 +306,7 @@ def VariableFilter(timestamps, variableLog, variableFilterList):
         
     return filteredList
 
-def Filetime2Logtime(fileTime, variableLog, timeLowLim=2, timeUpLim=18):
+def Filetime2Logtime(fileTime, variableLog, timeLowLim=1, timeUpLim=18):
     if variableLog is None:
         return []
     
@@ -2773,9 +2773,9 @@ def fit_exponential(xdata, ydata ,dx=1, doplot = False, label="", title="",
     else:
         func = lambda x,a,tau: exponential(x,a,tau,offset)
         guess = [a,tau]
-        label = 'fit: a=%5.2e\n tau=%5.2e\n c={:.2e} (Fixed)'.format(offset)
+        label = 'fit: a=%5.2e\n tau=%5.3e\n c={:.2e} (Fixed)'.format(offset)
         
-    popt, pcov = curve_fit(func, xdata, ydata, p0=guess)       
+    popt, pcov = curve_fit(func, xdata, ydata, p0=guess, maxfev=5000)       
 
     #poptarray([2.56274217, 1.37268521, 0.47427475])
     plt.figure()
