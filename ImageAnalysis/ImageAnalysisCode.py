@@ -50,6 +50,56 @@ def GetExamRange(examNum, examFrom=None, repetition=1):
     if examUntil == 0:
         examUntil = None
     return examFrom, examUntil
+
+
+def PlotArangeAndSize(imgNo, col_row_ratio=1.1, sizes_ratio=(3, 2)):
+    '''
+    Calculate the row and column numbers in a plot figure given the total image number. 
+    col_row_ratio defines the approximate colNo : rwoNo, and 
+    sizes_ratio defines the (x, y) sizes for each picture. 
+    
+    Parameters
+    ----------
+    imgNo : TYPE
+        DESCRIPTION.
+    col_row_ratio : TYPE, optional
+        DESCRIPTION. The default is 1.1.
+    sizes_ratio : TYPE, optional
+        DESCRIPTION. The default is (3, 2).
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    '''
+    
+    rowNo = round(imgNo**0.5 / col_row_ratio)
+    if rowNo == 0:
+        rowNo = 1
+    colNo = int(np.ceil(imgNo / rowNo))
+    
+    if rowNo > colNo:
+        rowNo, colNo = colNo, rowNo
+    
+    return (rowNo, colNo), (colNo*sizes_ratio[0], rowNo*sizes_ratio[1])
+
+
+def AddCommonLabels(fig, xlabel='', ylabel='', 
+                    fontsize=10, xpad=5, ypad=15, 
+                    method=1):
+    if method == 1:
+        fig.add_subplot(111, frame_on=False)
+        plt.tick_params(labelcolor="none", bottom=False, left=False )
+        plt.xlabel(xlabel, fontsize=fontsize, xpad=5)
+        plt.ylabel(ylabel, fontsize=fontsize, ypad=15)
+        plt.tight_layout()
+        
+    if method == 2:
+        fig.text(0.5, 0.04, xlabel, ha='center')
+        fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
+        fig.tight_layout(rect=[0.05, 0.05, 1, 1])
+
     
 
 def LoadConfigFile(dataFolder=".", configFileName='config.cfg',encoding="utf-8"): 
@@ -626,8 +676,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
             pathNeedCatalogue.append(path)
             
         elif existCatalogue:
-            with open(cataloguePath, 'rb') as f:
-                df = pickle.load(f)
+            
+            df = pd.read_pickle(cataloguePath)
+            # with open(cataloguePath, 'rb') as f:
+            #     df = pickle.load(f)
             
             # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
             if (len(df) != (number_of_pics / PPI)):
@@ -685,29 +737,63 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     return columnDensities[:, rowstart:rowend, columnstart:columnend], catalogue
 
 
-def DetectPeak2D(img, sigma=10, thr=0.9):
-    # img = np.array(img)
-    
-    imgFlted = gaussian_filter(img, sigma=sigma)
-    # img = imgFlted
+def DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1):
+
+    if sigma:
+        imgFlted = gaussian_filter(img, sigma=sigma)
+    else:
+        imgFlted = img.copy()
+
+    thr_ratio = thr
     thr = thr*(imgFlted.max() - imgFlted.min()) + imgFlted.min()
-    imgFlted[ imgFlted < thr ] = 0
-    
-    return center_of_mass(imgFlted)
+
+    if usesmoothedimg:
+        imgthred = imgFlted.copy()
+        imgthred[ imgFlted < thr ] = 0
+    else:
+        imgthred = img.copy()
+        imgthred[ imgFlted < thr ] = 0
+
+    center = center_of_mass(imgthred)
+
+    if doplot:
+        fig, axes = plt.subplots(1, 3, figsize=(15,10), sharex=True, sharey=True)
+        fig.subplots_adjust(hspace=0.05, wspace=0.05)
+
+        axes[0].imshow(img, cmap='gray')
+        axes[0].plot(center[1], center[0], 'x')
+        axes[0].text(0.01, 0.99, 'center = ({:.3f}, {:.3f})\nsigma = {:.3f}, thr = {:.3f}'.format(center[1], center[0], sigma, thr_ratio),
+                     ha='left', va='top', transform=axes[0].transAxes,
+                     bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7) )
+
+        axes[1].imshow(imgFlted, cmap='gray')
+        axes[1].plot(center[1], center[0], 'x')
+
+        axes[2].imshow(img, cmap='gray', alpha=1)
+        axes[2].imshow(imgthred, cmap='autumn', alpha=(imgthred==0).astype(float)*0.2)
+        axes[2].plot(center[1], center[0], 'x')
+
+    return np.array(center)
 
 
-def AutoCrop(imgs, sizes=[200, 50]):
-    
-    xsize, ysize = sizes
-    
-    output = np.full( [len(imgs), 2*ysize, 2*xsize], np.nan )
-    # imgs = np.pad(imgs, ( (0,0), (ysize, ysize), (xsize, xsize) ), constant_values=np.nan)
+def AutoCrop(imgs, sizes=[150, 150],
+             sigma=5, thr=0.7,
+             autosize=0, doplot=0):
+
+    dimens = imgs.shape
+    if len(dimens) == 2:
+        imgs = imgs.reshape(1, *dimens)
+
+    width, height = sizes
+    output = np.full((len(imgs), 2*height+1, 2*width+1), np.nan)
 
     for ii, img in enumerate(imgs):
-        y0, x0 = np.round(DetectPeak2D(img)).astype(int) 
-        output[ii] = np.pad( img, ((ysize, ysize), (xsize, xsize)), constant_values=np.nan )[ y0: y0+2*ysize, x0: x0+2*xsize ]
-        
-    return output        
+        y0, x0 = DetectPeak2D(img, sigma=sigma, thr=thr, doplot=0).astype(int)
+        # if autosize:
+        #     # do a fit to each image and estimate a size.
+        output[ii] = np.pad( img, ((height, height), (width, width)), constant_values=np.nan )[ y0: y0+2*height+1, x0: x0+2*width+1 ]
+
+    return output       
 
 
 def SaveResultsDftoEachFolder(df, overwrite=0):
@@ -1286,7 +1372,7 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
         # print("number of atoms iteration", i+1, ": ", Number_of_atoms[i]/1e6,"x10^6")
         columnDensities[i] = n2d
     
-    print('Finigh calculating columnDensities.')
+    print('Finish calculating columnDensities.')
 
     return Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY
     
@@ -1412,6 +1498,17 @@ def MultiGaussian(x, *params):
         result += Gaussian(x, *params[n:-1:N])
         # print(params[n:-1:N])
     return result + params[-1]
+
+
+def GaussianDistribution(x, mu, sigma):
+    return np.exp( -(x-mu)**2 / (2*sigma**2) ) / ( sigma * np.sqrt(2*np.pi) )
+
+def GaussianRing(r, r_mean, r_delta):
+    # remove the 0 elements in r
+    rp = r.copy()
+    rp[r==0] = np.nan
+
+    return GaussianDistribution(rp, r_mean, r_delta) / (2 * np.pi * rp)
 
 
 def fitbg(data, signal_feature='narrow', signal_width=10, fitbgDeg=5): 
@@ -1904,6 +2001,103 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
         plt.tight_layout()
         
     return widthx, center_x, widthy, center_y
+
+
+
+
+
+
+def AxesFit(img, center=None, sigma=1, doplot=0):
+
+    if center:
+        x0, y0 = center
+    else:
+        y0, x0 = DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1)
+
+    ly, lx = img.shape
+    x = np.arange(lx) - x0
+    y = np.arange(ly) - y0
+
+    mask = GaussianDistribution(y, 0, sigma).reshape(-1, 1)
+    xax = (img * mask).sum(axis=0)
+
+    mask = GaussianDistribution(x, 0, sigma).reshape(1, -1)
+    yax = (img * mask).sum(axis=1)
+
+    xmax, ymax = xax.max(), yax.max()
+    xwid = (xax > xmax/2).sum() / 2
+    ywid = (yax > ymax/2).sum() / 2
+
+    poptx, pcovx = curve_fit(Gaussian, x, xax, p0=[xax.max(), 0, xwid, 0])
+    popty, pcovy = curve_fit(Gaussian, y, yax, p0=[yax.max(), 0, ywid, 0])
+
+    if doplot:
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        axes[0].plot(x, xax)
+        axes[0].plot(x, Gaussian(x, *poptx))
+        axes[1].plot(y, yax)
+        axes[1].plot(y, Gaussian(y, *popty))
+
+    return poptx[-2], popty[-2]
+
+
+
+def AzimuthalAverage(img, radialRange=3, sigma=1, do_plot=0, plotRate=0.3):
+
+    shape = img.shape
+    y0, x0 = DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1)
+
+    a, b = AxesFit(img, center=(x0, y0))
+
+    x = np.arange(shape[1]) - x0
+    y = np.arange(shape[0]) - y0
+    xx, yy = np.meshgrid(x, y)
+    r = np.sqrt(xx**2 + (yy*a/b)**2)
+
+    r_min = 3 * sigma
+    r_max = min(radialRange*a, np.sqrt((shape[1]/2)**2 + (shape[0]*a/b/2)**2)-3*sigma)
+
+    # Calculate the value at the center 
+    mask = GaussianDistribution(xx, 0, sigma) * GaussianDistribution(yy, 0, sigma * b/a)
+    result0 = (img * mask).sum() / mask.sum()
+    # / (GaussianDistribution(xx, x0, sigma).sum() * GaussianDistribution(yy, y0, sigma * b/a).sum())
+    # result0 = img[r<r_min].mean()
+
+    result = [ result0 ]
+
+    r_range = np.arange(r_min, r_max, 1)
+
+    for rr in r_range:
+        mask = GaussianRing(r, rr, sigma)
+        img_masked = img * mask
+        result.append( np.nansum(img_masked) / np.nansum(mask) )
+
+        if do_plot and (np.random.rand() <= plotRate):
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+            ax.imshow(img, cmap='gray')
+            alpha = np.nan_to_num(mask, nan=0) / np.nan_to_num(mask, nan=0).max()
+            ax.imshow(mask, alpha=alpha, cmap='viridis')
+            plt.show()
+
+    return np.insert(r_range, 0, 0), np.array(result)
+
+
+
+
+def plotRadialAtomDensity(r, y, dx=3.85, ax=None, linestyle='.', ms=3, addAxieLabel=1):
+
+    # Input r is in the unit of pixel, convert to length in μm
+    r = r * dx
+    # Input y is in atom # per m^2, convert to # per μm^2
+    y = y / 1e6**2
+    
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4), layout='constrained')
+    ax.plot(r, y, linestyle, ms=ms)
+    if addAxieLabel:
+        ax.set(xlabel='r (μm)', ylabel='atom/μm^2')    
+    
+    
 
 
 def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
@@ -2682,7 +2876,7 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
         if save_folder:
             plt.savefig(save_folder+r'\\'+"atom number {}.png".format(thermometry_axis), dpi = 300)
     return popt, pcov
-   
+
     
 def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
                              atomNum='YatomNumber', sigma1='Xwidth', sigma2='Ywidth', sigma3='Ywidth',
