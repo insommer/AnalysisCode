@@ -12,9 +12,9 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '8/15/2024'
+date = '11/8/2024'
 
-ODT_Position = '-1'
+ODT_Position = '1900'
 task = 'Misalign'
 # task = 'Align'
 expectedValues = [None, None]
@@ -66,6 +66,14 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
+
+columnstart=600
+columnend= 1150
+
+rowstart = 200
+rowend = 600
+
+
 # columnstart=800
 # columnend=1150 
 
@@ -75,8 +83,8 @@ columnend = -10
 # columnstart=300
 # columnend=1000 
 
-rowstart = 600
-rowend = -700
+# rowstart = 600
+# rowend = -700
 
 # rowstart = 250
 # rowend = 500
@@ -92,6 +100,7 @@ rowend = -700
 
 # columnstart -= 300
 # columnend += 300
+
 
 ####################################
 ####################################
@@ -136,6 +145,7 @@ if variableLog is not None:
 
 # %%
 # Load the Basler pictures
+
 data_folder_Basler = os.path.join(dayfolder, Basler_folder)
 files = os.listdir(data_folder_Basler)
 files.sort()
@@ -144,7 +154,10 @@ fileNo = len(files)
 imgs_Basler = []
 for file in files[examFrom: examUntil]:
     path = os.path.join(data_folder_Basler, file)
-    imgs_Basler.append( plt.imread(path)[...,0] )
+    temp = np.fromfile(path, dtype=np.uint8)
+    arr = np.reshape(temp, (2160,3840)) # Basler dart resolution
+    imgs_Basler.append(arr)
+    # imgs_Basler.append( plt.imread(path)[...,0] )
 imgs_Basler = np.array(imgs_Basler)
 
 # Fit 1-D picture
@@ -175,12 +188,12 @@ if intermediatePlot:
                                           variableLog=variableLog, logTime=variableLog.index,
                                           textLocationY=0.8, rcParams=rcParams)
 
-    xx = np.arange(len(imgs_oneD[0]))
-    fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')
-    for ii in range(fileNo):        
-        axes[ii].plot(imgs_oneD[ii], '.')
-        axes[ii].plot(xx, ImageAnalysisCode.Gaussian(xx, *popt_Basler[ii]))
-        axes[ii].text(0.9,0.8, files[ii], transform=axes[ii].transAxes)
+    # xx = np.arange(len(imgs_oneD[0]))
+    # fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')
+    # for ii in range(fileNo):        
+    #     axes[ii].plot(imgs_oneD[ii], '.')
+    #     axes[ii].plot(xx, ImageAnalysisCode.Gaussian(xx, *popt_Basler[ii]))
+    #     axes[ii].text(0.9,0.8, files[ii], transform=axes[ii].transAxes)
 
-    c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
-    axes[-1].set(xlim=[c-15*w, c+15*w])
+    # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
+    # axes[-1].set(xlim=[c-15*w, c+15*w])

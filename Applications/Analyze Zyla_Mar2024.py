@@ -16,39 +16,41 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '9/3/2024'
-# date = '11/07/2023'
+# date = '10/07/2024'
+date = '11/12/2024'
+# date = '9/9/2024'
 
 data_folder = [
-    # r'Andor/Imaging Frequency Scan_6',
-    # r'Andor/Imaging Frequency Scan_4',
-
-    # r'Andor/Xcenter vs wait'
-    r'Andor/MF probe evap',
-    # r'Andor/Probe evap',
-    # r'Andor/ODT -1 Align',
+    r'Andor/ODT temp MF waveplate 220 with wait 2000 ms',
+    # r'Andor/Lifetime misaligned WP 219',
+    # r'Andor/Lifetime misaligned WP 220_1',
+    # r'Andor/lifetime Evap1_V 0.35V',
+    # r'Andor/Lifetime WP 217_1',
+    # r'Andor/Modulate ODT 1250_1',
+    # r'Andor/1250 atom number at BEC field',
+    # r'Andor/ODT 2350 scan LowServo Atom Num',
+    # r'Andor/ODT 2350 scan LowServo Atom Num_1',
+    # r'Andor/Modulate ODT 1800 low freq_1',
     # r'Andor\gray molasses more D1 power_1'
     # r'Andor\With Low Servo Late ODT LowServo1 0.29 Changed Lens_1',
     # r'Andor\before evap thermometry low field Digital Mag Off',
     # r'Andor\GM Temp Vary D1 Re Attn_3',
-    # r'Andor\RF Freq Scan 225 - 235 RF for 5 ms'
-    # r'Andor\RF test with function output',
-    # r'Andor\RF Freq Scan ZSBiasCurrent 0.7_1',
     ]
 ####################################
-#Parameter Setting
+#Parameter Setting'
 ####################################
 reanalyze = 1
 saveresults = 0
 overwriteOldResults = 0
 
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 0
+subtract_burntin = 1
+
 skipFirstImg = 'auto'
 # skipFirstImg = 0
 
-rotateAngle = 1.5 #rotates ccw
-# rotateAngle = 0 #rotates ccw
+rotateAngle = 0 #rotates ccw
+# rotateAngle = 0.5 #rotates ccw
 
 examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
@@ -82,35 +84,25 @@ columnstart = 10
 columnend = -10
 
 
-columnstart=600
-columnend= 1100
+columnstart=500
+columnend= 1250
 
-# rowstart = 800
-# rowend = -900
+rowstart = 200
+rowend = 600
 
-rowstart = 730
-rowend = 1070
+# first pass
+# rowstart = 400
+# rowend = 450
 
-# # second pass
-# rowstart = 1330
-# rowend = 1375
+# second pass
+# rowstart = 440
+# rowend = 500
 
-# # first pass
-# rowstart = 1365
-# rowend = 1400
+# rowstart -= 100
+# rowend -= 100
 
-# rowstart = 500
-# rowend = -500
-
-# rowstart -= 40
-# rowstart += 80
-# rowend += 80
-
-rowstart += 150
-rowend -= 110   
-
-columnstart += 140
-columnend -= 200
+# columnstart -= 100
+# columnend -= 100
 
 ####################################
 ####################################
@@ -142,13 +134,13 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, 
-                                                                   showRawImgs=showRawImgs, rebuildCatalogue=0,
-                                                                   # filterLists=[['Evap_timestep>0.2']]
-                                                                   )
+                                                                   showRawImgs=showRawImgs, rebuildCatalogue=1,
+                                                                    # filterLists=[['TOF<1']]
+                                                                    )
 
 autoCrop = 0
 if autoCrop:
-    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[120, 80])
+    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[200, 150])
     print('ColumnDensities auto cropped.')
 #%%
         
@@ -157,11 +149,14 @@ popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, 
 
 results = ImageAnalysisCode.AnalyseFittingResults(popts, logTime=variableLog.index) 
 
+
+
 if variableLog is not None:
     results = results.join(variableLog)
 
 if saveresults:
     ImageAnalysisCode.SaveResultsDftoEachFolder(results, overwrite=overwriteOldResults)    
+
 #%%
 # mask = (results.Ywidth < 5.5)  & (results.Ywidth > 3.9) & (results.HF_AOM_Freq<=317)
 # results = results[ mask ]
@@ -170,7 +165,6 @@ if saveresults:
 # popts[1] = np.array(popts[1])[mask]
 # bgs[0] = np.array(bgs[0])[mask]
 # bgs[1] = np.array(bgs[1])[mask]
-
 
 # %%
 # ImageAnalysisCode.PlotFromDataCSV(results, 'HF_AOM_Freq', 'Ywidth', 
@@ -193,7 +187,7 @@ if saveresults:
 #                                    figSize = 0.5, do_fit=0
 #                                    )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'Xcenter', 
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap1_V', 'Ycenter', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   # groupby='ODT_Position', 
@@ -202,17 +196,36 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'YatomNumber', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'LowServo1', 'YatomNumber', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
 
 # ImageAnalysisCode.PlotFromDataCSV(results, 'CamBiasCurrent', 'YatomNumber', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'Xcenter', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   # groupby='ODT_Position', 
@@ -241,7 +254,17 @@ rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
 variablesToDisplay = [
                     # # 'Coil_medB', 
                         'TOF',
-                        # 'wait',
+                        # 'ODT_Misalign',
+                        # 'Evap1_V',
+                        # 'LowServo1',
+                        # 'Evap_time_2'
+                        # 'Evap_timestep'
+                        'wait',
+                        # 'Evap_Time_2',
+                        # 'WP_angle',
+                        # 'Lens_Position',
+                        # 'StopEvap_LowServo',
+                        # 'StopEvap_Time',
                         # 'LF_AOM_freq',
                         # 'Lens_Position',
                         # 'FB Voltage',
@@ -249,12 +272,17 @@ variablesToDisplay = [
                         # 'ODT_Position',
                         # 'fmod_kHz',
                         # 'tmod_ms',
+                        # 'Cycles_num',
+                        # 'Mod_amp',
                         # 'Evap_Tau',
                         # 'VerticalBiasCurrent',
                         # 'B_spikeTime',
                         # 'HF_AOM_Freq',
                         # 'CamBiasCurrent',
                         #'Lens Position',
+                        # 'IR_Waveplate',
+                        # 'B_Field',
+                        # 'BEC_fieldRamp_ms',
                         
                       ]
 showTimestamp = False
@@ -291,14 +319,84 @@ if intermediatePlot:
 
     # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
     # axes[-1].set(xlim=[c-15*w, c+15*w])
+    
+#%% LINEAR FIT
+# fit atom number vs. lowServo to a line
 
+# var_indep = 'LowServo1'
+# var_dep = 'YatomNumber'
+
+# groupedData = results.groupby(var_indep)[var_dep].mean()
+
+# Xdata = groupedData.index.to_numpy()
+# Ydata = groupedData.values
+
+# coeff = np.polyfit(Xdata, Ydata, 1)
+
+# lin_x = np.linspace(min(Xdata), max(Xdata), 50)
+# lin_y = coeff[0] * lin_x + coeff[1]
+
+# plt.figure()
+# plt.scatter(Xdata, Ydata)
+# plt.plot(lin_x, lin_y)
+
+# plt.suptitle( 'Equation: ' + str(round(coeff[0],2)) + '*x + ' + str(round(coeff[1])) )
+# plt.xlabel(var_indep)
+# plt.ylabel(var_dep)
+# plt.tight_layout()
+
+#%%
+# results = pd.read_csv('D:/Dropbox (Lehigh University)/Sommer Lab Shared/Data/2024/10-2024/09 Oct 2024/misalignedLifetime')
+# results2 = results.groupby('WP_angle')
+
+# k = []
+
+# for WP_angle in results2:
+#     l = []
+#     popt, pcov = ImageAnalysisCode.fit_exponential(WP_angle[1]['wait'], WP_angle[1]['YatomNumber'],
+#         dx=1, doplot = True, label="", title="Trap Lifetime", newfig=True, xlabel="Wait Time (ms)", ylabel="Y Atom Number", 
+#         offset = 0, 
+#         legend=True)
+#     matrix = np.array(pcov)
+#     diag = np.diagonal(matrix)
+#     l.append(WP_angle[0])
+#     l.append(popt[1])
+#     l.append(np.sqrt(diag[1]))
+#     # print(l)
+#     # # print(popt[1])
+#     # print('===')
+#     # print(pcov)
+#     # print(diag[1])
+#     # print('===')
+#     # print(WP_angle)
+#     k.append(l)
+# # print(k)
+# k = np.array(k)
+# print(k)
+# np.savetxt('D:/Dropbox (Lehigh University)/Sommer Lab Shared/Data/2024/10-2024/09 Oct 2024/Andor/life_WP_angle_misaligned.dat', k)
+
+
+# c = np.loadtxt('D:/Dropbox (Lehigh University)/Sommer Lab Shared/Data/2024/10-2024/09 Oct 2024/Andor/life_WP_angle_misaligned.dat', dtype=float)
+# print(c)
+
+
+# plt.figure(figsize=(5,4))
+# plt.title('')
+# plt.xlabel('Waveplate angle', fontsize=12)
+# plt.ylabel('Lifetime (ms)', fontsize=12)
+
+# k = np.array(k)
+# plt.errorbar(k[:,0], k[:,1], yerr=k[:,2], fmt='o')
+# plt.tight_layout()
 
 #%% LIFETIME MEASUREMENT
 
 # popt,_ = ImageAnalysisCode.fit_exponential(results['wait'], results['YatomNumber'],
-#     dx=1, doplot = True, label="", title="Trap Lifetime", newfig=True, xlabel="Wait Time (ms)", ylabel="Y Atom Number", 
-#     offset = None, 
+#     dx=1, doplot = True, label="", title="Trap Lifetime", newfig=True, xlabel="wait (ms)", ylabel="Y Atom Number", 
+#     offset = 0, 
 #     legend=True)
+
+# print('Lifetime: ', round(popt[1]*10**(-3), 3), ' s')
 
 #%% OSCILLATION OF CLOUD
 
@@ -319,9 +417,12 @@ if intermediatePlot:
 
 # %% THERMOMETRY
 
-# # var2 = 'D1_Re_Attn'
-var2 = 'Evap_timestep'
+# filt = results[results['Ywidth'] < 1e3]
+
+var2 = 'wait'
+# var2 = 'Evap_timestep'
 # var2 = 'LowServo1'
+# var2 = 'Evap_Time_2'
 df = ImageAnalysisCode.multiVariableThermometry(
                                                 results, 
                                                 # var1, 
@@ -330,17 +431,16 @@ df = ImageAnalysisCode.multiVariableThermometry(
 
 
 #%% ASPECT RATIO CALCULATION
-# width_mean = results.groupby('TOF')[['Xwidth', 'Ywidth']].mean().reset_index()
-# width_std = results.groupby('TOF')[['Xwidth', 'Ywidth']].std().reset_index()
+# filteredTimestep = results.query('Evap_timestep == 2')
 
+# aspectRatio = filteredTimestep['Ywidth'] / filteredTimestep['Xwidth']
 
-# aspectRatio = width_mean['Ywidth'] / width_mean['Xwidth']
-# # aspectRatio_error = aspectRatio * np.sqrt( (width_std['Xwidth']/width_std['Xwidth'])**2 + (width_std['Ywidth']/width_std['Ywidth'])**2)
-
-# plt.figure()
-# plt.plot(width_mean['TOF'], aspectRatio, '-o')
+# plt.figure(figsize=(4,3))
+# plt.scatter(filteredTimestep['TOF'], aspectRatio.values)
+# # plt.errorbar(width_mean['TOF'], aspectRatio, fmt='o')
 # plt.xlabel('Time-of-flight (ms)')
 # plt.ylabel('Aspect Ratio')
+# plt.tight_layout()
 
 # %% 2-D plot when have two variable parameters
 # cols = ['PSD', 'T (K)', 'AtomNum']
@@ -352,17 +452,18 @@ df = ImageAnalysisCode.multiVariableThermometry(
 #     ax.set(xlabel=var2, ylabel=var1, title=r)
 #     fig.colorbar(cax, ax=ax)
 
+
 # %% 1-D plot when only vary one parameter
-plt.rcParams['figure.figsize'] = [4, 3]
+# plt.rcParams['figure.figsize'] = [4, 3]
 
-colnames = ['PSD', 'AtomNum', 'T (K)']
+# colnames = ['PSD', 'AtomNum', 'T (K)']
 
-fig, axes = plt.subplots(1,3, figsize=[8, 2.5], layout='constrained')
-for ii, ax in enumerate(axes): 
-    df[colnames[ii]].plot(ls='',marker='x', ax=ax)
-    ax.set(title=colnames[ii], )
-    # ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
-    ax.set_yscale('log')
+# fig, axes = plt.subplots(1,3, figsize=[8, 2.5], layout='constrained')
+# for ii, ax in enumerate(axes): 
+#     df[colnames[ii]].plot(ls='',marker='x', ax=ax)
+#     ax.set(title=colnames[ii], )
+#     # ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+#     ax.set_yscale('log')
 
 # fig, ax = plt.subplots(1,1, figsize=[4, 3], layout='constrained')
 
@@ -380,7 +481,16 @@ for ii, ax in enumerate(axes):
 # ax.set_yscale('log')
 # ax.set_xscale('log')
 
+# fig, ax = plt.subplots(1,1, layout='constrained')
+# ax.plot(df.index, df['T (K)'], '.')
+# ax.set(xlabel='Time (s)', ylabel='T (K)')
+# ax.set_yscale('log')
+# # ax.set_xscale('log')
 
+# fig, ax = plt.subplots(1,1, layout='constrained')
+# ax.plot(df.index, df.AtomNum, '.')
+# ax.set(xlabel='Time (s)', ylabel='Atom Number')
+# ax.set_yscale('log')
 
 # # fig, ax = plt.subplots(1,1, layout='constrained')
 # # ax.plot(df['AtomNum'], df.PSD, '.')

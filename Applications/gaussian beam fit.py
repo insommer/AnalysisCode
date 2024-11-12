@@ -16,9 +16,9 @@ from ImageAnalysis import ImageAnalysisCode
 ####################################
 
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '5/2/2024'
-data_folder = r'\FLIR\Beam Waist'
-filename = r'\ODT 3400.raw'
+date = '9/25/2024'
+data_folder = r'\Basler\First pass motion'
+filename = r'\pos-3.raw'
 
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)
@@ -32,13 +32,14 @@ path = dataLocation + data_folder + filename
 
 # path = data_location + date + data_folder + filename
 
+
 ####################################
 # Choose the camera
 # 1 for the old Point Grey Chameleon, 
 # 1.2 for the new Point Grey Chameleon, 
 # 2 for Basler dart
 ####################################
-camera = 1.2
+camera = 2
 
 # path = r'./FLIR/Camera Position Check.raw'
 #aw = rawpy.imread(path)
@@ -50,7 +51,7 @@ if camera == 1:
     pixelsize_um = 3.75#microns
     
 if camera == 1.2:
-    img = np.fromfile(path, dtype = np.uint16)
+    img = np.fromfile(path, dtype = np.uint8)
     width = 2048
     height = 1536
     pixelsize_um = 3.45#microns

@@ -21,14 +21,17 @@ from scipy.integrate import simpson
 from ImageAnalysis import ImageAnalysisCode
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+
+plt.close('all')
 
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/11/2024'
+date = '11/12/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-# data_folder = r'/FLIR/Cam bias scan og position'
-data_folder = r'/FLIR/Align top'
+
+data_folder = r'/FLIR/Focus top cam'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -36,7 +39,7 @@ data_folder = r'/FLIR/Align top'
 ####################################
 #Parameter Setting
 ####################################
-examNum = None #The number of runs to exam.
+examNum = 6 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
@@ -88,12 +91,9 @@ t_exp = 10e-6
 picturesPerIteration = 3
 # t0 = 40e-6
 
-#config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
 
 
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")      
-# images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
-# images_array = ImageAnalysisCode.loadSeriesRAW(params = params, picturesPerIteration=picturesPerIteration, data_folder = data_folder)
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")
 images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
                                                binsize=binsize, file_encoding = 'binary', 
                                                examFrom=examFrom, examUntil=examUntil, return_fileTime=1)
@@ -101,8 +101,6 @@ images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=pi
 variableLog = ImageAnalysisCode.LoadVariableLog(variableLog_folder)
 logTime = ImageAnalysisCode.Filetime2Logtime(fileTime, variableLog)
 
-# Number_of_atoms, columnDensities = ImageAnalysisCode.flsImaging(images_array, params = params, firstFrame=0, rowstart = 0, rowend = -1, 
-#                                                                 columnstart =0, columnend = -1, subtract_burntin = 1)
 
 if variableFilterList:        
     filterList = ImageAnalysisCode.VariableFilter(logTime, variableLog, variableFilterList)
@@ -120,50 +118,68 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 columnend = columnend, subtract_burntin=0, preventNAN_and_INF=True)
 
 
-# columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
-#                                                   radius=radius/binsize)
-
 plt.figure()
 plt.imshow(ratio_array[0], vmin = 0, cmap = 'gray') #vmax = 1.5
 plt.colorbar()
 plt.show()
 
+angle_deg= 40 #rotates ccw
 
-# for count, x in enumerate(columnDensities):       
-#     widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count], do_plot = 1)
-#     print("Center x:",center_x)
-#     print("Center y:",center_y)
-# tof_array = np.loadtxt(data_folder + '/tof_list.txt')*1e-3+t0
-# poptx, pcovx, popty, pcovy = ImageAnalysisCode.thermometry(params, columnDensities, tof_array, do_plot = True, data_folder = data_folder)
-
-
-center_x_array = np.zeros(len(images_array))
-center_y_array = np.zeros(len(images_array))
+fitVals = []
 
 for count, img in enumerate(columnDensities):
     
-    # Xdistribution = images_array[count, 1].sum(axis=0)
-    # Ydistribution = images_array[count, 1].sum(axis=1)
-    
     sutter_widthx, sutter_center_x, sutter_widthy, sutter_center_y = ImageAnalysisCode.fitgaussian(images_array[count, 1], 
                                                                                                    title='shutter fitting', do_plot=0)
+   
     masked, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
                                                       radius=radius/binsize)
     
-    widthx, center_x, widthy, center_y = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
+    _, Xcenter, _, Ycenter = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
+                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
+                                                                        column_density_xylim=(columnstart, columnend, rowstart, rowend),
+                                                                        count=count, logTime=logTime, variableLog=variableLog, 
+                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=True)
+    
+    
+    rotatedCD = rotate(columnDensities[count][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
+
+    Xwidth, _, Ywidth, _ = ImageAnalysisCode.fitgaussian(rotatedCD, title = "Vertical Column Density",
                                                                         vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
-    center_x_array[count] = center_x
-    center_y_array[count] = center_y
-    print("Center x:",center_x)
-    print("Center y:",center_y)
-    print("Number of atoms:{}e6".format(round(Number_of_atoms[count]/(1e6))))
-    if (count+1)%2 == 0:
-        print("difference in center x:",center_x_array[count]-center_x_array[count - 1])
-        print("difference in center y:",center_y_array[count]-center_y_array[count - 1])
+    
+    row = {
+        'Xwidth': Xwidth,
+        'Ywidth': Ywidth,
+        'Xcenter': Xcenter,
+        'Ycenter': Ycenter
+    }
+    
+    fitVals.append(row)
 
+
+    print("Number of atoms:{}e6".format(round(Number_of_atoms[count]/(1e6))))
+
+
+df_temp = pd.DataFrame(fitVals)
+df_temp['atomNum'] = Number_of_atoms
+
+var2append = variableLog[ variableLog.index.isin(logTime) ].reset_index()
+
+
+df = pd.concat([df_temp, var2append], axis=1)
+df = df.set_index('time')
+
+#%%
+
+# plt.figure()
+# plt.errorbar(df['wait'])
+
+
+
+#%%
 '''
 ImageAnalysisCode.imageFreqOptimization(np.loadtxt(data_folder+"/imgfreq.txt"), Number_of_atoms, ratio_array)
 plt.imshow(ratio_array[0][rowstart:rowend,columnstart:columnend],vmin=0,vmax=1.2,cmap="gray")
