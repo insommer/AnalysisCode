@@ -16,14 +16,14 @@ from scipy import constants
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-# date = '10/07/2024'
-date = '11/22/2024'
-# date = '9/9/2024'
+dataRootFolder = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
+
+date = '11/07/2024'
 
 data_folder = [
-    # r'Andor/ODT temp MF waveplate 220_1',
-    # r'Andor/Test',
-    r'Andor/HF evap_2',
+    r'Andor/D1 temp',
+    # r'Andor/Lifetime misaligned WP 219',
+    # r'Andor/Lifetime misaligned WP 220_1',
     # r'Andor/lifetime Evap1_V 0.35V',
     # r'Andor/Lifetime WP 217_1',
     # r'Andor/Modulate ODT 1250_1',
@@ -52,7 +52,7 @@ skipFirstImg = 'auto'
 rotateAngle = 0 #rotates ccw
 # rotateAngle = 0.5 #rotates ccw
 
-examNum = None #The number of runs to exam.
+examNum = 3 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 showRawImgs = 0
 
@@ -134,7 +134,11 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, 
-                                                                   showRawImgs=showRawImgs, rebuildCatalogue=0,
+                                                                   showRawImgs=showRawImgs, 
+                                                                   ##################
+                                                                   # Keep rebuildCatalogue = 0 unless necessary!
+                                                                   rebuildCatalogue=0,
+                                                                   ##################
                                                                     # filterLists=[['TOF<1']]
                                                                     )
 

@@ -100,7 +100,6 @@ def AddCommonLabels(fig, xlabel='', ylabel='',
         fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
         fig.tight_layout(rect=[0.05, 0.05, 1, 1])
 
-    
 
 def LoadConfigFile(dataFolder=".", configFileName='config.cfg',encoding="utf-8"): 
     config_file = dataFolder + "//" + configFileName
@@ -175,40 +174,12 @@ def loadPGM(filename, file_encoding = 'binary'):
         rows2discard = 2
         data_array = data_array[rows2discard: , :]
     return data_array 
-    
-def rebin(arr, new_shape):
-    shape = (new_shape[0], arr.shape[0] // new_shape[0],
-             new_shape[1], arr.shape[1] // new_shape[1])
-    return arr.reshape(shape).mean(-1).mean(1)
 
-def rebin2(arr, bins):
-    #Bins = (binx, biny)
-    #this function throws away excess matrix elements
-    new_shape = (arr.shape[0]//bins[0], arr.shape[1]//bins[1])
-    return rebin(arr[:bins[0]*new_shape[0], :bins[1]*new_shape[1]], new_shape)
-
-
-# to load a numbered series of FLIR .pgm images into a 4D numpy array
-# filenames must be in this format: root+number.pgm. Number must start from 1 
-# n_params is the number of embedded image information fields which are checked, values between 0 to 10, default 0 
-# zero is black, maxval is white
-
-def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
-                  file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):
-    if examFrom:
-        examFrom *= picturesPerIteration
-    if examUntil:
-        examUntil *= picturesPerIteration
-        
-    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
-    
-    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
-                        binsize, file_encoding = file_encoding, 
-                        return_fileTime = return_fileTime)
 
 
 def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize=1, 
                  file_encoding = 'binary', return_fileTime=0):
+    
     number_of_pics = len(file_names)
     number_of_iterations = int(number_of_pics/picturesPerIteration)
 
@@ -251,6 +222,38 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
         return image_array, fileTime
     else:
         return image_array
+
+    
+        
+def rebin(arr, new_shape):
+    shape = (new_shape[0], arr.shape[0] // new_shape[0],
+             new_shape[1], arr.shape[1] // new_shape[1])
+    return arr.reshape(shape).mean(-1).mean(1)
+
+def rebin2(arr, bins):
+    #this function throws away excess matrix elements
+    new_shape = (arr.shape[0]//bins[0], arr.shape[1]//bins[1])
+    return rebin(arr[:bins[0]*new_shape[0], :bins[1]*new_shape[1]], new_shape)
+
+
+
+def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
+                  file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):    
+# to load a numbered series of FLIR .pgm images into a 4D numpy array
+# filenames must be in this format: root+number.pgm. Number must start from 1 
+# n_params is the number of embedded image information fields which are checked, values between 0 to 10, default 0 
+# zero is black, maxval is white
+
+    if examFrom:
+        examFrom *= picturesPerIteration
+    if examUntil:
+        examUntil *= picturesPerIteration
+        
+    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
+    
+    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
+                        binsize, file_encoding = file_encoding, 
+                        return_fileTime = return_fileTime)
 
 
 # to load a series of non-spooled Andor .dat images into a 4D numpy array
@@ -625,7 +628,7 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
     return catalogue
 
     
-def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
+def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, skipFirstImg='auto', showRawImgs=0,
                       filterLists=[], 
@@ -1327,15 +1330,15 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
         # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
         # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
         if (subtract_burntin):
-            subtracted1 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+0,:,:]   
-            subtracted2 = abs_img_data[i,firstFrame+2,:,:] - abs_img_data[i,firstFrame+3,:,:]
+            subtracted1 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+0,:,:]  # with_atom - burnt_in
+            subtracted2 = abs_img_data[i,firstFrame+2,:,:] - abs_img_data[i,firstFrame+3,:,:]  # no_atom - bg
         else:
-            subtracted1 = abs_img_data[i,firstFrame+0,:,:] - abs_img_data[i,firstFrame+2,:,:]
-            subtracted2 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+2,:,:]
+            subtracted1 = abs_img_data[i,firstFrame+0,:,:] - abs_img_data[i,firstFrame+2,:,:]  # with_atom - bg
+            subtracted2 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+2,:,:]  # no_atom - bg
         
         if (preventNAN_and_INF):
             #if no light in first image
-            subtracted1[ subtracted1<= 0 ] = 1
+            subtracted1[ subtracted1<= 0 ] = 1 
             subtracted2[ subtracted1<= 0 ] = 1
             
             #if no light in second image
@@ -1424,18 +1427,18 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
     # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
     # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
     if subtract_burntin:
-        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]   
-        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]
+        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]  # with_atom - burnt_in
+        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]  # no_atom - bg
     else:
-        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]
-        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]
+        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]  # with_atom - burnt_in
+        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]  # no_atom - bg
     
     if preventNAN_and_INF:
         #set to 1 if no light in the first or second image 
-        mask = (subtracted1 <= 0)
+        mask = (subtracted1 <= 0) # with_atom < 0
         subtracted1[ mask ] = 1
         
-        mask = (subtracted2 <= 0)
+        mask = (subtracted2 <= 0) # no_aotm < 0
         subtracted1[ mask ] = 1
         subtracted2[ mask ] = 1
         
