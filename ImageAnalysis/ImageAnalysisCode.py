@@ -644,12 +644,13 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
             skipFirstImg = 0
 
     PPI = 4 if (subtract_burntin or skipFirstImg) else 3
-    firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0   
+    firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
+    skipFirstImg = 1 if firstFrame else 0
     
     params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
     
     print('subtract burntin\t', subtract_burntin)
-    # print('skip firstImg\t\t', skipFirstImg)
+    print('skip firstImg\t\t', skipFirstImg)
     print('picture/iteration\t', PPI)
     print('first frame\t\t\t', firstFrame)
     
@@ -2917,7 +2918,7 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
                                       do_plot=1, ax=ax)
         
         if do_plot and add_Text:
-            ax.text(0.03, 0.05, '{}\n= {}'.format(variables, ind), ha='left', va='bottom', transform=ax.transAxes)
+            ax.text(0.03, 0.95, '{}\n= {}'.format(variables, ind), ha='left', va='top', transform=ax.transAxes)
             # ax.text(0, 20, 'T (uK): {:.3f}'.format(popt[1]*1e6), ha='left', va='top')
 
         T.append( popt[1] )

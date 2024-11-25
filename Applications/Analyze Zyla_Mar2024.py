@@ -17,13 +17,13 @@ from scipy import constants
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 # date = '10/07/2024'
-date = '11/12/2024'
+date = '11/22/2024'
 # date = '9/9/2024'
 
 data_folder = [
-    r'Andor/ODT temp MF waveplate 220 with wait 2000 ms',
-    # r'Andor/Lifetime misaligned WP 219',
-    # r'Andor/Lifetime misaligned WP 220_1',
+    # r'Andor/ODT temp MF waveplate 220_1',
+    # r'Andor/Test',
+    r'Andor/HF evap_2',
     # r'Andor/lifetime Evap1_V 0.35V',
     # r'Andor/Lifetime WP 217_1',
     # r'Andor/Modulate ODT 1250_1',
@@ -40,11 +40,11 @@ data_folder = [
 #Parameter Setting'
 ####################################
 reanalyze = 1
-saveresults = 0
-overwriteOldResults = 0
+saveresults = 1
+overwriteOldResults = 1
 
 repetition = 1 #The number of identical runs to be averaged.
-subtract_burntin = 1
+subtract_burntin = 0
 
 skipFirstImg = 'auto'
 # skipFirstImg = 0
@@ -84,11 +84,11 @@ columnstart = 10
 columnend = -10
 
 
-columnstart=500
-columnend= 1250
+columnstart=800
+columnend= 1200
 
-rowstart = 200
-rowend = 600
+rowstart = 250
+rowend = 550
 
 # first pass
 # rowstart = 400
@@ -99,10 +99,10 @@ rowend = 600
 # rowend = 500
 
 # rowstart -= 100
-# rowend -= 100
+# rowend += 100
 
 # columnstart -= 100
-# columnend -= 100
+# columnend += 100
 
 ####################################
 ####################################
@@ -134,13 +134,13 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, 
-                                                                   showRawImgs=showRawImgs, rebuildCatalogue=1,
+                                                                   showRawImgs=showRawImgs, rebuildCatalogue=0,
                                                                     # filterLists=[['TOF<1']]
                                                                     )
 
 autoCrop = 0
 if autoCrop:
-    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[200, 150])
+    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[120, 70])
     print('ColumnDensities auto cropped.')
 #%%
         
@@ -249,17 +249,19 @@ intermediatePlot = 1
 plotPWindow = 4
 plotRate = 1
 uniformscale = 0
-rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}
+rcParams = {'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9,
+            # 'image.interpolation': 'nearest'
+            }
 
 variablesToDisplay = [
                     # # 'Coil_medB', 
                         'TOF',
                         # 'ODT_Misalign',
                         # 'Evap1_V',
-                        # 'LowServo1',
+                        'LowServo1',
                         # 'Evap_time_2'
                         # 'Evap_timestep'
-                        'wait',
+                        # 'wait',
                         # 'Evap_Time_2',
                         # 'WP_angle',
                         # 'Lens_Position',
@@ -294,7 +296,7 @@ if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
     ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
                                           dx=dxMicron, 
-                                            # filterLists=[['Evap_Time_2==1.5']],
+                                            # filterLists=[['LowServo1==0.5']],
                                            plotRate=plotRate, plotPWindow=plotPWindow,
                                             variablesToDisplay = variablesToDisplay,
                                            showTimestamp=showTimestamp,
@@ -417,14 +419,19 @@ if intermediatePlot:
 
 # %% THERMOMETRY
 
-# filt = results[results['Ywidth'] < 1e3]
+# filterLists = [['LowServo1>0.6'], ['LowServo1==0.6','TOF<1.5'], ['LowServo1==0.5', 'TOF<0.9']]
+filterLists = []
+fltedData = ImageAnalysisCode.DataFilter(results, filterLists=filterLists)
 
-var2 = 'wait'
+
+
+# var2 = 'wait'
 # var2 = 'Evap_timestep'
-# var2 = 'LowServo1'
+var2 = 'LowServo1'
 # var2 = 'Evap_Time_2'
-df = ImageAnalysisCode.multiVariableThermometry(
-                                                results, 
+df = ImageAnalysisCode.multiVariableThermometry(    
+                                                # results, 
+                                                fltedData,
                                                 # var1, 
                                                 var2, 
                                                 fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
