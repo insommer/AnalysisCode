@@ -650,7 +650,7 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
     skipFirstImg = 1 if firstFrame else 0
     
-    params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
+    #---params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
     
     print('subtract burntin\t', subtract_burntin)
     print('skip firstImg\t\t', skipFirstImg)
@@ -727,18 +727,18 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
         
-    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
-                                                      subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    opticalDensity = absImagingSimpleV2(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
+                                        subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
     # catalogue = catalogue.drop('FolderPath', axis=1)
     catalogue.insert(0, 'Folder', folderNames)
     
     if rotateAngle:
-        columnDensities = rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)
+        opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
         print('\nColumnDensities rotated.\n')
 
-    return columnDensities[:, rowstart:rowend, columnstart:columnend], catalogue
+    return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
 
 
 def DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1):
@@ -1395,7 +1395,7 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     
     
     
-def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactorInput=1, 
+def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1, 
                        rowstart=None, rowend=None, columnstart=None, columnend=None, 
                        subtract_burntin = False, preventNAN_and_INF = False):
     """
@@ -1415,17 +1415,7 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
         4D array, with one image per run of the experiment
 
     """
-    
-    # if params:
-    pixelsize=params.camera.pixelsize_microns*1e-6
-    magnification=params.magnification
-    # else:
-    #     pixelsize=6.5e-6 #Andor Zyla camera
-    #     magnification = 0.55 #75/125 (ideally) updated from 0.6 to 0.55 on 12/08/2022
-        
-    # print("dimensions of the data for testing purposes:", np.shape(abs_img_data))
-    # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
-    # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
+
     if subtract_burntin:
         subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]  # with_atom - burnt_in
         subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]  # no_atom - bg
@@ -1452,7 +1442,6 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
     # print("correction factor iteration", i+1, "=",correctionFactor)
     ratio /= correctionFactor #this is I/I0
     opticalDensity = -1 * np.log(ratio)
-    N_abs = opticalDensity.sum(axis = (1,2))
     
     ###################
     # detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
@@ -1461,19 +1450,10 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
     # cross_section = (3*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
     
     #####################
-    cross_section = params.cross_section
-
     
-    columnDensities = opticalDensity / cross_section
-    #n2d[~np.isfinite(columnDensities)] = 0
-    deltaX = pixelsize/magnification #pixel size in atom plane
-    deltaY = deltaX
-    Number_of_atoms = columnDensities[:, rowstart:rowend, columnstart:columnend]
-        
-    # print("number of atoms iteration", i+1, ": ", Number_of_atoms[i]/1e6,"x10^6")
-    print('Finigh calculating columnDensities.')
+    print('Finish calculating opticalDensity.')
     
-    return Number_of_atoms, N_abs, ratio, columnDensities, deltaX, deltaY
+    return opticalDensity
 
 
 
@@ -1765,7 +1745,8 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', guess=[],
         # minamps = 0.1*(data.max()-data.min())
         minamps = 0
         popt, pcov = curve_fit(MultiGaussian, xdata, data, p0 = guess,
-                            bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1)))
+                            # bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1))
+                              )
 
     except Exception as e:
         print(e)
@@ -2104,10 +2085,11 @@ def plotRadialAtomDensity(r, y, dx=3.85, ax=None, linestyle='.', ms=3, addAxieLa
     
 
 
-def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
+def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None, 
+                        filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
-                        uniformscale=0, 
+                        uniformscale=0, addColorbar=1,
                         variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
@@ -2124,14 +2106,23 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
     N = len(popts)
     
     if filterLists:
-        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, logTime, filterLists=filterLists)
-        imgs, popts, bgs, logTime = items[0], items[1: N+1], items[N+1:], items[-1]
+        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, logTime, imgs2, filterLists=filterLists)
+        imgs, popts, bgs, logTime, imgs2 = items[0], items[1: N+1], items[N+1:], items[-2], items[-1]
+    if imgs2 is not None:
+        imgShow = imgs2
+        if not title:
+            title=['Optical Density', '1D density vs ', '1D density vs ']
+    else:
+        imgShow = imgs
+        if not title:
+            title=['Column Density', '1D density vs ', '1D density vs ']
 
-    imgNo = len(imgs)
+    imgNo = len(imgs)    
     
     if plotRate < 1:
         mask = np.random.rand(imgNo) < plotRate
         imgs = imgs[mask]
+        imgShow = imgShow[mask]
         imgNo = mask.sum()
         
         popts = list(popts)
@@ -2143,22 +2134,20 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
     oneD_imgs = []
     xx = []
     xxfit = []
-    if not title:
-        title=['Column Density', '1D density vs ', '1D density vs ']
         
     if variablesToDisplay and logTime is None:
         logTime = variableLog.index
     
-    for n in range(N):
-        oneD = np.nansum(imgs, axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
-        L = len(oneD[0])
+    for n in range(N): # loop through the axes provided
+        oneD = np.nansum(imgs, axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2 # dx is in micron
+        L = len(oneD[0]) # the length of the x-axis of the 1-D plot
         oneD_imgs.append(oneD)
         xx.append(np.arange(0, L) * dx)
         xxfit.append(np.arange(0, L, 0.1) * dx)
         title[n+1] += axlist[n]
         
     if uniformscale:
-        vmax = imgs.max()
+        vmax = imgShow.max()
     else:
         vmax = None
         
@@ -2175,9 +2164,12 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                 axes[0, n].set_title(title[n])
         
         #Plot the Images
-        axes[plotInd, 0].imshow(imgs[ind], vmin=0, vmax=vmax)
-       
-        
+        im = axes[plotInd, 0].imshow(imgShow[ind], vmin=0, vmax=vmax)
+        if addColorbar:
+            divider = make_axes_locatable(axes[plotInd, 0])
+            cax = divider.append_axes('right', size='3%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
+               
         for n in range(N):
             axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
             if popts[n][ind] is not None:

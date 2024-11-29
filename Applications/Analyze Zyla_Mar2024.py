@@ -22,25 +22,12 @@ date = '11/07/2024'
 
 data_folder = [
     r'Andor/D1 temp',
-    # r'Andor/Lifetime misaligned WP 219',
-    # r'Andor/Lifetime misaligned WP 220_1',
-    # r'Andor/lifetime Evap1_V 0.35V',
-    # r'Andor/Lifetime WP 217_1',
-    # r'Andor/Modulate ODT 1250_1',
-    # r'Andor/1250 atom number at BEC field',
-    # r'Andor/ODT 2350 scan LowServo Atom Num',
-    # r'Andor/ODT 2350 scan LowServo Atom Num_1',
-    # r'Andor/Modulate ODT 1800 low freq_1',
-    # r'Andor\gray molasses more D1 power_1'
-    # r'Andor\With Low Servo Late ODT LowServo1 0.29 Changed Lens_1',
-    # r'Andor\before evap thermometry low field Digital Mag Off',
-    # r'Andor\GM Temp Vary D1 Re Attn_3',
     ]
 ####################################
 #Parameter Setting'
 ####################################
 reanalyze = 1
-saveresults = 1
+saveresults = 0
 overwriteOldResults = 1
 
 repetition = 1 #The number of identical runs to be averaged.
@@ -98,11 +85,11 @@ rowend = 550
 # rowstart = 440
 # rowend = 500
 
-# rowstart -= 100
-# rowend += 100
+rowstart -= 100
+rowend += 100
 
-# columnstart -= 100
-# columnend += 100
+columnstart -= 100
+columnend += 100
 
 ####################################
 ####################################
@@ -128,15 +115,15 @@ dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in 
 
 
 #%%
-columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examRange=[examFrom, examUntil], 
+opticalDensity, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, examRange=[examFrom, examUntil], 
                                                                    rotateAngle=rotateAngle, 
                                                                    rowstart=rowstart, rowend=rowend, 
                                                                    columnstart=columnstart, columnend=columnend,
                                                                    subtract_burntin=subtract_burntin, 
                                                                    skipFirstImg=skipFirstImg, 
                                                                    showRawImgs=showRawImgs, 
-                                                                   ##################
-                                                                   # Keep rebuildCatalogue = 0 unless necessary!
+                                                                   #!!!!!!!!!!!!!!!!!
+                                                                   #! Keep rebuildCatalogue = 0 unless necessary!
                                                                    rebuildCatalogue=0,
                                                                    ##################
                                                                     # filterLists=[['TOF<1']]
@@ -144,10 +131,11 @@ columnDensities, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, ex
 
 autoCrop = 0
 if autoCrop:
-    columnDensities = ImageAnalysisCode.AutoCrop(columnDensities, sizes=[120, 70])
-    print('ColumnDensities auto cropped.')
+    opticalDensity = ImageAnalysisCode.AutoCrop(opticalDensity, sizes=[120, 70])
+    print('opticalDensity auto cropped.')
 #%%
-        
+
+columnDensities = opticalDensity / params.cross_section        
 popts, bgs = ImageAnalysisCode.FitColumnDensity(columnDensities, dx = dxMicron, mode='both', yFitMode='single',
                                                 subtract_bg=subtract_bg, Xsignal_feature='wide', Ysignal_feature='wide')
 
@@ -161,14 +149,6 @@ if variableLog is not None:
 if saveresults:
     ImageAnalysisCode.SaveResultsDftoEachFolder(results, overwrite=overwriteOldResults)    
 
-#%%
-# mask = (results.Ywidth < 5.5)  & (results.Ywidth > 3.9) & (results.HF_AOM_Freq<=317)
-# results = results[ mask ]
-# columnDensities = columnDensities[mask]
-# popts[0] = np.array(popts[0])[mask]
-# popts[1] = np.array(popts[1])[mask]
-# bgs[0] = np.array(bgs[0])[mask]
-# bgs[1] = np.array(bgs[1])[mask]
 
 # %%
 # ImageAnalysisCode.PlotFromDataCSV(results, 'HF_AOM_Freq', 'Ywidth', 
@@ -184,12 +164,6 @@ if saveresults:
 #                                   groupbyX=1, threeD=0,
 #                                   figSize = 0.5
 #                                   )
-# ImageAnalysisCode.PlotFromDataCSV(results, 'LF_AOM_freq', 'Ywidth', 
-#                                    iterateVariable='Lens_Position', 
-#                                    # filterLists=[['wait>=10', 'wait<=100']],
-#                                    groupbyX=1, threeD=0,
-#                                    figSize = 0.5, do_fit=0
-#                                    )
 
 # ImageAnalysisCode.PlotFromDataCSV(results, 'Evap1_V', 'Ycenter', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
@@ -229,14 +203,6 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'CamBiasCurrent', 'YatomNumber', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
 
 # fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
 # results.YatomNumber.plot(title='Atom Number', linestyle='', marker='.')
@@ -300,6 +266,8 @@ if intermediatePlot:
     # ImageAnalysisCode.ShowImagesTranspose(images_array, uniformscale=False)
     ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, 
                                           dx=dxMicron, 
+                                          # imgs2=opticalDensity, 
+                                          # addColorbar=0,
                                             # filterLists=[['LowServo1==0.5']],
                                            plotRate=plotRate, plotPWindow=plotPWindow,
                                             variablesToDisplay = variablesToDisplay,
