@@ -635,9 +635,7 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
 
-
     paths = [ii.replace('\\', '/') for ii in paths]
-    
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
     
     if skipFirstImg == 'auto':    
@@ -650,13 +648,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
     skipFirstImg = 1 if firstFrame else 0
     
-    #---params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
-    
     print('subtract burntin\t', subtract_burntin)
     print('skip firstImg\t\t', skipFirstImg)
     print('picture/iteration\t', PPI)
     print('first frame\t\t\t', firstFrame)
-    
     
     N = 0
     pathNeedCatalogue = []
@@ -682,8 +677,6 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
         elif existCatalogue:
             
             df = pd.read_pickle(cataloguePath)
-            # with open(cataloguePath, 'rb') as f:
-            #     df = pickle.load(f)
             
             # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
             if (len(df) != (number_of_pics / PPI)):
@@ -836,10 +829,7 @@ def LoadDfResults(*paths):
         if not os.path.exists(resultsPath):
             print("Warning! Results not found in folder:" + str(pp))
             continue
-        
-        
-    
-    
+            
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
                      subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow'):
@@ -1442,14 +1432,6 @@ def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1,
     # print("correction factor iteration", i+1, "=",correctionFactor)
     ratio /= correctionFactor #this is I/I0
     opticalDensity = -1 * np.log(ratio)
-    
-    ###################
-    # detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
-    # linewidth = 36.898e6 #units Hz
-    # wavevector =2*np.pi/(671e-9) #units 1/m
-    # cross_section = (3*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
-    
-    #####################
     
     print('Finish calculating opticalDensity.')
     

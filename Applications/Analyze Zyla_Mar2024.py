@@ -165,50 +165,6 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap1_V', 'Ycenter', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'YatomNumber', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-
-# ImageAnalysisCode.PlotFromDataCSV(results, 'LowServo1', 'YatomNumber', 
-#                                   # iterateVariable='VerticalBiasCurrent', 
-#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   # groupby='ODT_Position', 
-#                                     groupbyX=1, 
-#                                   threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
-
-# fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
-# results.YatomNumber.plot(title='Atom Number', linestyle='', marker='.')
-
-# fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
-# results.Ycenter.plot(title='y Position', linestyle='', marker='.')
 
 # fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
 # results.Xcenter.plot(title='x Position', linestyle='', marker='.')
@@ -232,30 +188,6 @@ variablesToDisplay = [
                         # 'Evap_time_2'
                         # 'Evap_timestep'
                         # 'wait',
-                        # 'Evap_Time_2',
-                        # 'WP_angle',
-                        # 'Lens_Position',
-                        # 'StopEvap_LowServo',
-                        # 'StopEvap_Time',
-                        # 'LF_AOM_freq',
-                        # 'Lens_Position',
-                        # 'FB Voltage',
-                        # 'B_Field',
-                        # 'ODT_Position',
-                        # 'fmod_kHz',
-                        # 'tmod_ms',
-                        # 'Cycles_num',
-                        # 'Mod_amp',
-                        # 'Evap_Tau',
-                        # 'VerticalBiasCurrent',
-                        # 'B_spikeTime',
-                        # 'HF_AOM_Freq',
-                        # 'CamBiasCurrent',
-                        #'Lens Position',
-                        # 'IR_Waveplate',
-                        # 'B_Field',
-                        # 'BEC_fieldRamp_ms',
-                        
                       ]
 showTimestamp = False
 # variablesToDisplay=None
