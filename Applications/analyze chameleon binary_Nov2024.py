@@ -28,10 +28,10 @@ plt.close('all')
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/12/2024'
+date = '11/25/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 
-data_folder = r'/FLIR/Focus top cam'
+data_folder = r'/FLIR/Test LS'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -39,17 +39,21 @@ data_folder = r'/FLIR/Focus top cam'
 ####################################
 #Parameter Setting
 ####################################
-examNum = 6 #The number of runs to exam.
+examNum = 8 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
-    'wait',
+    # 'wait',
+    # 'TOF',
+    'LowServo1',
+    # 'Lens_Position',
     # 'ODT Position',
     # 'ZSBiasCurrent',
     # 'VerticalBiasCurrent',
+    
     # 'CamBiasCurrent'
     ]
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
@@ -136,7 +140,7 @@ for count, img in enumerate(columnDensities):
                                                       radius=radius/binsize)
     
     _, Xcenter, _, Ycenter = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
-                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
+                                                                        vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
@@ -145,7 +149,7 @@ for count, img in enumerate(columnDensities):
     rotatedCD = rotate(columnDensities[count][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
 
     Xwidth, _, Ywidth, _ = ImageAnalysisCode.fitgaussian(rotatedCD, title = "Vertical Column Density",
-                                                                        vmax = vmax, do_plot = 1, save_column_density=0,
+                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
@@ -169,13 +173,22 @@ df_temp['atomNum'] = Number_of_atoms
 var2append = variableLog[ variableLog.index.isin(logTime) ].reset_index()
 
 
-df = pd.concat([df_temp, var2append], axis=1)
-df = df.set_index('time')
+results = pd.concat([df_temp, var2append], axis=1)
+results = results.set_index('time')
 
 #%%
 
-# plt.figure()
-# plt.errorbar(df['wait'])
+df = results.groupby('Lens_Position')
+
+plt.figure()
+plt.errorbar(df['Lens_Position'].mean(), df['Ywidth'].mean(), df['Ywidth'].std(), fmt='-o', capsize=2)
+plt.xlabel('Lens position')
+plt.ylabel('Ywidth (um)')
+
+
+plt.figure()
+plt.errorbar(df['Lens_Position'].mean(), df['Xwidth'].mean(), df['Xwidth'].std(), fmt='-o', capsize=2)
+plt.ylabel('Xwidth (um)')
 
 
 

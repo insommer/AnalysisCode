@@ -25,10 +25,10 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/11/2024'
+date = '11/25/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 # data_folder = r'/FLIR/Cam bias scan og position'
-data_folder = r'/FLIR/Align top'
+data_folder = r'/FLIR/Focus top cam'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -43,7 +43,8 @@ do_plot = True
 showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
-    'wait',
+    # 'wait',
+    'Lens_Position'
     # 'ODT Position',
     # 'ZSBiasCurrent',
     # 'VerticalBiasCurrent',

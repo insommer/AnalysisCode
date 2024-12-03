@@ -41,6 +41,7 @@ def getImagingSystemByDate(date_mdy, axis, debug=0):
     """
     data_date = datetime.datetime.strptime(date_mdy,"%m/%d/%Y")    
     date1 = "2/8/2024" # Change the lenses for the side imaging, the magnification changed from 0.553 to 1.69
+    date2 = '11/12/2024' # change lens for top imaging, magnification 0.6 -> 1.8
     
     if axis.lower() == "side":
         if data_date > datetime.datetime.strptime(date1,"%m/%d/%Y"):#changed side imaging lenses
@@ -55,19 +56,35 @@ def getImagingSystemByDate(date_mdy, axis, debug=0):
         
     elif axis.lower() == "top":
         if True:
-            magnification = 0.6
+            if data_date > datetime.datetime.strptime(date2,"%m/%d/%Y"):
+                if debug:
+                    print('\tNew top imaging')
+                magnification = 1.8
+                
+            else:
+                if debug:
+                    print('\tOld top imaging')
+                magnification = 0.6
+            
             aperture_radius =  1.5 #in mm, the radius of the iris placed at the lens directly after the chamber where the MOT starts to get blocked
             objective_distance = 125.00 # in mm
             return ImagingSystem(magnification, objective_distance, aperture_radius)
         
         
 def CrossSection(axis='side'):
-    if axis == 'side':    
-        detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
-        linewidth = 36.898e6 #units Hz
-        wavevector = 2*np.pi/(671e-9) #units 1/m
-        cross_section = 1/2 * (6*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+    
+    detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
+    linewidth = 36.898e6 #units Hz
+    wavevector = 2*np.pi/(671e-9) #units 1/m
+    cross_section = (6*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1
+
+    if axis == 'top':
         return cross_section
+    
+    elif axis == 'side':    
+        cross_section = 1/2 * cross_section
+        return cross_section
+    
     else: 
         raise ValueError('The cross section is not set!')
         
