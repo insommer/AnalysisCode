@@ -16,9 +16,9 @@ from ImageAnalysis import ImageAnalysisCode
 ####################################
 
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '9/25/2024'
-data_folder = r'\Basler\First pass motion'
-filename = r'\pos-3.raw'
+date = '11/22/2024'
+data_folder = r'\Basler\Find Waist'
+filename = r'\pos0.raw'
 
 
 dataLocation = ImageAnalysisCode.GetDataLocation(date,DataPath=data_path)

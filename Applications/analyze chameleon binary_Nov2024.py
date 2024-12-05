@@ -28,28 +28,34 @@ plt.close('all')
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/12/2024'
+date = '12/4/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 
-data_folder = r'/FLIR/Focus top cam'
+data_folder = r'/FLIR/Probe evap TOF 0.5 ms'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
 
 ####################################
 #Parameter Setting
-####################################
-examNum = 6 #The number of runs to exam.
+
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
-    'wait',
+    # 'wait',
+    'TOF',
+    'Evap_timestep'
+    # 'LS_width',
+    # 'LS_spacing'
+    # 'Lens_Position',
     # 'ODT Position',
     # 'ZSBiasCurrent',
     # 'VerticalBiasCurrent',
+    
     # 'CamBiasCurrent'
     ]
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
@@ -62,15 +68,15 @@ variableFilterList = [
     ] # NO SPACE around the operator!
 
 
-# rowstart = 80
-# rowend = 225
-# columnstart = 130
-# columnend = 320
-
 rowstart = 1
 rowend = -1
 columnstart = 1
 columnend = -1
+
+# rowstart = 550
+# rowend = 900
+# columnstart = 450
+# columnend = 900
 
 binsize=1
 
@@ -93,7 +99,7 @@ picturesPerIteration = 3
 
 
 
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, axis='top', cam_type = 'chameleon')
 images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
                                                binsize=binsize, file_encoding = 'binary', 
                                                examFrom=examFrom, examUntil=examUntil, return_fileTime=1)
@@ -136,7 +142,7 @@ for count, img in enumerate(columnDensities):
                                                       radius=radius/binsize)
     
     _, Xcenter, _, Ycenter = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
-                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
+                                                                        vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
@@ -145,7 +151,7 @@ for count, img in enumerate(columnDensities):
     rotatedCD = rotate(columnDensities[count][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
 
     Xwidth, _, Ywidth, _ = ImageAnalysisCode.fitgaussian(rotatedCD, title = "Vertical Column Density",
-                                                                        vmax = vmax, do_plot = 1, save_column_density=0,
+                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
@@ -169,13 +175,41 @@ df_temp['atomNum'] = Number_of_atoms
 var2append = variableLog[ variableLog.index.isin(logTime) ].reset_index()
 
 
-df = pd.concat([df_temp, var2append], axis=1)
-df = df.set_index('time')
+results = pd.concat([df_temp, var2append], axis=1)
+results = results.set_index('time')
+
+#%%
+ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xwidth', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  # groupby='ODT_Position', 
+                                    groupbyX=1, 
+                                  threeD=0,
+                                  figSize = 0.5
+                                  )
+
+ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Ywidth', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  # groupby='ODT_Position', 
+                                    groupbyX=1, 
+                                  threeD=0,
+                                  figSize = 0.5
+                                  )
 
 #%%
 
-# plt.figure()
-# plt.errorbar(df['wait'])
+df = results.groupby('Lens_Position')
+
+plt.figure()
+plt.errorbar(df['Lens_Position'].mean(), df['Ywidth'].mean(), df['Ywidth'].std(), fmt='-o', capsize=2)
+plt.xlabel('Lens position')
+plt.ylabel('Ywidth (um)')
+
+
+plt.figure()
+plt.errorbar(df['Lens_Position'].mean(), df['Xwidth'].mean(), df['Xwidth'].std(), fmt='-o', capsize=2)
+plt.ylabel('Xwidth (um)')
 
 
 
