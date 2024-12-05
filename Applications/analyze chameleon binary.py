@@ -36,7 +36,7 @@ data_folder = r'/FLIR/Focus top cam'
 ####################################
 #Parameter Setting
 ####################################
-examNum = None #The number of runs to exam.
+examNum = 1 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
@@ -50,13 +50,9 @@ variablesToDisplay = [
     # 'VerticalBiasCurrent',
     # 'CamBiasCurrent'
     ]
-# variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
 
 variableFilterList = None
 variableFilterList = [
-    # 'wait==3', 
-    # 'VerticalBiasCurrent==9.5',
-    # 'ZSBiasCurrent==5.5'
     ] # NO SPACE around the operator!
 
 
@@ -84,16 +80,13 @@ data_folder = dataLocation + data_folder
 variableLog_folder = dataLocation + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom)
     
-# data_folder =  './FLIR/odt align'
 t_exp = 10e-6
 picturesPerIteration = 3
 # t0 = 40e-6
 
 #config = ImageAnalysisCode.LoadConfigFile(dataFolder = data_folder)
 
-
 params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")      
-# images_array = ImageAnalysisCode.LoadSpooledSeries(params = params, data_folder=data_folder)
 # images_array = ImageAnalysisCode.loadSeriesRAW(params = params, picturesPerIteration=picturesPerIteration, data_folder = data_folder)
 images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
                                                binsize=binsize, file_encoding = 'binary', 
