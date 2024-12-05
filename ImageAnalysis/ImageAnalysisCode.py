@@ -100,7 +100,6 @@ def AddCommonLabels(fig, xlabel='', ylabel='',
         fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical')
         fig.tight_layout(rect=[0.05, 0.05, 1, 1])
 
-    
 
 def LoadConfigFile(dataFolder=".", configFileName='config.cfg',encoding="utf-8"): 
     config_file = dataFolder + "//" + configFileName
@@ -175,40 +174,12 @@ def loadPGM(filename, file_encoding = 'binary'):
         rows2discard = 2
         data_array = data_array[rows2discard: , :]
     return data_array 
-    
-def rebin(arr, new_shape):
-    shape = (new_shape[0], arr.shape[0] // new_shape[0],
-             new_shape[1], arr.shape[1] // new_shape[1])
-    return arr.reshape(shape).mean(-1).mean(1)
 
-def rebin2(arr, bins):
-    #Bins = (binx, biny)
-    #this function throws away excess matrix elements
-    new_shape = (arr.shape[0]//bins[0], arr.shape[1]//bins[1])
-    return rebin(arr[:bins[0]*new_shape[0], :bins[1]*new_shape[1]], new_shape)
-
-
-# to load a numbered series of FLIR .pgm images into a 4D numpy array
-# filenames must be in this format: root+number.pgm. Number must start from 1 
-# n_params is the number of embedded image information fields which are checked, values between 0 to 10, default 0 
-# zero is black, maxval is white
-
-def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
-                  file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):
-    if examFrom:
-        examFrom *= picturesPerIteration
-    if examUntil:
-        examUntil *= picturesPerIteration
-        
-    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
-    
-    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
-                        binsize, file_encoding = file_encoding, 
-                        return_fileTime = return_fileTime)
 
 
 def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize=1, 
                  file_encoding = 'binary', return_fileTime=0):
+    
     number_of_pics = len(file_names)
     number_of_iterations = int(number_of_pics/picturesPerIteration)
 
@@ -251,6 +222,38 @@ def loadFilesPGM(file_names, picturesPerIteration=1, background_file="", binsize
         return image_array, fileTime
     else:
         return image_array
+
+    
+        
+def rebin(arr, new_shape):
+    shape = (new_shape[0], arr.shape[0] // new_shape[0],
+             new_shape[1], arr.shape[1] // new_shape[1])
+    return arr.reshape(shape).mean(-1).mean(1)
+
+def rebin2(arr, bins):
+    #this function throws away excess matrix elements
+    new_shape = (arr.shape[0]//bins[0], arr.shape[1]//bins[1])
+    return rebin(arr[:bins[0]*new_shape[0], :bins[1]*new_shape[1]], new_shape)
+
+
+
+def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_name="", binsize=1, 
+                  file_encoding = 'binary', examFrom=0, examUntil=None, return_fileTime=0):    
+# to load a numbered series of FLIR .pgm images into a 4D numpy array
+# filenames must be in this format: root+number.pgm. Number must start from 1 
+# n_params is the number of embedded image information fields which are checked, values between 0 to 10, default 0 
+# zero is black, maxval is white
+
+    if examFrom:
+        examFrom *= picturesPerIteration
+    if examUntil:
+        examUntil *= picturesPerIteration
+        
+    file_names = sorted(glob.glob(os.path.join(data_folder,'*.pgm')))[examFrom: examUntil]
+    
+    return loadFilesPGM(file_names, picturesPerIteration, background_file_name, 
+                        binsize, file_encoding = file_encoding, 
+                        return_fileTime = return_fileTime)
 
 
 # to load a series of non-spooled Andor .dat images into a 4D numpy array
@@ -625,16 +628,14 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
     return catalogue
 
     
-def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
+def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
                       rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
                       subtract_burntin=0, skipFirstImg='auto', showRawImgs=0,
                       filterLists=[], 
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
 
-
     paths = [ii.replace('\\', '/') for ii in paths]
-    
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
     
     if skipFirstImg == 'auto':    
@@ -647,13 +648,10 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
     skipFirstImg = 1 if firstFrame else 0
     
-    params = ExperimentParams(date.strftime('%m/%d/%Y'), t_exp = 10e-6, picturesPerIteration=PPI, axis='side', cam_type = "zyla")
-    
     print('subtract burntin\t', subtract_burntin)
     print('skip firstImg\t\t', skipFirstImg)
     print('picture/iteration\t', PPI)
     print('first frame\t\t\t', firstFrame)
-    
     
     N = 0
     pathNeedCatalogue = []
@@ -679,8 +677,6 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
         elif existCatalogue:
             
             df = pd.read_pickle(cataloguePath)
-            # with open(cataloguePath, 'rb') as f:
-            #     df = pickle.load(f)
             
             # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
             if (len(df) != (number_of_pics / PPI)):
@@ -724,18 +720,18 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=1,
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
         
-    _, _, _, columnDensities, _, _ = absImagingSimple(rawImgs, params, firstFrame=firstFrame, correctionFactorInput=1.0,
-                                                      subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    opticalDensity = absImagingSimpleV2(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
+                                        subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
     
     folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
     # catalogue = catalogue.drop('FolderPath', axis=1)
     catalogue.insert(0, 'Folder', folderNames)
     
     if rotateAngle:
-        columnDensities = rotate(columnDensities, rotateAngle, axes=(1,2), reshape = False)
+        opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
         print('\nColumnDensities rotated.\n')
 
-    return columnDensities[:, rowstart:rowend, columnstart:columnend], catalogue
+    return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
 
 
 def DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1):
@@ -833,10 +829,7 @@ def LoadDfResults(*paths):
         if not os.path.exists(resultsPath):
             print("Warning! Results not found in folder:" + str(pp))
             continue
-        
-        
-    
-    
+            
     
 def FitColumnDensity(columnDensities, dx=1, mode='both', yFitMode='single', 
                      subtract_bg=1, Xsignal_feature='wide', Ysignal_feature='narrow'):
@@ -1327,15 +1320,15 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
         # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
         # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
         if (subtract_burntin):
-            subtracted1 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+0,:,:]   
-            subtracted2 = abs_img_data[i,firstFrame+2,:,:] - abs_img_data[i,firstFrame+3,:,:]
+            subtracted1 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+0,:,:]  # with_atom - burnt_in
+            subtracted2 = abs_img_data[i,firstFrame+2,:,:] - abs_img_data[i,firstFrame+3,:,:]  # no_atom - bg
         else:
-            subtracted1 = abs_img_data[i,firstFrame+0,:,:] - abs_img_data[i,firstFrame+2,:,:]
-            subtracted2 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+2,:,:]
+            subtracted1 = abs_img_data[i,firstFrame+0,:,:] - abs_img_data[i,firstFrame+2,:,:]  # with_atom - bg
+            subtracted2 = abs_img_data[i,firstFrame+1,:,:] - abs_img_data[i,firstFrame+2,:,:]  # no_atom - bg
         
         if (preventNAN_and_INF):
             #if no light in first image
-            subtracted1[ subtracted1<= 0 ] = 1
+            subtracted1[ subtracted1<= 0 ] = 1 
             subtracted2[ subtracted1<= 0 ] = 1
             
             #if no light in second image
@@ -1392,7 +1385,7 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     
     
     
-def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactorInput=1, 
+def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1, 
                        rowstart=None, rowend=None, columnstart=None, columnend=None, 
                        subtract_burntin = False, preventNAN_and_INF = False):
     """
@@ -1412,30 +1405,20 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
         4D array, with one image per run of the experiment
 
     """
-    
-    # if params:
-    pixelsize=params.camera.pixelsize_microns*1e-6
-    magnification=params.magnification
-    # else:
-    #     pixelsize=6.5e-6 #Andor Zyla camera
-    #     magnification = 0.55 #75/125 (ideally) updated from 0.6 to 0.55 on 12/08/2022
-        
-    # print("dimensions of the data for testing purposes:", np.shape(abs_img_data))
-    # subtracted1 = abs_img_data[i,0,:,:] - abs_img_data[i,2,:,:]
-    # subtracted2 = abs_img_data[i,1,:,:] - abs_img_data[i,2,:,:]
+
     if subtract_burntin:
-        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]   
-        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]
+        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]  # with_atom - burnt_in
+        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]  # no_atom - bg
     else:
-        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]
-        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]
+        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]  # with_atom - burnt_in
+        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]  # no_atom - bg
     
     if preventNAN_and_INF:
         #set to 1 if no light in the first or second image 
-        mask = (subtracted1 <= 0)
+        mask = (subtracted1 <= 0) # with_atom < 0
         subtracted1[ mask ] = 1
         
-        mask = (subtracted2 <= 0)
+        mask = (subtracted2 <= 0) # no_aotm < 0
         subtracted1[ mask ] = 1
         subtracted2[ mask ] = 1
         
@@ -1449,28 +1432,10 @@ def absImagingSimpleV2(abs_img_data, params=None, firstFrame=0, correctionFactor
     # print("correction factor iteration", i+1, "=",correctionFactor)
     ratio /= correctionFactor #this is I/I0
     opticalDensity = -1 * np.log(ratio)
-    N_abs = opticalDensity.sum(axis = (1,2))
     
-    ###################
-    # detuning = 2*np.pi*0 #how far from max absorption @231MHz. if the imaging beam is 230mhz then delta is -1MHz. unit is Hz
-    # linewidth = 36.898e6 #units Hz
-    # wavevector =2*np.pi/(671e-9) #units 1/m
-    # cross_section = (3*np.pi / (wavevector**2)) * (1+(2*detuning/linewidth)**2)**-1 
+    print('Finish calculating opticalDensity.')
     
-    #####################
-    cross_section = params.cross_section
-
-    
-    columnDensities = opticalDensity / cross_section
-    #n2d[~np.isfinite(columnDensities)] = 0
-    deltaX = pixelsize/magnification #pixel size in atom plane
-    deltaY = deltaX
-    Number_of_atoms = columnDensities[:, rowstart:rowend, columnstart:columnend]
-        
-    # print("number of atoms iteration", i+1, ": ", Number_of_atoms[i]/1e6,"x10^6")
-    print('Finigh calculating columnDensities.')
-    
-    return Number_of_atoms, N_abs, ratio, columnDensities, deltaX, deltaY
+    return opticalDensity
 
 
 
@@ -1762,7 +1727,8 @@ def fitMultiGaussian(data, xdata=None, dx=1, NoOfModel='auto', guess=[],
         # minamps = 0.1*(data.max()-data.min())
         minamps = 0
         popt, pcov = curve_fit(MultiGaussian, xdata, data, p0 = guess,
-                            bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1)))
+                            # bounds=([minamps]*N + [0]*N + [3]*N + [-np.inf], [np.inf]*(3*N+1))
+                              )
 
     except Exception as e:
         print(e)
@@ -2101,10 +2067,11 @@ def plotRadialAtomDensity(r, y, dx=3.85, ax=None, linestyle='.', ms=3, addAxieLa
     
 
 
-def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
+def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None, 
+                        filterLists=[],
                         fitFunc=MultiGaussian, axlist=['y', 'x'], dx=1,
                         plotRate=1, plotPWindow=5, figSizeRate=1, fontSizeRate=1, 
-                        uniformscale=0, 
+                        uniformscale=0, addColorbar=1,
                         variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
                         xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
@@ -2121,14 +2088,23 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
     N = len(popts)
     
     if filterLists:
-        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, logTime, filterLists=filterLists)
-        imgs, popts, bgs, logTime = items[0], items[1: N+1], items[N+1:], items[-1]
+        variableLog, items = DataFilter(variableLog, imgs, *popts, *bgs, logTime, imgs2, filterLists=filterLists)
+        imgs, popts, bgs, logTime, imgs2 = items[0], items[1: N+1], items[N+1:], items[-2], items[-1]
+    if imgs2 is not None:
+        imgShow = imgs2
+        if not title:
+            title=['Optical Density', '1D density vs ', '1D density vs ']
+    else:
+        imgShow = imgs
+        if not title:
+            title=['Column Density', '1D density vs ', '1D density vs ']
 
-    imgNo = len(imgs)
+    imgNo = len(imgs)    
     
     if plotRate < 1:
         mask = np.random.rand(imgNo) < plotRate
         imgs = imgs[mask]
+        imgShow = imgShow[mask]
         imgNo = mask.sum()
         
         popts = list(popts)
@@ -2140,22 +2116,20 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
     oneD_imgs = []
     xx = []
     xxfit = []
-    if not title:
-        title=['Column Density', '1D density vs ', '1D density vs ']
         
     if variablesToDisplay and logTime is None:
         logTime = variableLog.index
     
-    for n in range(N):
-        oneD = np.nansum(imgs, axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2
-        L = len(oneD[0])
+    for n in range(N): # loop through the axes provided
+        oneD = np.nansum(imgs, axis=axDict[axlist[n]] + 1 ) * dx / 1e6**2 # dx is in micron
+        L = len(oneD[0]) # the length of the x-axis of the 1-D plot
         oneD_imgs.append(oneD)
         xx.append(np.arange(0, L) * dx)
         xxfit.append(np.arange(0, L, 0.1) * dx)
         title[n+1] += axlist[n]
         
     if uniformscale:
-        vmax = imgs.max()
+        vmax = imgShow.max()
     else:
         vmax = None
         
@@ -2172,9 +2146,12 @@ def plotImgAndFitResult(imgs, popts, bgs=[], filterLists=[],
                 axes[0, n].set_title(title[n])
         
         #Plot the Images
-        axes[plotInd, 0].imshow(imgs[ind], vmin=0, vmax=vmax)
-       
-        
+        im = axes[plotInd, 0].imshow(imgShow[ind], vmin=0, vmax=vmax)
+        if addColorbar:
+            divider = make_axes_locatable(axes[plotInd, 0])
+            cax = divider.append_axes('right', size='3%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
+               
         for n in range(N):
             axes[plotInd, n+1].plot(xx[n], oneD_imgs[n][ind], '.', markersize=3)
             if popts[n][ind] is not None:
