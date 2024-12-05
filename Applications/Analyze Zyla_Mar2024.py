@@ -179,7 +179,6 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth',
                                   )
 
 
-
 # fig, ax = plt.subplots(figsize=(5,4), layout='constrained') 
 # results.Xcenter.plot(title='x Position', linestyle='', marker='.')
 
@@ -202,6 +201,7 @@ variablesToDisplay = [
                         # 'Evap_time_2'
                         'Evap_timestep',
                         # 'wait',
+
                         'fmod_kHz',
                         'tmod_ms',
                         'Cycles_num',
