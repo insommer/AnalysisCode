@@ -28,18 +28,18 @@ plt.close('all')
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/25/2024'
+date = '12/4/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 
-data_folder = r'/FLIR/Test LS'
+data_folder = r'/FLIR/Probe evap TOF 0.5 ms'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
 
 ####################################
 #Parameter Setting
-####################################
-examNum = 8 #The number of runs to exam.
+
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
@@ -47,8 +47,10 @@ showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
     # 'wait',
-    # 'TOF',
-    'LowServo1',
+    'TOF',
+    'Evap_timestep'
+    # 'LS_width',
+    # 'LS_spacing'
     # 'Lens_Position',
     # 'ODT Position',
     # 'ZSBiasCurrent',
@@ -66,15 +68,15 @@ variableFilterList = [
     ] # NO SPACE around the operator!
 
 
-# rowstart = 80
-# rowend = 225
-# columnstart = 130
-# columnend = 320
-
 rowstart = 1
 rowend = -1
 columnstart = 1
 columnend = -1
+
+# rowstart = 550
+# rowend = 900
+# columnstart = 450
+# columnend = 900
 
 binsize=1
 
@@ -97,7 +99,7 @@ picturesPerIteration = 3
 
 
 
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, cam_type = "chameleon")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = t_exp, picturesPerIteration= picturesPerIteration, axis='top', cam_type = 'chameleon')
 images_array, fileTime = ImageAnalysisCode.loadSeriesPGM(picturesPerIteration=picturesPerIteration, data_folder = data_folder, 
                                                binsize=binsize, file_encoding = 'binary', 
                                                examFrom=examFrom, examUntil=examUntil, return_fileTime=1)
@@ -175,6 +177,25 @@ var2append = variableLog[ variableLog.index.isin(logTime) ].reset_index()
 
 results = pd.concat([df_temp, var2append], axis=1)
 results = results.set_index('time')
+
+#%%
+ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xwidth', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  # groupby='ODT_Position', 
+                                    groupbyX=1, 
+                                  threeD=0,
+                                  figSize = 0.5
+                                  )
+
+ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Ywidth', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  # groupby='ODT_Position', 
+                                    groupbyX=1, 
+                                  threeD=0,
+                                  figSize = 0.5
+                                  )
 
 #%%
 

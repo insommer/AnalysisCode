@@ -12,18 +12,20 @@ import pandas as pd
 import os
 from scipy import constants
 
+plt.close('all')
+
 ####################################
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 # date = '10/07/2024'
-date = '11/22/2024'
+date = '12/4/2024'
 # date = '9/9/2024'
 
 data_folder = [
     # r'Andor/ODT temp MF waveplate 220_1',
     # r'Andor/Test',
-    r'Andor/HF evap_2',
+    r'Andor/Modulate LS timestep 0 amp 0.2 V high freq scan',
     # r'Andor/lifetime Evap1_V 0.35V',
     # r'Andor/Lifetime WP 217_1',
     # r'Andor/Modulate ODT 1250_1',
@@ -84,7 +86,7 @@ columnstart = 10
 columnend = -10
 
 
-columnstart=800
+columnstart=600
 columnend= 1200
 
 rowstart = 250
@@ -112,7 +114,7 @@ dataPath = [ os.path.join(dayfolder, f) for f in data_folder]
 # variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, cam_type = "zyla")
+params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, axis='side', cam_type = "zyla")
 dxMicron = params.camera.pixelsize_microns/params.magnification   #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
@@ -197,7 +199,7 @@ if saveresults:
 #                                   )
 
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'wait', 'YatomNumber', 
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Ywidth', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   # groupby='ODT_Position', 
@@ -206,7 +208,7 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'YatomNumber', 
 #                                   # iterateVariable='VerticalBiasCurrent', 
 #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
 #                                   # groupby='ODT_Position', 
@@ -214,6 +216,25 @@ if saveresults:
 #                                   threeD=0,
 #                                   figSize = 0.5
 #                                   )
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xcenter', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+
+ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
+                                  # iterateVariable='VerticalBiasCurrent', 
+                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+                                  # groupby='ODT_Position', 
+                                    groupbyX=1, 
+                                  threeD=0,
+                                  figSize = 0.5
+                                  )
 
 
 # ImageAnalysisCode.PlotFromDataCSV(results, 'LowServo1', 'YatomNumber', 
@@ -258,9 +279,9 @@ variablesToDisplay = [
                         'TOF',
                         # 'ODT_Misalign',
                         # 'Evap1_V',
-                        'LowServo1',
+                        # 'LowServo1',
                         # 'Evap_time_2'
-                        # 'Evap_timestep'
+                        'Evap_timestep',
                         # 'wait',
                         # 'Evap_Time_2',
                         # 'WP_angle',
@@ -272,10 +293,10 @@ variablesToDisplay = [
                         # 'FB Voltage',
                         # 'B_Field',
                         # 'ODT_Position',
-                        # 'fmod_kHz',
-                        # 'tmod_ms',
-                        # 'Cycles_num',
-                        # 'Mod_amp',
+                        'fmod_kHz',
+                        'tmod_ms',
+                        'Cycles_num',
+                        'Mod_amp',
                         # 'Evap_Tau',
                         # 'VerticalBiasCurrent',
                         # 'B_spikeTime',
@@ -420,21 +441,21 @@ if intermediatePlot:
 # %% THERMOMETRY
 
 # filterLists = [['LowServo1>0.6'], ['LowServo1==0.6','TOF<1.5'], ['LowServo1==0.5', 'TOF<0.9']]
-filterLists = []
-fltedData = ImageAnalysisCode.DataFilter(results, filterLists=filterLists)
+# filterLists = []
+# fltedData = ImageAnalysisCode.DataFilter(results, filterLists=filterLists)
 
 
 
-# var2 = 'wait'
-# var2 = 'Evap_timestep'
-var2 = 'LowServo1'
-# var2 = 'Evap_Time_2'
-df = ImageAnalysisCode.multiVariableThermometry(    
-                                                # results, 
-                                                fltedData,
-                                                # var1, 
-                                                var2, 
-                                                fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
+# # var2 = 'wait'
+# # var2 = 'Evap_timestep'
+# var2 = 'LowServo1'
+# # var2 = 'Evap_Time_2'
+# df = ImageAnalysisCode.multiVariableThermometry(    
+#                                                 # results, 
+#                                                 fltedData,
+#                                                 # var1, 
+#                                                 var2, 
+#                                                 fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
 
 
 #%% ASPECT RATIO CALCULATION
