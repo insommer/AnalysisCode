@@ -25,10 +25,12 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/11/2024'
+date = '11/25/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
+data_path = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
+
 # data_folder = r'/FLIR/Cam bias scan og position'
-data_folder = r'/FLIR/Align top'
+data_folder = r'/FLIR/Focus top cam manual'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -36,8 +38,8 @@ data_folder = r'/FLIR/Align top'
 ####################################
 #Parameter Setting
 ####################################
-examNum = 1 #The number of runs to exam.
-examFrom = None #Set to None if you want to check the last several runs. 
+examNum = 5 #The number of runs to exam.
+examFrom = 5 #Set to None if you want to check the last several runs. 
 do_plot = True
 
 showTimestamp = True
@@ -54,16 +56,17 @@ variableFilterList = None
 variableFilterList = [
     ] # NO SPACE around the operator!
 
-
-# rowstart = 80
-# rowend = 225
-# columnstart = 130
-# columnend = 320
-
 rowstart = 1
 rowend = -1
 columnstart = 1
 columnend = -1
+
+rowstart = 300
+rowend = 750
+columnstart = 450
+columnend = 900
+
+
 
 binsize=1
 
