@@ -28,11 +28,10 @@ plt.close('all')
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/25/2024'
+date = '12/4/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_path = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
 
-data_folder = r'/FLIR/Align LS'
+data_folder = r'/FLIR/Probe evap TOF 0.5 ms'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -74,10 +73,10 @@ rowend = -1
 columnstart = 1
 columnend = -1
 
-rowstart = 550
-rowend = 900
-columnstart = 450
-columnend = 900
+# rowstart = 550
+# rowend = 900
+# columnstart = 450
+# columnend = 900
 
 binsize=1
 
@@ -123,7 +122,6 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                                                                                                           params=params,
                 firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart,
                 columnend = columnend, subtract_burntin=0, preventNAN_and_INF=True)
-
 
 
 plt.figure()

@@ -256,6 +256,55 @@ def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_n
                         return_fileTime = return_fileTime)
 
 
+
+
+
+
+def FillFilePathsListFLIR(df, PPI=3):
+    # the input df has two columns, 'FolderPath' and 'FirstImg'.
+    
+    df = df.set_index('FolderPath')
+    folders = df.index.unique()
+    
+    fullFilePathsList = []
+    
+    for fo in folders:
+        
+        filenames = glob.glob1(fo, '*.pgm')
+        filenames.sort()
+        
+        firstFilenames = df.loc[fo].FirstImg.values # All filenames in that folder 
+        
+        filenamesPicked = []
+        for f in firstFilenames:
+            Ind = filenames.index(f) # The index of the firstFilename among all filenames in the folder
+            filenamesPicked.extend(filenames[Ind: Ind+PPI]) # Take the following filenames together.
+        filepathsPicked = [ os.path.join(fo, ii) for ii in filenamesPicked ]
+        
+    fullFilePathsList.extend(filepathsPicked)        
+            
+    return fullFilePathsList
+
+
+def loadSeriesPGMV2(imgPaths, file_encoding='binary'):
+    
+    imgs = []
+    
+    for p in imgPaths:
+        imgs.append(loadPGM(p, file_encoding))
+        
+    return np.array(imgs) 
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+
 # to load a series of non-spooled Andor .dat images into a 4D numpy array
 def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_name= "background.dat"):
         """
@@ -381,29 +430,33 @@ def Filetime2Logtime(fileTime, variableLog, timeLowLim=1, timeUpLim=18):
     return logTimes
 
 
-
-
-
-
-
-
-
-def GetFilePaths(*paths, picsPerIteration=3, examFrom=None, examUntil=None):
+def GetFilePaths(*paths, cam='zyl', picsPerIteration=3, examFrom=None, examUntil=None):
     '''
     Generate the list of filenames in the correct order and selected range
     used for loading Zyla images. 
     '''
     FilePaths = []
     
+    if cam == 'zyl':
+        filetype = '.dat'
+    elif cam == 'cha':
+        filetype = '.pgm'        
+    else:
+        raise ValueError('Camera setting not correct!\nCurrently support "zyl" and "cha".')
+    
     for path in paths:
     
-        filenames = glob.glob1(path,"*spool.dat")
-        filenamesInd = [ ii[9::-1] for ii in filenames]
-    
-        indexedFilenames = list(zip(filenamesInd, filenames))
-        indexedFilenames.sort()
-    
-        filepaths = [os.path.join(path, ii[1]) for ii in indexedFilenames]
+        filenames = glob.glob1(path, '*' + filetype)
+        
+        if cam == 'zyl':
+            filenamesInd = [ ii[9::-1] for ii in filenames]
+            indexedFilenames = list(zip(filenamesInd, filenames))
+            indexedFilenames.sort()
+            filepaths = [os.path.join(path, ii[1]) for ii in indexedFilenames]
+        elif cam == 'cha':
+            filenames.sort()
+            filepaths = [os.path.join(path, ii) for ii in filenames]
+        
         FilePaths.extend(filepaths)
     
     if examFrom:
@@ -580,15 +633,17 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # return images
 
 
-def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2, writetodrive=1):
+def BuildCatalogue(*paths, cam='zyl',
+                   picturesPerIteration=4, skipFirstImg=0, 
+                   timemode='ctime', dirLevelAfterDayFolder=2, writetodrive=1):
+    
     paths = [ii.replace('\\', '/') for ii in paths]    
-    dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
+    dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] ) # Get all folders for different days in provided paths.
     
     variableLog = []
     for ff in dayfolders:
         variablelogfolder = os.path.join(ff, 'Variable Logs')
-        variableLog.append( LoadVariableLog(variablelogfolder,timemode='ctime') )#Ariel changed to mtime to load data in dropbox
-    
+        variableLog.append( LoadVariableLog(variablelogfolder,timemode=timemode) )
         
     if len(variableLog) == 0:
         raise ValueError('No variable logs were found!')
@@ -598,7 +653,7 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
     catalogue = []
     for pp in paths:
         
-        fistImgPath = GetFilePaths(pp)[::picturesPerIteration]
+        fistImgPath = GetFilePaths(pp, cam=cam)[::picturesPerIteration]
         
         fileTime = []
         for ff in fistImgPath:
@@ -634,6 +689,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
                       filterLists=[], 
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
+    '''
+    Given paths to picture binary files, built catalogue if not exist, 
+    '''
 
     paths = [ii.replace('\\', '/') for ii in paths]
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
@@ -732,6 +790,157 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
         print('\nColumnDensities rotated.\n')
 
     return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
+
+
+
+
+
+
+
+
+def PreprocessBinImgs(*paths, camera='zyla', 
+                      examRange=[None, None], rotateAngle=0,
+                      rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
+                      subtract_burntin=0, skipFirstImg='auto', 
+                      showRawImgs=0, returnRawImgs=0,
+                      filterLists=[], 
+                      loadVariableLog=1, rebuildCatalogue=0,
+                      dirLevelAfterDayFolder=2):
+    '''
+    Given paths to picture binary files, built catalogue if not exist, 
+    and then load the pictures and return optical densities. 
+    '''
+    
+    paths = [ii.replace('\\', '/') for ii in paths] # Change the paths to Linux style.
+    
+    camera = camera.lower()
+    if camera[0:3] == 'zyl':
+        date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' ) # Get the date of the data from the path.
+        filetype = '.dat'
+        camera = 'zyl'
+
+    elif camera[:3] == 'cha':
+        date = datetime.datetime.strptime( paths[0].split('/FLIR')[0].rsplit('/',1)[-1], '%d %b %Y' ) # Get the date of the data from the path.
+        filetype = '.pgm'
+        camera = 'cha'
+        
+    else:
+        raise ValueError('Camera setting not correct!\nCurrently support "Zyla" and "Chameleon".')
+    
+    if skipFirstImg == 'auto':
+        if camera == 'cha':
+            skipFirstImg = 0
+        elif date > datetime.datetime(2024, 4, 3):
+            skipFirstImg = 1
+        else:
+            skipFirstImg = 0
+
+    PPI = 4 if (subtract_burntin or skipFirstImg) else 3
+    firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
+    skipFirstImg = 1 if firstFrame else 0
+    
+    print('subtract burntin\t', subtract_burntin)
+    print('skip firstImg\t\t', skipFirstImg)
+    print('picture/iteration\t', PPI)
+    print('first frame\t\t\t', firstFrame)
+    
+    # Deal with variable logs
+    N = 0 # Totol number of images in all provided folders. 
+    pathNeedCatalogue = []
+    catalogue = []
+    
+    for path in paths:
+        if not os.path.exists(path):
+            print("Warning! Data folder not found:" + str(path))
+            continue
+        
+        number_of_pics = len( glob.glob1(path, '*' + filetype) )
+        if number_of_pics == 0:
+            print('Warning!\n{}\ndoes not contain any data file!'.format(path))
+        elif number_of_pics % PPI:
+            raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
+            
+        cataloguePath = os.path.join(path, 'Catalogue.pkl')
+        existCatalogue = os.path.exists(cataloguePath)
+        
+        if loadVariableLog and (rebuildCatalogue or not existCatalogue): # If the catalogue not exist or need to be rebuilt, keep the path 
+            pathNeedCatalogue.append(path)
+            
+        elif existCatalogue: # Load the catalogue otherwise.        
+            df = pd.read_pickle(cataloguePath)
+            
+            # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
+            if (len(df) != (number_of_pics / PPI)):
+                # If current time is 12 hours or 7 days later than the data were took, prevent auto rebuild the catalogue. 
+                dt = datetime.datetime.now() - df.index[0]
+                
+                if (df.PPI[0] != PPI) or (df.SkipFI[0] != skipFirstImg):
+                    if dt > pd.Timedelta(0.5, "d"):
+                        raise ValueError('The input of subtract_burntin or skipFirstImg does not match the record!\nCorrect the input or set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                else:
+                    if dt > pd.Timedelta(7, "d"):
+                        raise ValueError('The number of files in {}\nis different from recorded, set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                # Rebuild the catalogue otherwise.        
+                pathNeedCatalogue.append(path)
+            # Add the folder path to the datalogue and load it.                
+            else:
+                df['FolderPath'] = path                
+                catalogue.append( df )                
+            
+        N += number_of_pics        
+    if N == 0:
+        raise Exception('No data file was found in all provided folders!')
+        
+    if loadVariableLog and pathNeedCatalogue: # Build the catalogue for the folders that need one, and append to the loaded ones. 
+        catalogue.extend( BuildCatalogue(*pathNeedCatalogue, cam=camera,
+                                         picturesPerIteration=PPI, skipFirstImg=skipFirstImg,
+                                         dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
+    
+    catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
+    
+    if len(catalogue) == 0:
+        raise ValueError('Len(Catalogue) is ZERO! No item satisfy the conditions!')
+    
+    dfpaths = catalogue[['FolderPath', 'FirstImg']]
+
+    if camera == 'zyl':
+        firstImgPaths = dfpaths.apply(lambda row: os.path.join(*row), axis=1).values
+        rawImgs = LoadSpooledSeriesV2(firstImgPaths, 
+                                  picturesPerIteration=PPI,              ####change PPI, add SkipFI
+                                  # picturesPerIteration=catalogue.PPI, 
+                                  metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
+        
+        
+    
+        
+    elif camera == 'cha':
+        
+        imgPaths = FillFilePathsListFLIR(dfpaths, PPI)
+        
+        rawImgs = loadSeriesPGMV2(imgPaths, file_encoding='binary')
+        rawImgs = rawImgs.reshape( -1, PPI, *rawImgs.shape[-2:] )
+            
+    
+    if showRawImgs:
+        ShowImagesTranspose(rawImgs, uniformscale=False)
+        
+    opticalDensity = absImagingSimpleV2(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
+                                        subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    
+    folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
+    # catalogue = catalogue.drop('FolderPath', axis=1)
+    catalogue.insert(0, 'Folder', folderNames)
+    
+    if rotateAngle:
+        opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
+        print('\nColumnDensities rotated.\n')
+        
+    if returnRawImgs:
+        return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue, rawImgs
+    else:
+        return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
+
+
 
 
 def DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1):

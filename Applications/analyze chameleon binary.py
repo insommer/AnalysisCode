@@ -30,7 +30,7 @@ data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 data_path = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
 
 # data_folder = r'/FLIR/Cam bias scan og position'
-data_folder = r'/FLIR/Focus top cam'
+data_folder = r'/FLIR/Align LS'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -38,8 +38,8 @@ data_folder = r'/FLIR/Focus top cam'
 ####################################
 #Parameter Setting
 ####################################
-examNum = 5 #The number of runs to exam.
-examFrom = 5 #Set to None if you want to check the last several runs. 
+examNum = None #The number of runs to exam.
+examFrom = None #Set to None if you want to check the last several runs. 
 do_plot = True
 
 showTimestamp = True
@@ -57,16 +57,20 @@ variableFilterList = None
 variableFilterList = [
     ] # NO SPACE around the operator!
 
-rowstart = 1
-rowend = -1
-columnstart = 1
-columnend = -1
+rowstart = 10
+rowend = -10
+columnstart = 10
+columnend = -10
 
 rowstart = 300
 rowend = 750
 columnstart = 450
 columnend = 900
 
+# rowstart = 10
+# rowend = 1524
+# columnstart = 10
+# columnend = 2038
 
 
 binsize=1
