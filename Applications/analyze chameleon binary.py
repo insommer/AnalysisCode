@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 ####################################
 date = '11/25/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_path = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
+data_path = '../Test Data'
 
 # data_folder = r'/FLIR/Cam bias scan og position'
 data_folder = r'/FLIR/Align LS'
