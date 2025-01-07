@@ -112,7 +112,7 @@ dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in 
 #     for pp in dataPath:
 #         resutlsPath = os.path.join(pp, 'results.pkl')        
 #         if os.path.exists(resutlsPath):
-#             with open(resutlsPath, 'rb') as f:x
+#             with open(resutlsPath, 'rb') as f:
 #                 resultsList.append( pickle.load(f) )
 
 
