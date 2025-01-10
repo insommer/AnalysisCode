@@ -117,8 +117,9 @@ ImageAnalysisCode.ShowImagesTranspose(images_array, logTime, variableLog,
 
 Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnalysisCode.absImagingSimple(images_array, 
                                                                                                           params=params,
-                firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart,
-                columnend = columnend, subtract_burntin=0, preventNAN_and_INF=True)
+                firstFrame=0, correctionFactorInput=1, rowstart=rowstart, rowend=rowend, columnstart=columnstart,
+                columnend=columnend, subtract_burntin=0, preventNAN_and_INF=True)
+
 
 
 # columnDensities = ImageAnalysisCode.CircularMask(columnDensities, centerx=centerx/binsize, centery=centery/binsize,
@@ -164,50 +165,3 @@ for count, img in enumerate(columnDensities):
     if (count+1)%2 == 0:
         print("difference in center x:",center_x_array[count]-center_x_array[count - 1])
         print("difference in center y:",center_y_array[count]-center_y_array[count - 1])
-
-'''
-ImageAnalysisCode.imageFreqOptimization(np.loadtxt(data_folder+"/imgfreq.txt"), Number_of_atoms, ratio_array)
-plt.imshow(ratio_array[0][rowstart:rowend,columnstart:columnend],vmin=0,vmax=1.2,cmap="gray")
-densityvsrow = np.sum(n2d[0][rowstart:rowend,columnstart:columnend], 1)
-print("densityvsrow = "+str(np.shape(densityvsrow)))
-plt.figure(figsize=(4,3))
-plt.plot(densityvsrow)
-'''
-
-def gaussianBeam(x, amp, center, w, offset, slope):
-    return offset + amp*np.exp(-2*(x-center)**2/w**2) + slope*x
-
-
-def fitgaussian(xdata, ydata, do_plot=True):
-    popt, pcov = curve_fit(gaussianBeam, xdata, ydata,p0=[3e9, 670, 10, 5e9, 3e7])
-    #print(popt)
-    if (do_plot):
-        plt.plot(xdata,ydata)
-        plt.plot(xdata,gaussianBeam(xdata, *popt))
-        plt.title("amplitude = {:.2e}".format(popt[0]))
-        plt.ylabel("1D atomic density arb units")
-        plt.xlabel("vertical row index")
-        plt.tight_layout()
-        # plt.savefig("atom count plot.png", dpi = 600)
-    return popt,pcov
-
-'''
-#odt-specific code below
-angle_deg= 0 #rotates ccw
-rotated_columnDensities = rotate(columnDensities[0][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
-plt.imshow(rotated_columnDensities)
-plt.colorbar()
-densityvsrow = np.sum(rotated_columnDensities, 1)*deltaY
-print("densityvsrow = "+str(np.shape(densityvsrow)))
-plt.figure(figsize=(4,3))
-plt.plot(densityvsrow)
-
-nstart = 659
-nstop = 685
-xvalues = np.arange(nstart, nstop)
-popt, pcov = fitgaussian(xvalues, densityvsrow[nstart:nstop], do_plot = 1)
-odt_fit = gaussianBeam(xvalues, popt[0], popt[1], popt[2], popt[3], popt[4])-popt[4]*xvalues
-num_atoms = simpson(odt_fit, xvalues)*deltaX
-print("Number of atoms in ODT: {}e6".format(num_atoms/(1e6)))
-plt.show()  
-'''

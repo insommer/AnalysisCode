@@ -18,12 +18,14 @@ plt.close('all')
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '12/4/2024'
+dataRootFolder = '../Test Data'
+
+date = '11/7/2024'
 
 data_folder = [
     # r'Andor/ODT temp MF waveplate 220_1',
     # r'Andor/Test',
-    r'Andor/Modulate LS timestep 0 amp 0.2 V high freq scan',
+    r'Andor/D1 temp',
     # r'Andor/lifetime Evap1_V 0.35V',
     ]
 ####################################
@@ -42,7 +44,7 @@ skipFirstImg = 'auto'
 rotateAngle = 0 #rotates ccw
 # rotateAngle = 0.5 #rotates ccw
 
-examNum = 3 #The number of runs to exam.
+examNum = 8 #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 showRawImgs = 0
 
@@ -54,10 +56,6 @@ variableFilterList = [
     # # 'Evap_Tau==0.1',
     # # 'Evap_Time_1==2'
     # ], 
-    # [
-    # 'TOF==0',
-    # 'Evap_Tau==0.1',
-    # 'Evap_Time_1==2']
     ] 
 
 pictureToHide = None
@@ -161,13 +159,6 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-# ImageAnalysisCode.PlotFromDataCSV(results, 'RF_FRQ_MHz', 'YatomNumber', 
-# #                                   # iterateVariable='VerticalBiasCurrent', 
-# #                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-#                                   groupbyX=1, threeD=0,
-#                                   figSize = 0.5
-#                                   )
-
 
 ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
                                   # iterateVariable='VerticalBiasCurrent', 
@@ -196,17 +187,8 @@ variablesToDisplay = [
                     # # 'Coil_medB', 
                         'TOF',
                         # 'ODT_Misalign',
-                        # 'Evap1_V',
-                        # 'LowServo1',
-                        # 'Evap_time_2'
-                        'Evap_timestep',
-                        # 'wait',
-
+                        'wait',
                         'fmod_kHz',
-                        'tmod_ms',
-                        'Cycles_num',
-                        'Mod_amp',
-
                       ]
 showTimestamp = False
 # variablesToDisplay=None

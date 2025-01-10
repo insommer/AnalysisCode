@@ -560,9 +560,8 @@ def LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration, metadata,
     # 2nd outer dimensions size is number of pictures per iteration
     # 3rd dimensions size is equal to the height of the images
     #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
-    images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+    return image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
     
-    return images
     
 def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3, 
                                     background_folder = ".",  background_file_name= ""):
@@ -1491,8 +1490,8 @@ def flsImaging(images, params=None, firstFrame=0, rowstart = 0, rowend = -1, col
      
 #abs_img_data must be a 4d array
 def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorInput=1, 
-                     rowstart = 0, rowend = -1, columnstart =0, columnend = -1, subtract_burntin = False,
-                     preventNAN_and_INF = False):
+                     rowstart=None, rowend=None, columnstart=None, columnend=None, subtract_burntin=False,
+                     preventNAN_and_INF=True):
     """
     Assume that we took a picture of one spin state, then probe without atoms, then dark field
     In total, we assume three picture per iteration
@@ -1594,9 +1593,9 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     
     
     
-def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1, 
+def absImagingSimpleV2(rawImgs, firstFrame=0, correctionFactorInput=1, 
                        rowstart=None, rowend=None, columnstart=None, columnend=None, 
-                       subtract_burntin = False, preventNAN_and_INF = False):
+                       subtract_burntin=False, preventNAN_and_INF=True):
     """
     Assume that we took a picture of one spin state, then probe without atoms, then dark field
     In total, we assume three picture per iteration
@@ -1614,13 +1613,15 @@ def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1,
         4D array, with one image per run of the experiment
 
     """
+    
+    rawImgs = rawImgs.astype(np.float64)
 
     if subtract_burntin:
-        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]  # with_atom - burnt_in
-        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]  # no_atom - bg
+        subtracted1 = rawImgs[:, firstFrame+1, :, :] - rawImgs[:, firstFrame+0, :, :]  # with_atom - burnt_in
+        subtracted2 = rawImgs[:, firstFrame+2, :, :] - rawImgs[:, firstFrame+3, :, :]  # no_atom - bg
     else:
-        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]  # with_atom - burnt_in
-        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]  # no_atom - bg
+        subtracted1 = rawImgs[:, firstFrame+0, :, :] - rawImgs[:, firstFrame+2, :, :]  # with_atom - bg
+        subtracted2 = rawImgs[:, firstFrame+1, :, :] - rawImgs[:, firstFrame+2, :, :]  # no_atom - bg
     
     if preventNAN_and_INF:
         #set to 1 if no light in the first or second image 
