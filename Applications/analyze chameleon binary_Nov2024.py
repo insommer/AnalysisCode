@@ -35,7 +35,6 @@ data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 data_folder = r'/FLIR/ODT high power crossing angle'
 # data_folder = r'/FLIR/Evap cloud size MF'
 
-
 # plt.rcParams['image.interpolation'] = 'nearest'
 
 
@@ -78,18 +77,10 @@ rowend = -1
 columnstart = 1
 columnend = -1
 
-# rowstart_rot = 800
-# rowend_rot = 1050
-# columnstart_rot = 675
-# columnend_rot = 1100
-
-
-# rowstart_rot = 800
-# rowend_rot = 1050
-# columnstart_rot = 575
-# columnend_rot = 1300
-
-
+rowstart = 550
+rowend = 900
+columnstart = 450
+columnend = 900
 
 rowstart_rot = 1
 rowend_rot = -1

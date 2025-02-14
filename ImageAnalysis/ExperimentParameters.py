@@ -89,7 +89,7 @@ def CrossSection(axis='side'):
         raise ValueError('The cross section is not set!')
         
 class ExperimentParams:
-    def __init__(self, date="2/8/2024", config=None, t_exp = None, picturesPerIteration=1, axis="side", cam_type = "zyla"):
+    def __init__(self, date="2/8/2024", config=None, t_exp=10e-6, picturesPerIteration=None, axis="side", cam_type = "zyla"):
         """        
         Parameters
         ----------

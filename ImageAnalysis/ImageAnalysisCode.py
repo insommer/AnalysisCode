@@ -28,12 +28,18 @@ import datetime
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pickle
+import warnings
 
 from ImageAnalysis.ExperimentParameters import ExperimentParams
 
 
 def GetDataLocation(date, DataPath='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+    warnings.warn("GetDataLocation will be replaced with GetDayFolder(date, root= )", DeprecationWarning, stacklevel=2)
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+
+def GetDayFolder(date, root='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+    return os.path.join(root, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+
 
 def GetExamRange(examNum, examFrom=None, repetition=1):
     if examNum is None or examNum == 'all':
@@ -256,6 +262,55 @@ def loadSeriesPGM(picturesPerIteration=1 ,  data_folder= "." , background_file_n
                         return_fileTime = return_fileTime)
 
 
+
+
+
+
+def FillFilePathsListFLIR(df, PPI=3):
+    # the input df has two columns, 'FolderPath' and 'FirstImg'.
+    
+    df = df.set_index('FolderPath')
+    folders = df.index.unique()
+    
+    fullFilePathsList = []
+    
+    for fo in folders:
+        
+        filenames = glob.glob1(fo, '*.pgm')
+        filenames.sort()
+        
+        firstFilenames = df.loc[fo].FirstImg.values # All filenames in that folder 
+        
+        filenamesPicked = []
+        for f in firstFilenames:
+            Ind = filenames.index(f) # The index of the firstFilename among all filenames in the folder
+            filenamesPicked.extend(filenames[Ind: Ind+PPI]) # Take the following filenames together.
+        filepathsPicked = [ os.path.join(fo, ii) for ii in filenamesPicked ]
+        
+    fullFilePathsList.extend(filepathsPicked)        
+            
+    return fullFilePathsList
+
+
+def loadSeriesPGMV2(imgPaths, file_encoding='binary'):
+    
+    imgs = []
+    
+    for p in imgPaths:
+        imgs.append(loadPGM(p, file_encoding))
+        
+    return np.array(imgs) 
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+
 # to load a series of non-spooled Andor .dat images into a 4D numpy array
 def LoadAndorSeries(params, root_filename, data_folder= "." , background_file_name= "background.dat"):
         """
@@ -381,29 +436,33 @@ def Filetime2Logtime(fileTime, variableLog, timeLowLim=1, timeUpLim=18):
     return logTimes
 
 
-
-
-
-
-
-
-
-def GetFilePaths(*paths, picsPerIteration=3, examFrom=None, examUntil=None):
+def GetFilePaths(*paths, cam='zyl', picsPerIteration=3, examFrom=None, examUntil=None):
     '''
     Generate the list of filenames in the correct order and selected range
     used for loading Zyla images. 
     '''
     FilePaths = []
     
+    if cam == 'zyl':
+        filetype = '.dat'
+    elif cam == 'cha':
+        filetype = '.pgm'        
+    else:
+        raise ValueError('Camera setting not correct!\nCurrently support "zyl" and "cha".')
+    
     for path in paths:
     
-        filenames = glob.glob1(path,"*spool.dat")
-        filenamesInd = [ ii[9::-1] for ii in filenames]
-    
-        indexedFilenames = list(zip(filenamesInd, filenames))
-        indexedFilenames.sort()
-    
-        filepaths = [os.path.join(path, ii[1]) for ii in indexedFilenames]
+        filenames = glob.glob1(path, '*' + filetype)
+        
+        if cam == 'zyl':
+            filenamesInd = [ ii[9::-1] for ii in filenames]
+            indexedFilenames = list(zip(filenamesInd, filenames))
+            indexedFilenames.sort()
+            filepaths = [os.path.join(path, ii[1]) for ii in indexedFilenames]
+        elif cam == 'cha':
+            filenames.sort()
+            filepaths = [os.path.join(path, ii) for ii in filenames]
+        
         FilePaths.extend(filepaths)
     
     if examFrom:
@@ -507,9 +566,8 @@ def LoadSpooledSeriesV2(firstImgPaths, picturesPerIteration, metadata,
     # 2nd outer dimensions size is number of pictures per iteration
     # 3rd dimensions size is equal to the height of the images
     #print(params.number_of_iterations, params.picturesPerIteration, params.height, params.width)
-    images = image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
+    return image_array.reshape(number_of_iterations, picturesPerIteration, height, width)
     
-    return images
     
 def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3, 
                                     background_folder = ".",  background_file_name= ""):
@@ -580,15 +638,17 @@ def LoadSpooledSeriesDesignatedFile(*filePaths, picturesPerIteration=3,
         # return images
 
 
-def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayFolder=2, writetodrive=1):
+def BuildCatalogue(*paths, cam='zyl',
+                   picturesPerIteration=4, skipFirstImg=0, 
+                   timemode='ctime', dirLevelAfterDayFolder=2, writetodrive=1):
+    
     paths = [ii.replace('\\', '/') for ii in paths]    
-    dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] )
+    dayfolders = np.unique( [ii.rstrip('/').rsplit('/', dirLevelAfterDayFolder)[0] for ii in paths] ) # Get all folders for different days in provided paths.
     
     variableLog = []
     for ff in dayfolders:
         variablelogfolder = os.path.join(ff, 'Variable Logs')
-        variableLog.append( LoadVariableLog(variablelogfolder,timemode='ctime') )#Ariel changed to mtime to load data in dropbox
-    
+        variableLog.append( LoadVariableLog(variablelogfolder,timemode=timemode) )
         
     if len(variableLog) == 0:
         raise ValueError('No variable logs were found!')
@@ -598,7 +658,7 @@ def BuildCatalogue(*paths, picturesPerIteration, skipFirstImg, dirLevelAfterDayF
     catalogue = []
     for pp in paths:
         
-        fistImgPath = GetFilePaths(pp)[::picturesPerIteration]
+        fistImgPath = GetFilePaths(pp, cam=cam)[::picturesPerIteration]
         
         fileTime = []
         for ff in fistImgPath:
@@ -634,6 +694,9 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
                       filterLists=[], 
                       loadVariableLog=1, rebuildCatalogue=0,
                       dirLevelAfterDayFolder=2):
+    '''
+    Given paths to picture binary files, built catalogue if not exist, 
+    '''
 
     paths = [ii.replace('\\', '/') for ii in paths]
     date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' )
@@ -730,8 +793,147 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
     if rotateAngle:
         opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
         print('\nColumnDensities rotated.\n')
-
+        
     return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
+
+
+
+
+def PreprocessBinImgs(*paths, camera='zyla', 
+                      examRange=[None, None], rotateAngle=0,
+                      ROI = [10, -10, 10, -10],
+                      subtract_burntin=0, skipFirstImg='auto', 
+                      showRawImgs=0, returnRawImgs=0,
+                      filterLists=[], 
+                      loadVariableLog=1, rebuildCatalogue=0,
+                      dirLevelAfterDayFolder=2):
+    '''
+    Given paths to picture binary files, built catalogue if not exist, 
+    and then load the pictures and return optical densities. 
+    '''
+    
+    paths = [ii.replace('\\', '/') for ii in paths] # Change the paths to Linux style.
+    
+    camera = camera.lower()
+    if camera[0:3] == 'zyl':
+        date = datetime.datetime.strptime( paths[0].split('/Andor')[0].rsplit('/',1)[-1], '%d %b %Y' ) # Get the date of the data from the path.
+        filetype = '.dat'
+        camera = 'zyl'
+
+    elif camera[:3] == 'cha':
+        date = datetime.datetime.strptime( paths[0].split('/FLIR')[0].rsplit('/',1)[-1], '%d %b %Y' ) # Get the date of the data from the path.
+        filetype = '.pgm'
+        camera = 'cha'
+        
+    else:
+        raise ValueError('Camera setting not correct!\nCurrently support "Zyla" and "Chameleon".')
+    
+    if skipFirstImg == 'auto':
+        if camera == 'cha':
+            skipFirstImg = 0
+        elif date > datetime.datetime(2024, 4, 3):
+            skipFirstImg = 1
+        else:
+            skipFirstImg = 0
+
+    PPI = 4 if (subtract_burntin or skipFirstImg) else 3
+    firstFrame = 1 if (skipFirstImg and not subtract_burntin) else 0
+    skipFirstImg = 1 if firstFrame else 0
+    
+    print('subtract burntin\t', subtract_burntin)
+    print('skip firstImg\t\t', skipFirstImg)
+    print('picture/iteration\t', PPI)
+    print('first frame\t\t\t', firstFrame)
+    
+    # Deal with variable logs
+    N = 0 # Totol number of images in all provided folders. 
+    pathNeedCatalogue = []
+    catalogue = []
+    
+    for path in paths:
+        if not os.path.exists(path):
+            print("Warning! Data folder not found:" + str(path))
+            continue
+        
+        number_of_pics = len( glob.glob1(path, '*' + filetype) )
+        if number_of_pics == 0:
+            print('Warning!\n{}\ndoes not contain any data file!'.format(path))
+        elif number_of_pics % PPI:
+            raise Exception('The number of data files in\n{}\nis not correct!'.format(path))
+            
+        cataloguePath = os.path.join(path, 'Catalogue.pkl')
+        existCatalogue = os.path.exists(cataloguePath)
+        
+        if loadVariableLog and (rebuildCatalogue or not existCatalogue): # If the catalogue not exist or need to be rebuilt, keep the path 
+            pathNeedCatalogue.append(path)
+            
+        elif existCatalogue: # Load the catalogue otherwise.        
+            df = pd.read_pickle(cataloguePath)
+            
+            # If the lengh of the catalogue is different from the iteration number, determine if rebuild it or not.
+            if (len(df) != (number_of_pics / PPI)):
+                # If current time is 12 hours or 7 days later than the data were took, prevent auto rebuild the catalogue. 
+                dt = datetime.datetime.now() - df.index[0]
+                
+                if (df.PPI[0] != PPI) or (df.SkipFI[0] != skipFirstImg):
+                    if dt > pd.Timedelta(0.5, "d"):
+                        raise ValueError('The input of subtract_burntin or skipFirstImg does not match the record!\nCorrect the input or set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                else:
+                    if dt > pd.Timedelta(7, "d"):
+                        raise ValueError('The number of files in {}\nis different from recorded, set rebuildCatalogue to 1 to force rebuild the catalogue.')
+                # Rebuild the catalogue otherwise.        
+                pathNeedCatalogue.append(path)
+            # Add the folder path to the datalogue and load it.                
+            else:
+                df['FolderPath'] = path                
+                catalogue.append( df )                
+            
+        N += number_of_pics        
+    if N == 0:
+        raise Exception('No data file was found in all provided folders!')
+        
+    if loadVariableLog and pathNeedCatalogue: # Build the catalogue for the folders that need one, and append to the loaded ones. 
+        catalogue.extend( BuildCatalogue(*pathNeedCatalogue, cam=camera,
+                                         picturesPerIteration=PPI, skipFirstImg=skipFirstImg,
+                                         dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
+    
+    catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
+    
+    if len(catalogue) == 0:
+        raise ValueError('Len(Catalogue) is ZERO! No item satisfy the conditions!')
+    
+    dfpaths = catalogue[['FolderPath', 'FirstImg']]
+
+    if camera == 'zyl':
+        firstImgPaths = dfpaths.apply(lambda row: os.path.join(*row), axis=1).values
+        rawImgs = LoadSpooledSeriesV2(firstImgPaths, 
+                                  picturesPerIteration=PPI,              ####change PPI, add SkipFI
+                                  # picturesPerIteration=catalogue.PPI, 
+                                  metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
+    elif camera == 'cha':        
+        imgPaths = FillFilePathsListFLIR(dfpaths, PPI)        
+        rawImgs = loadSeriesPGMV2(imgPaths, file_encoding='binary')
+        rawImgs = rawImgs.reshape( -1, PPI, *rawImgs.shape[-2:] )            
+    
+    if showRawImgs:
+        ShowImagesTranspose(rawImgs, uniformscale=False)
+        
+    opticalDensity = absImagingSimpleV2(rawImgs, firstFrame=firstFrame, correctionFactorInput=1.0,
+                                        subtract_burntin=subtract_burntin, preventNAN_and_INF=True)
+    
+    folderNames = [ii.rsplit('/', 1)[-1] for ii in catalogue.FolderPath]    
+    # catalogue = catalogue.drop('FolderPath', axis=1)
+    catalogue.insert(0, 'Folder', folderNames)
+    
+    if rotateAngle:
+        opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
+        print('\nColumnDensities rotated.\n')
+        
+    if returnRawImgs:
+        return opticalDensity[:, ROI[0]: ROI[1], ROI[2]: ROI[3]], catalogue, rawImgs
+    else:
+        return opticalDensity[:, ROI[0]: ROI[1], ROI[2]: ROI[3]], catalogue
+
 
 
 def DetectPeak2D(img, sigma=5, thr=0.7, doplot=0, usesmoothedimg=1):
@@ -1282,8 +1484,8 @@ def flsImaging(images, params=None, firstFrame=0, rowstart = 0, rowend = -1, col
      
 #abs_img_data must be a 4d array
 def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorInput=1, 
-                     rowstart = 0, rowend = -1, columnstart =0, columnend = -1, subtract_burntin = False,
-                     preventNAN_and_INF = False):
+                     rowstart=None, rowend=None, columnstart=None, columnend=None, subtract_burntin=False,
+                     preventNAN_and_INF=True):
     """
     Assume that we took a picture of one spin state, then probe without atoms, then dark field
     In total, we assume three picture per iteration
@@ -1385,9 +1587,9 @@ def absImagingSimple(abs_img_data, params=None, firstFrame=0, correctionFactorIn
     
     
     
-def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1, 
+def absImagingSimpleV2(rawImgs, firstFrame=0, correctionFactorInput=1, 
                        rowstart=None, rowend=None, columnstart=None, columnend=None, 
-                       subtract_burntin = False, preventNAN_and_INF = False):
+                       subtract_burntin=False, preventNAN_and_INF=True):
     """
     Assume that we took a picture of one spin state, then probe without atoms, then dark field
     In total, we assume three picture per iteration
@@ -1405,13 +1607,15 @@ def absImagingSimpleV2(abs_img_data, firstFrame=0, correctionFactorInput=1,
         4D array, with one image per run of the experiment
 
     """
+    
+    rawImgs = rawImgs.astype(np.float64)
 
     if subtract_burntin:
-        subtracted1 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+0, :, :]  # with_atom - burnt_in
-        subtracted2 = abs_img_data[:, firstFrame+2, :, :] - abs_img_data[:, firstFrame+3, :, :]  # no_atom - bg
+        subtracted1 = rawImgs[:, firstFrame+1, :, :] - rawImgs[:, firstFrame+0, :, :]  # with_atom - burnt_in
+        subtracted2 = rawImgs[:, firstFrame+2, :, :] - rawImgs[:, firstFrame+3, :, :]  # no_atom - bg
     else:
-        subtracted1 = abs_img_data[:, firstFrame+0, :, :] - abs_img_data[:, firstFrame+2, :, :]  # with_atom - burnt_in
-        subtracted2 = abs_img_data[:, firstFrame+1, :, :] - abs_img_data[:, firstFrame+2, :, :]  # no_atom - bg
+        subtracted1 = rawImgs[:, firstFrame+0, :, :] - rawImgs[:, firstFrame+2, :, :]  # with_atom - bg
+        subtracted2 = rawImgs[:, firstFrame+1, :, :] - rawImgs[:, firstFrame+2, :, :]  # no_atom - bg
     
     if preventNAN_and_INF:
         #set to 1 if no light in the first or second image 
@@ -1937,8 +2141,8 @@ def fitgaussian(array, params, do_plot = False, vmax = None,title="",
                 column_density_xylim[1] = len(array[0])
         if column_density_xylim[3] == -1:
                 column_density_xylim[3] = len(array) 
-        plt.xlim(column_density_xylim[0], column_density_xylim[1])
-        plt.ylim(column_density_xylim[3], column_density_xylim[2])
+        # plt.xlim(column_density_xylim[0], column_density_xylim[1])
+        # plt.ylim(column_density_xylim[3], column_density_xylim[2])
         plt.title(title)
         plt.colorbar(pad = .1)
         if save_column_density:
@@ -2088,9 +2292,8 @@ def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None,
                         title=[], sharex='col', sharey='col',
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
     
-    plt.rcParams.update(rcParams)
-    plt.rcParams['image.cmap'] = 'jet'
-    # plt.rcParams['image.interpolation'] = 'nearest'
+    rcParams0 = plt.rcParams # Store the original plt params
+    plt.rcParams.update(rcParams | {'image.cmap': 'jet'})
     
     axDict = {'x': 0, 'y':1}
 
@@ -2178,10 +2381,18 @@ def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None,
         if variablesToDisplay and variableLog is not None:
                         
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+            
+#             print('='*20)
+#             print(variableLog.loc[logTime[ind]][variablesToDisplay])
+#             print('='*20)
+            
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
                             fontsize=5*fontSizeRate, ha='left', va=textVA, transform=axes[plotInd,0].transAxes, 
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+        
+    plt.rcParams = rcParams0 # Revert the plt params 
+
 
 
 def AnalyseFittingResults(poptsList, ax=['Y', 'X'], logTime=None, 
@@ -2620,6 +2831,7 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
 
     '''
     
+    warnings.warn("PlotFromDataCSV will retire, use PlotResults!", DeprecationWarning, stacklevel=2)
         
     # if not os.path.exists(filePath):
     #     raise FileNotFoundError("The file does not exist!")
@@ -2708,6 +2920,154 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
     plt.show()
     
     return fig, ax
+
+
+def PlotResults(df, xVariable, yVariable, filterLists=[],
+                groupby=None, groupbyX=0, iterateVariable=None,
+                do_fit = 0,
+                figSize=1, legend=1, legendLoc=0,
+                threeD=0, viewElev=30, viewAzim=-45):
+    '''
+    
+
+    Parameters
+    ----------
+    df : DataFrame
+        Pandas dataframe from CalculateFromZyla or loaded from a saved data file.
+    xVariable : str
+        The name of the variable to be plotted as the x axis. It should be the 
+        name of a column of the dataframe.
+    yVariable : str
+        The name of the variable to be plotted as the y axis. It should be the 
+        name of a column of the dataframe.
+    groupby : str, default: None
+        The name of a dataframe column. If it is assigned, the data points will be
+        averaged based on the values of this column, and the plot will be an
+        errorbar plot.
+    groupbyX : boolean, default: 0
+        The name of a dataframe column. If it is true, the data points will be
+        averaged based for each x value, and the plot will be an errorbar plot.
+    iterateVariable : str, default: None
+        The name of a dataframe column. If it is assigned, the plot will be divided
+        into different groups based on the values of this column.        
+    filterByAnd : list of strings, default: []
+        A list of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic and. 
+    filterByOr : list of strings, default: []
+        A list of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic or. 
+    filterByOr2 : list of strings, default: []
+        The same as filterByOr, but a logical and will be performed for the 
+        results of filterByOr2 and filterByOr.    
+    threeD : boolean, default: 0
+        Plot a 3-D line plot if set to True. 
+    viewElev : float, default: 30
+        The elevation angle of the 3-D plot. 
+    viewAzim : float, default: -45
+        The azimuthal angle of the 3-D plot. 
+
+    Raises
+    ------
+    FileNotFoundError
+        DESCRIPTION.
+
+    Returns
+    -------
+    fig, ax.
+
+    '''
+    
+        
+    # if not os.path.exists(filePath):
+    #     raise FileNotFoundError("The file does not exist!")
+    
+    # df = pd.read_csv(filePath)
+    df = df[ ~np.isnan(df[yVariable]) ]
+    df = DataFilter(df, filterLists=filterLists)
+    
+    columnlist = [xVariable, yVariable]
+    
+    if iterateVariable:
+        iterateVariable.replace(' ', '_')
+        iterable = df[iterateVariable].unique()
+        iterable.sort()
+        columnlist.append(iterateVariable)
+    else:
+        iterable = [None]
+        threeD = 0
+    
+    if groupby == xVariable or groupbyX:
+        groupbyX = 1  
+        groupby = xVariable
+    if groupby and not groupbyX:
+        groupby.replace(' ', '_')
+        columnlist.append(groupby)
+    
+    if threeD:
+        fig, ax = plt.subplots(figsize=(9*figSize, 9*figSize), subplot_kw=dict(projection='3d'), layout='constrained')
+        ax.view_init(elev=viewElev, azim=viewAzim)
+    else:
+        fig, ax = plt.subplots(figsize=(10*figSize, 8*figSize), layout='constrained')
+    
+    for ii in iterable:
+        if ii is None:
+            dfii = df[columnlist]
+        else:
+            dfii = df[columnlist][ (df[iterateVariable]==ii) ]
+        
+        label = '{} = {}'.format(iterateVariable, ii)
+            
+        if do_fit:                
+            xdata = dfii[xVariable]
+            p = np.polyfit(xdata, dfii[yVariable], 1)
+            xx = np.linspace(xdata.min(), xdata.max(), 30)
+            ax.plot(xx, np.polyval(p, xx), '.', ms=2)
+            # ax.text(0.02, 0.99, 
+            #           'slope: {:.3e}'.format(p[0]),
+            #           ha='left', va='top', transform=ax.transAxes)
+            print(label + ', slope {}'.format(p[0]))
+
+            label += ', slope: {:.3e}'.format(p[0])
+            
+
+
+            
+        if groupby:
+            dfiimean = dfii.groupby(groupby).mean()
+            dfiistd = dfii.groupby(groupby).std(ddof=0)
+            
+            yMean = dfiimean[yVariable]
+            yStd = dfiistd[yVariable]
+            
+            if groupbyX:
+                xMean = dfiimean.index
+                xStd = None
+            else:
+                xMean = dfiimean[xVariable]
+                xStd = dfiistd[xVariable]
+            
+            if threeD:
+                ax.plot3D( [ii]*len(xMean), xMean, yMean, label=label)                
+            else:
+                ax.errorbar(xMean, yMean, yStd, xStd, capsize=3, label=label) 
+                #plt.scatter(xMean, yMean, s=8)
+        else:
+            ax.plot( dfii[xVariable], dfii[yVariable], '.', label=label)
+            
+    if threeD:
+        ax.set(xlabel=iterateVariable, ylabel=xVariable, zlabel=yVariable)
+        ax.ticklabel_format(axis='z', style='sci', scilimits=(-3,3))
+    else:
+        ax.set(xlabel=xVariable, ylabel=yVariable)
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    if iterateVariable and legend:
+        plt.legend(loc=legendLoc)
+    plt.show()
+    
+    return fig, ax
+
     
 
 def temperature_model(t, w0, T):
