@@ -20,12 +20,12 @@ plt.close('all')
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 dataRootFolder = '../Test Data'
 
-date = '11/7/2024'
+date = '11/11/2024'
 
 data_folder = [
     # r'Andor/ODT temp MF waveplate 220_1',
     # r'Andor/Test',
-    r'Andor/D1 temp',
+    r'Andor/Test top',
     # r'Andor/lifetime Evap1_V 0.35V',
     ]
 ####################################
@@ -44,7 +44,7 @@ skipFirstImg = 'auto'
 rotateAngle = 0 #rotates ccw
 # rotateAngle = 0.5 #rotates ccw
 
-examNum = 8 #The number of runs to exam.
+examNum = None #The number of runs to exam.
 examFrom = None #Set to None if you want to check the last several runs. 
 showRawImgs = 0
 
@@ -61,7 +61,7 @@ variableFilterList = [
 pictureToHide = None
 # pictureToHide = [0,1,2,3] # list(range(0,10,2))
 
-subtract_bg = 0
+subtract_bg = 1
 signal_feature = 'wide' 
 signal_width = 10 #The narrower the signal, the bigger the number.
 fitbgDeg = 5
@@ -72,25 +72,24 @@ columnstart = 10
 columnend = -10
 
 
-columnstart=600
-columnend= 1200
+rowstart = 300
+rowend = 430
+columnstart = 650
+columnend= 1000
 
-rowstart = 250
-rowend = 550
+# # first pass
+# # rowstart = 400
+# # rowend = 450
 
-# first pass
-# rowstart = 400
-# rowend = 450
+# # second pass
+# # rowstart = 440
+# # rowend = 500
 
-# second pass
-# rowstart = 440
-# rowend = 500
+# rowstart -= 100
+# rowend += 100
 
-rowstart -= 100
-rowend += 100
-
-columnstart -= 100
-columnend += 100
+# columnstart -= 100
+# columnend += 100
 
 ####################################
 ####################################
@@ -100,7 +99,7 @@ dataPath = [ os.path.join(dayfolder, f) for f in data_folder]
 # variableLog_folder = dayFolder + r'/Variable Logs'
 examFrom, examUntil = ImageAnalysisCode.GetExamRange(examNum, examFrom, repetition)
 
-params = ImageAnalysisCode.ExperimentParams(date, t_exp = 10e-6, picturesPerIteration=None, axis='side', cam_type = "zyla")
+params = ImageAnalysisCode.ExperimentParams(date, axis='side', cam_type = "zyla")
 dxMicron = params.camera.pixelsize_microns/params.magnification   #The length in micron that 1 pixel correspond to. 
 dxMeter = params.camera.pixelsize_meters/params.magnification    #The length in meter that 1 pixel correspond to. 
 
@@ -160,7 +159,7 @@ if saveresults:
 #                                   )
 
 
-ImageAnalysisCode.PlotFromDataCSV(results, 'fmod_kHz', 'Ywidth', 
+ImageAnalysisCode.PlotResults(results, 'fmod_kHz', 'Ywidth', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   # groupby='ODT_Position', 
@@ -211,21 +210,6 @@ if intermediatePlot:
                                           textLocationY=0.9, rcParams=rcParams,
                                           figSizeRate=1, sharey='col')
     
-    # ImageAnalysisCode.plotImgAndFitResult(columnDensities, popts, bgs=bgs, dx=dx, 
-    #                                       plotRate=1, plotPWindow=plotPWindow,
-    #                                       variablesToDisplay = variablesToDisplay,
-    #                                       variableLog=variableLog, logTime=variableLog.index,
-    #                                       textLocationY=0.8, rcParams=rcParams)
-
-    # xx = np.arange(len(imgs_oneD[0]))
-    # fig, axes = plt.subplots(fileNo, 1, sharex=True, layout='constrained')
-    # for ii in range(fileNo):        
-    #     axes[ii].plot(imgs_oneD[ii], '.')
-    #     axes[ii].plot(xx, ImageAnalysisCode.Gaussian(xx, *popt_Basler[ii]))
-    #     axes[ii].text(0.9,0.8, files[ii], transform=axes[ii].transAxes)
-
-    # c, w = np.array(popt_Basler).mean(axis=0)[1:-1]
-    # axes[-1].set(xlim=[c-15*w, c+15*w])
     
 #%% LINEAR FIT
 # fit atom number vs. lowServo to a line

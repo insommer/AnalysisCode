@@ -25,12 +25,12 @@ import matplotlib.pyplot as plt
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/25/2024'
+date = '11/11/2024'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
 data_path = '../Test Data'
 
 # data_folder = r'/FLIR/Cam bias scan og position'
-data_folder = r'/FLIR/Align LS'
+data_folder = r'/FLIR/Test top'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 

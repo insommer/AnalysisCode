@@ -28,12 +28,18 @@ import datetime
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pickle
+import warnings
 
 from ImageAnalysis.ExperimentParameters import ExperimentParams
 
 
 def GetDataLocation(date, DataPath='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+    warnings.warn("GetDataLocation will be replaced with GetDayFolder(date, root= )", DeprecationWarning, stacklevel=2)
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+
+def GetDayFolder(date, root='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+    return os.path.join(root, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
+
 
 def GetExamRange(examNum, examFrom=None, repetition=1):
     if examNum is None or examNum == 'all':
@@ -787,19 +793,15 @@ def PreprocessZylaImg(*paths, examRange=[None, None], rotateAngle=0,
     if rotateAngle:
         opticalDensity = rotate(opticalDensity, rotateAngle, axes=(1,2), reshape = False)
         print('\nColumnDensities rotated.\n')
-
+        
     return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
-
-
-
-
 
 
 
 
 def PreprocessBinImgs(*paths, camera='zyla', 
                       examRange=[None, None], rotateAngle=0,
-                      rowstart=10, rowend=-10, columnstart=10, columnend=-10, 
+                      ROI = [10, -10, 10, -10],
                       subtract_burntin=0, skipFirstImg='auto', 
                       showRawImgs=0, returnRawImgs=0,
                       filterLists=[], 
@@ -908,17 +910,10 @@ def PreprocessBinImgs(*paths, camera='zyla',
                                   picturesPerIteration=PPI,              ####change PPI, add SkipFI
                                   # picturesPerIteration=catalogue.PPI, 
                                   metadata = LoadConfigFile(paths[0], "acquisitionmetadata.ini",encoding="utf-8-sig"))
-        
-        
-    
-        
-    elif camera == 'cha':
-        
-        imgPaths = FillFilePathsListFLIR(dfpaths, PPI)
-        
+    elif camera == 'cha':        
+        imgPaths = FillFilePathsListFLIR(dfpaths, PPI)        
         rawImgs = loadSeriesPGMV2(imgPaths, file_encoding='binary')
-        rawImgs = rawImgs.reshape( -1, PPI, *rawImgs.shape[-2:] )
-            
+        rawImgs = rawImgs.reshape( -1, PPI, *rawImgs.shape[-2:] )            
     
     if showRawImgs:
         ShowImagesTranspose(rawImgs, uniformscale=False)
@@ -935,10 +930,9 @@ def PreprocessBinImgs(*paths, camera='zyla',
         print('\nColumnDensities rotated.\n')
         
     if returnRawImgs:
-        return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue, rawImgs
+        return opticalDensity[:, ROI[0]: ROI[1], ROI[2]: ROI[3]], catalogue, rawImgs
     else:
-        return opticalDensity[:, rowstart:rowend, columnstart:columnend], catalogue
-
+        return opticalDensity[:, ROI[0]: ROI[1], ROI[2]: ROI[3]], catalogue
 
 
 
@@ -2138,8 +2132,8 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
                 column_density_xylim[1] = len(array[0])
         if column_density_xylim[3] == -1:
                 column_density_xylim[3] = len(array) 
-        plt.xlim(column_density_xylim[0], column_density_xylim[1])
-        plt.ylim(column_density_xylim[3], column_density_xylim[2])
+        # plt.xlim(column_density_xylim[0], column_density_xylim[1])
+        # plt.ylim(column_density_xylim[3], column_density_xylim[2])
         plt.title(title)
         plt.colorbar(pad = .1)
         if save_column_density:
@@ -2289,9 +2283,8 @@ def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None,
                         title=[], sharex='col', sharey='col',
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
     
-    plt.rcParams.update(rcParams)
-    plt.rcParams['image.cmap'] = 'jet'
-    # plt.rcParams['image.interpolation'] = 'nearest'
+    rcParams0 = plt.rcParams # Store the original plt params
+    plt.rcParams.update(rcParams | {'image.cmap': 'jet'})
     
     axDict = {'x': 0, 'y':1}
 
@@ -2379,10 +2372,18 @@ def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None,
         if variablesToDisplay and variableLog is not None:
                         
             variablesToDisplay = [ii.replace(' ','_') for ii in variablesToDisplay]
+            
+#             print('='*20)
+#             print(variableLog.loc[logTime[ind]][variablesToDisplay])
+#             print('='*20)
+            
             axes[plotInd,0].text(-0.05, textLocationY, 
                             variableLog.loc[logTime[ind]][variablesToDisplay].to_string(name=showTimestamp).replace('Name','Time'), 
                             fontsize=5*fontSizeRate, ha='left', va=textVA, transform=axes[plotInd,0].transAxes, 
                             bbox=dict(boxstyle="square", ec=(0,0,0), fc=(1,1,1), alpha=0.7))
+        
+    plt.rcParams = rcParams0 # Revert the plt params 
+
 
 
 def AnalyseFittingResults(poptsList, ax=['Y', 'X'], logTime=None, 
@@ -2821,6 +2822,7 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
 
     '''
     
+    warnings.warn("PlotFromDataCSV will retire, use PlotResults!", DeprecationWarning, stacklevel=2)
         
     # if not os.path.exists(filePath):
     #     raise FileNotFoundError("The file does not exist!")
@@ -2909,6 +2911,154 @@ def PlotFromDataCSV(df, xVariable, yVariable, filterLists=[],
     plt.show()
     
     return fig, ax
+
+
+def PlotResults(df, xVariable, yVariable, filterLists=[],
+                groupby=None, groupbyX=0, iterateVariable=None,
+                do_fit = 0,
+                figSize=1, legend=1, legendLoc=0,
+                threeD=0, viewElev=30, viewAzim=-45):
+    '''
+    
+
+    Parameters
+    ----------
+    df : DataFrame
+        Pandas dataframe from CalculateFromZyla or loaded from a saved data file.
+    xVariable : str
+        The name of the variable to be plotted as the x axis. It should be the 
+        name of a column of the dataframe.
+    yVariable : str
+        The name of the variable to be plotted as the y axis. It should be the 
+        name of a column of the dataframe.
+    groupby : str, default: None
+        The name of a dataframe column. If it is assigned, the data points will be
+        averaged based on the values of this column, and the plot will be an
+        errorbar plot.
+    groupbyX : boolean, default: 0
+        The name of a dataframe column. If it is true, the data points will be
+        averaged based for each x value, and the plot will be an errorbar plot.
+    iterateVariable : str, default: None
+        The name of a dataframe column. If it is assigned, the plot will be divided
+        into different groups based on the values of this column.        
+    filterByAnd : list of strings, default: []
+        A list of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic and. 
+    filterByOr : list of strings, default: []
+        A list of the filter conditions. Each condition should be in the form of 
+        'ColumName+operator+value'. No spaces around the operator. Different condtions
+        will be conbined by logic or. 
+    filterByOr2 : list of strings, default: []
+        The same as filterByOr, but a logical and will be performed for the 
+        results of filterByOr2 and filterByOr.    
+    threeD : boolean, default: 0
+        Plot a 3-D line plot if set to True. 
+    viewElev : float, default: 30
+        The elevation angle of the 3-D plot. 
+    viewAzim : float, default: -45
+        The azimuthal angle of the 3-D plot. 
+
+    Raises
+    ------
+    FileNotFoundError
+        DESCRIPTION.
+
+    Returns
+    -------
+    fig, ax.
+
+    '''
+    
+        
+    # if not os.path.exists(filePath):
+    #     raise FileNotFoundError("The file does not exist!")
+    
+    # df = pd.read_csv(filePath)
+    df = df[ ~np.isnan(df[yVariable]) ]
+    df = DataFilter(df, filterLists=filterLists)
+    
+    columnlist = [xVariable, yVariable]
+    
+    if iterateVariable:
+        iterateVariable.replace(' ', '_')
+        iterable = df[iterateVariable].unique()
+        iterable.sort()
+        columnlist.append(iterateVariable)
+    else:
+        iterable = [None]
+        threeD = 0
+    
+    if groupby == xVariable or groupbyX:
+        groupbyX = 1  
+        groupby = xVariable
+    if groupby and not groupbyX:
+        groupby.replace(' ', '_')
+        columnlist.append(groupby)
+    
+    if threeD:
+        fig, ax = plt.subplots(figsize=(9*figSize, 9*figSize), subplot_kw=dict(projection='3d'), layout='constrained')
+        ax.view_init(elev=viewElev, azim=viewAzim)
+    else:
+        fig, ax = plt.subplots(figsize=(10*figSize, 8*figSize), layout='constrained')
+    
+    for ii in iterable:
+        if ii is None:
+            dfii = df[columnlist]
+        else:
+            dfii = df[columnlist][ (df[iterateVariable]==ii) ]
+        
+        label = '{} = {}'.format(iterateVariable, ii)
+            
+        if do_fit:                
+            xdata = dfii[xVariable]
+            p = np.polyfit(xdata, dfii[yVariable], 1)
+            xx = np.linspace(xdata.min(), xdata.max(), 30)
+            ax.plot(xx, np.polyval(p, xx), '.', ms=2)
+            # ax.text(0.02, 0.99, 
+            #           'slope: {:.3e}'.format(p[0]),
+            #           ha='left', va='top', transform=ax.transAxes)
+            print(label + ', slope {}'.format(p[0]))
+
+            label += ', slope: {:.3e}'.format(p[0])
+            
+
+
+            
+        if groupby:
+            dfiimean = dfii.groupby(groupby).mean()
+            dfiistd = dfii.groupby(groupby).std(ddof=0)
+            
+            yMean = dfiimean[yVariable]
+            yStd = dfiistd[yVariable]
+            
+            if groupbyX:
+                xMean = dfiimean.index
+                xStd = None
+            else:
+                xMean = dfiimean[xVariable]
+                xStd = dfiistd[xVariable]
+            
+            if threeD:
+                ax.plot3D( [ii]*len(xMean), xMean, yMean, label=label)                
+            else:
+                ax.errorbar(xMean, yMean, yStd, xStd, capsize=3, label=label) 
+                #plt.scatter(xMean, yMean, s=8)
+        else:
+            ax.plot( dfii[xVariable], dfii[yVariable], '.', label=label)
+            
+    if threeD:
+        ax.set(xlabel=iterateVariable, ylabel=xVariable, zlabel=yVariable)
+        ax.ticklabel_format(axis='z', style='sci', scilimits=(-3,3))
+    else:
+        ax.set(xlabel=xVariable, ylabel=yVariable)
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(-3,3))
+    if iterateVariable and legend:
+        plt.legend(loc=legendLoc)
+    plt.show()
+    
+    return fig, ax
+
     
 
 def temperature_model(t, w0, T):
