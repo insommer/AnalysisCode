@@ -12,7 +12,7 @@ import os
 #Set the date and the folder name
 ####################################
 dataRootFolder =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-date = '11/8/2024'
+date = '1/8/2025'
 
 ODT_Position = '1900'
 task = 'Misalign'

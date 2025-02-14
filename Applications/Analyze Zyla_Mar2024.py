@@ -18,16 +18,20 @@ plt.close('all')
 #Set the date and the folder name
 ####################################
 dataRootFolder = r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-dataRootFolder = '../Test Data'
 
 date = '11/11/2024'
-
 data_folder = [
     # r'Andor/ODT temp MF waveplate 220_1',
     # r'Andor/Test',
     r'Andor/Test top',
     # r'Andor/lifetime Evap1_V 0.35V',
-    ]
+# date = '2/13/2025'
+
+# data_folder = [
+#     r'Andor/HF evap temp 0.3 V',
+#     r'Andor/HF evap temp 0.4 V',
+#     r'Andor/HF evap temp 0.5 V',
+#     ]
 ####################################
 #Parameter Setting'
 ####################################
@@ -71,25 +75,40 @@ rowend = -10
 columnstart = 10
 columnend = -10
 
-
 rowstart = 300
 rowend = 430
 columnstart = 650
 columnend= 1000
 
-# # first pass
-# # rowstart = 400
-# # rowend = 450
+# ODT 3300
+# rowstart = 10
+# rowend = 250
+# columnstart = 500
+# columnend = 1100
 
-# # second pass
-# # rowstart = 440
-# # rowend = 500
+# ODT 2550
+# columnstart=800
+# columnend= 1000
+# rowstart = 425
+# rowend = 500
 
-# rowstart -= 100
-# rowend += 100
+# ODT 1800
+# columnstart=700
+# columnend= 1200
+# rowstart = 500
+# rowend = 750
 
-# columnstart -= 100
-# columnend += 100
+# ODT 1050
+# columnstart=800
+# columnend= 1300
+# rowstart = 700
+# rowend = 950
+
+# ODT 300
+# columnstart=900
+# columnend= 1300
+# rowstart = 900
+# rowend = 1250
 
 ####################################
 ####################################
@@ -126,7 +145,7 @@ opticalDensity, variableLog = ImageAnalysisCode.PreprocessZylaImg(*dataPath, exa
                                                                    #! Keep rebuildCatalogue = 0 unless necessary!
                                                                    rebuildCatalogue=0,
                                                                    ##################
-                                                                    # filterLists=[['TOF<1']]
+                                                                    filterLists=[['TOF<1']]
                                                                     )
 
 autoCrop = 0
@@ -158,8 +177,8 @@ if saveresults:
 #                                   figSize = 0.5
 #                                   )
 
-
 ImageAnalysisCode.PlotResults(results, 'fmod_kHz', 'Ywidth', 
+
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   # groupby='ODT_Position', 
@@ -186,8 +205,20 @@ variablesToDisplay = [
                     # # 'Coil_medB', 
                         'TOF',
                         # 'ODT_Misalign',
+                        # 'Evap1_V',
+                        'LowServo1',
+                        # 'Evap_time_2'
+                        # 'Evap_timestep',
                         'wait',
-                        'fmod_kHz',
+                        # 'VerticalBiasCurrent',
+                        # 'ZSBiasCurrent',
+                        # 'FieldRamp_ms',
+                        # 'HoldTime_ms',
+                        'ODT_Position',
+                        # 'fmod_kHz',
+                        # 'tmod_ms',
+                        # 'Cycles_num',
+                        # 'Mod_amp',
                       ]
 showTimestamp = False
 # variablesToDisplay=None
@@ -309,21 +340,21 @@ if intermediatePlot:
 # %% THERMOMETRY
 
 # filterLists = [['LowServo1>0.6'], ['LowServo1==0.6','TOF<1.5'], ['LowServo1==0.5', 'TOF<0.9']]
-# filterLists = []
-# fltedData = ImageAnalysisCode.DataFilter(results, filterLists=filterLists)
+filterLists = []
+fltedData = ImageAnalysisCode.DataFilter(results, filterLists=filterLists)
 
 
 
-# # var2 = 'wait'
-# # var2 = 'Evap_timestep'
-# var2 = 'LowServo1'
-# # var2 = 'Evap_Time_2'
-# df = ImageAnalysisCode.multiVariableThermometry(    
-#                                                 # results, 
-#                                                 fltedData,
-#                                                 # var1, 
-#                                                 var2, 
-#                                                 fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
+# var2 = 'wait'
+# var2 = 'Evap_timestep'
+var2 = 'LowServo1'
+# var2 = 'Evap_Time_2'
+df = ImageAnalysisCode.multiVariableThermometry(    
+                                                # results, 
+                                                fltedData,
+                                                # var1, 
+                                                var2, 
+                                                fitXVar='TOF',  fitYVar='Ywidth',do_plot=1, add_Text=1)
 
 
 #%% ASPECT RATIO CALCULATION

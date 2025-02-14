@@ -28,11 +28,12 @@ plt.close('all')
 ####################################
 #Set the date and the folder name
 ####################################
-date = '11/25/2024'
+date = '2/13/2025'
 data_path =r"D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data"
-data_path = '/home/idies/workspace/Storage/lianmign/persistent/UCA_Coding_Test/Data'
 
-data_folder = r'/FLIR/Align LS'
+# data_folder = r'/FLIR/Atom cloud for overlap'
+data_folder = r'/FLIR/ODT high power crossing angle'
+# data_folder = r'/FLIR/Evap cloud size MF'
 
 # plt.rcParams['image.interpolation'] = 'nearest'
 
@@ -47,16 +48,18 @@ do_plot = True
 showTimestamp = True
 variablesToDisplay = None
 variablesToDisplay = [
-    # 'wait',
-    'TOF',
-    'Evap_timestep'
+    # 'LS_width',
+    'wait',
+    'LowServo1',
+    # 'TOF',
+    # 'Evap_timestep'
     # 'LS_width',
     # 'LS_spacing'
     # 'Lens_Position',
-    # 'ODT Position',
+    # 'ODT_Position',
     # 'ZSBiasCurrent',
     # 'VerticalBiasCurrent',
-    
+    # 'Waveplate_angle'
     # 'CamBiasCurrent'
     ]
 # variablesToDisplay = ['wait','cMOT coil', 'ZSBiasCurrent', 'VerticalBiasCurrent', 'CamBiasCurrent']
@@ -79,11 +82,13 @@ rowend = 900
 columnstart = 450
 columnend = 900
 
-binsize=1
+rowstart_rot = 1
+rowend_rot = -1
+columnstart_rot = 1
+columnend_rot = -1
 
-centerx = 165 * binsize
-centery = 80 * binsize
-radius = 300
+binsize=1
+radius = 500
 
 ####################################
 ####################################
@@ -124,39 +129,36 @@ Number_of_atoms, N_abs, ratio_array, columnDensities, deltaX, deltaY = ImageAnal
                 firstFrame=0, correctionFactorInput=1, rowstart = rowstart, rowend = rowend, columnstart = columnstart,
                 columnend = columnend, subtract_burntin=0, preventNAN_and_INF=True)
 
-
-
-plt.figure()
-plt.imshow(ratio_array[0], vmin = 0, cmap = 'gray') #vmax = 1.5
-plt.colorbar()
-plt.show()
-
-angle_deg= 40 #rotates ccw
+angle_deg= 40 # rotates ccw
+# angle_deg = -49
 
 fitVals = []
 
 for count, img in enumerate(columnDensities):
     
-    sutter_widthx, sutter_center_x, sutter_widthy, sutter_center_y = ImageAnalysisCode.fitgaussian(images_array[count, 1], 
+    sutter_widthx, sutter_center_x, sutter_widthy, sutter_center_y = ImageAnalysisCode.fitgaussian(images_array[count, 1], params,
                                                                                                    title='shutter fitting', do_plot=0)
    
     masked, vmax = ImageAnalysisCode.CircularMask(columnDensities[count], centerx=sutter_center_x, centery=sutter_center_y,
                                                       radius=radius/binsize)
     
-    _, Xcenter, _, Ycenter = ImageAnalysisCode.fitgaussian(columnDensities[count], title = "Vertical Column Density",
+    _, Xcenter, _, Ycenter = ImageAnalysisCode.fitgaussian(columnDensities[count], params, title = "Vertical Column Density",
+                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
+                                                                        column_density_xylim=(columnstart, columnend, rowstart, rowend),
+                                                                        count=count, logTime=logTime, variableLog=variableLog, 
+                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=True)
+    
+    
+    rotatedCD = rotate(columnDensities[count], angle_deg, reshape = False)[rowstart_rot:rowend_rot, columnstart_rot:columnend_rot]
+
+    Xwidth, Xcenter, Ywidth, Ycenter = ImageAnalysisCode.fitgaussian(rotatedCD, params, title = "Vertical Column Density",
                                                                         vmax = vmax, do_plot = 1, save_column_density=0,
                                                                         column_density_xylim=(columnstart, columnend, rowstart, rowend),
                                                                         count=count, logTime=logTime, variableLog=variableLog, 
                                                                         variablesToDisplay=variablesToDisplay, showTimestamp=True)
     
-    
-    rotatedCD = rotate(columnDensities[count][rowstart:rowend,columnstart:columnend], angle_deg, reshape = False)
-
-    Xwidth, _, Ywidth, _ = ImageAnalysisCode.fitgaussian(rotatedCD, title = "Vertical Column Density",
-                                                                        vmax = vmax, do_plot = 0, save_column_density=0,
-                                                                        column_density_xylim=(columnstart, columnend, rowstart, rowend),
-                                                                        count=count, logTime=logTime, variableLog=variableLog, 
-                                                                        variablesToDisplay=variablesToDisplay, showTimestamp=True)
+    # XatomNumber = (Xamp * Xwidth * (2*np.pi)**0.5).sum()
+    # YatomNumber = (Yamp * Ywidth * (2*np.pi)**0.5).sum()
     
     row = {
         'Xwidth': Xwidth,
@@ -168,10 +170,12 @@ for count, img in enumerate(columnDensities):
     fitVals.append(row)
 
 
-    print("Number of atoms:{}e6".format(round(Number_of_atoms[count]/(1e6))))
+    # print("Number of atoms:{}e6".format(round(Number_of_atoms[count]/(1e6))))
 
 
 df_temp = pd.DataFrame(fitVals)
+# df_temp['YatomNumber'] = YatomNumber
+# df_temp['XatomNumber'] = XatomNumber
 df_temp['atomNum'] = Number_of_atoms
 
 var2append = variableLog[ variableLog.index.isin(logTime) ].reset_index()
@@ -181,7 +185,25 @@ results = pd.concat([df_temp, var2append], axis=1)
 results = results.set_index('time')
 
 #%%
-ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xwidth', 
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xwidth', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+# ImageAnalysisCode.PlotFromDataCSV(results, 'Lens_Position', 'Ywidth', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
+ImageAnalysisCode.PlotFromDataCSV(results, 'LowServo1', 'atomNum', 
                                   # iterateVariable='VerticalBiasCurrent', 
                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
                                   # groupby='ODT_Position', 
@@ -190,28 +212,29 @@ ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Xwidth',
                                   figSize = 0.5
                                   )
 
-ImageAnalysisCode.PlotFromDataCSV(results, 'Evap_timestep', 'Ywidth', 
-                                  # iterateVariable='VerticalBiasCurrent', 
-                                  # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
-                                  # groupby='ODT_Position', 
-                                    groupbyX=1, 
-                                  threeD=0,
-                                  figSize = 0.5
-                                  )
+# ImageAnalysisCode.PlotFromDataCSV(results, 'TOF', 'Ycenter', 
+#                                   # iterateVariable='VerticalBiasCurrent', 
+#                                   # filterByAnd=['VerticalBiasCurrent>7.6', 'VerticalBiasCurrent<8'],
+#                                   # groupby='ODT_Position', 
+#                                     groupbyX=1, 
+#                                   threeD=0,
+#                                   figSize = 0.5
+#                                   )
+
 
 #%%
 
-df = results.groupby('Lens_Position')
+# df = results.groupby('Lens_Position')
 
-plt.figure()
-plt.errorbar(df['Lens_Position'].mean(), df['Ywidth'].mean(), df['Ywidth'].std(), fmt='-o', capsize=2)
-plt.xlabel('Lens position')
-plt.ylabel('Ywidth (um)')
+# plt.figure()
+# plt.errorbar(df['Lens_Position'].mean(), df['Ywidth'].mean(), df['Ywidth'].std(), fmt='-o', capsize=2)
+# plt.xlabel('Lens position')
+# plt.ylabel('Ywidth (um)')
 
 
-plt.figure()
-plt.errorbar(df['Lens_Position'].mean(), df['Xwidth'].mean(), df['Xwidth'].std(), fmt='-o', capsize=2)
-plt.ylabel('Xwidth (um)')
+# plt.figure()
+# plt.errorbar(df['Lens_Position'].mean(), df['Xwidth'].mean(), df['Xwidth'].std(), fmt='-o', capsize=2)
+# plt.ylabel('Xwidth (um)')
 
 
 
