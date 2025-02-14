@@ -1859,10 +1859,14 @@ def fitgaussian2D(array, dx=1, do_plot=False, ax=None, fig=None, Ind=0, imgNo=1,
     return popts[0], popts[1]
 
 
-def fitgaussian(array, do_plot = False, vmax = None,title="", 
+def fitgaussian(array, params, do_plot = False, vmax = None,title="", 
                 logTime=None, variableLog=None,
                 count=None, variablesToDisplay=None, showTimestamp=False,
                 save_column_density = False, column_density_xylim = None): 
+    
+    mag = params.magnification
+    pixSize_um = params.camera.pixelsize_microns
+    
     #np.sum(array, axis = 0) sums over rows, axis = 1 sums over columns
     rows = np.linspace(0, len(array), len(array))
     cols = np.linspace(0, len(array[0]), len(array[0]))
@@ -1876,11 +1880,11 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
     # print("np.shape(col_sum) = "+str(np.shape(col_sum)))
     ampx = np.max(row_sum)
     centerx = np.argmax(row_sum)
-    wx = len(rows)/12
+    wx = len(rows)/3
     # offsetx = row_sum[0]
     ampy = np.max(col_sum)
     centery = np.argmax(col_sum)
-    wy = len(cols)/12
+    wy = len(cols)/120
     
     widthx, center_x, widthy, center_y = np.nan, np.nan, np.nan, np.nan
     try:
@@ -1898,6 +1902,11 @@ def fitgaussian(array, do_plot = False, vmax = None,title="",
         
     except RuntimeError as e:
         print(e)
+
+
+    widthx = widthx * pixSize_um / mag
+    widthy = widthy * pixSize_um / mag
+
 
     if do_plot:
         #see the input array
