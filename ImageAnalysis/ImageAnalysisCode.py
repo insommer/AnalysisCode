@@ -850,6 +850,7 @@ def PreprocessBinImgs(*paths, camera='zyla',
     pathNeedCatalogue = []
     catalogue = []
     
+    # Go throught the folders, examine if No of pictures are correct, and if buidling a catalogue is needed. 
     for path in paths:
         if not os.path.exists(path):
             print("Warning! Data folder not found:" + str(path))
@@ -892,7 +893,8 @@ def PreprocessBinImgs(*paths, camera='zyla',
     if N == 0:
         raise Exception('No data file was found in all provided folders!')
         
-    if loadVariableLog and pathNeedCatalogue: # Build the catalogue for the folders that need one, and append to the loaded ones. 
+    # Build the catalogue for the folders that need one, and append to the loaded ones.         
+    if loadVariableLog and pathNeedCatalogue: 
         catalogue.extend( BuildCatalogue(*pathNeedCatalogue, cam=camera,
                                          picturesPerIteration=PPI, skipFirstImg=skipFirstImg,
                                          dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
