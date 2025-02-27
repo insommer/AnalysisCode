@@ -1,11 +1,30 @@
-paths = []
+from ImageAnalysis import ImageAnalysisCode
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import rotate
+import pandas as pd
+import os
+from scipy import constants
+import glob
+import datetime
+
+paths = [
+    r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data\2025\02-2025\27 Feb 2025\FLIR\IR sample data',
+    ]
 PPI = 1
 filetype = '.pgm'
 examRange = [None, None]
 filterLists = [[]]
+loadVariableLog = 1
+rebuildCatalogue = 0
+skipFirstImg = 0
 
 
 # Go throught the folders, examine if No of pictures are correct, and if buidling a catalogue is needed. 
+N = 0 # Totol number of images in all provided folders. 
+pathNeedCatalogue = []
+catalogue = []
+    
 for path in paths:
     if not os.path.exists(path):
         print("Warning! Data folder not found:" + str(path))
@@ -50,13 +69,17 @@ if N == 0:
 
 # Build the catalogue for the folders that need one, and append to the loaded ones.         
 if loadVariableLog and pathNeedCatalogue: 
-    catalogue.extend( BuildCatalogue(*pathNeedCatalogue, cam=camera,
+    catalogue.extend( ImageAnalysisCode.BuildCatalogue(*pathNeedCatalogue, cam='cha',
                                      picturesPerIteration=PPI, skipFirstImg=skipFirstImg,
-                                     dirLevelAfterDayFolder=dirLevelAfterDayFolder) )
+                                     dirLevelAfterDayFolder=2) )
     
-catalogue = DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
+catalogue = ImageAnalysisCode.DataFilter(pd.concat(catalogue), filterLists=filterLists)[examRange[0]: examRange[1]]
 
+if len(catalogue) == 0:
+    raise ValueError('Len(Catalogue) is ZERO! No item satisfy the conditions!')
 
-imgPaths = FillFilePathsListFLIR(dfpaths, PPI)        
-rawImgs = loadSeriesPGMV2(imgPaths, file_encoding='binary')
+dfpaths = catalogue[['FolderPath', 'FirstImg']]
+
+imgPaths = ImageAnalysisCode.FillFilePathsListFLIR(dfpaths, PPI)        
+rawImgs = ImageAnalysisCode.loadSeriesPGMV2(imgPaths, file_encoding='binary')
 rawImgs = rawImgs.reshape( -1, PPI, *rawImgs.shape[-2:] ) 
