@@ -2726,7 +2726,7 @@ def DataFilter(dfInfo, *otheritems, filterLists=[]):
         # For flts in one list, use logic and to the results and appedn to masks. 
         maskAnd = []
         for flt in fltlist:              
-            maskAnd.append(eval( 'dfInfo.' + flt.replace(' ', '_') ))   
+            maskAnd.append(eval( '(dfInfo.' + flt.replace(' ', '_') + ').values' ))   
                 
         for mask in maskAnd[1:]:
             maskAnd[0] &= mask
@@ -2740,6 +2740,8 @@ def DataFilter(dfInfo, *otheritems, filterLists=[]):
             return dfInfo
     
     # Take logic or among the masks. 
+    # masks = masks.values() # Convert masks from df to np array.
+
     for mask in masks[1:]:
         masks[0] |= mask
     
@@ -2748,7 +2750,11 @@ def DataFilter(dfInfo, *otheritems, filterLists=[]):
         otheritems = list(otheritems)
         for ii, item in enumerate(otheritems):
             if item is not None:
-                otheritems[ii] = np.array(item)[masks[0]]
+                try:
+                    otheritems[ii] = np.array(item)[masks[0]]
+                except:
+                    # otheritems[ii] = np.array(item, dtype=object)[masks[0]]
+                    otheritems[ii] = [item[jj] for jj in range(len(item)) if masks[0][jj]]
             
         return dfInfo[masks[0]], otheritems
     else:
