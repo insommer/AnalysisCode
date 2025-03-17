@@ -33,11 +33,11 @@ import warnings
 from ImageAnalysis.ExperimentParameters import ExperimentParams
 
 
-def GetDataLocation(date, DataPath='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+def GetDataLocation(date, DataPath=r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
     warnings.warn("GetDataLocation will be replaced with GetDayFolder(date, root= )", DeprecationWarning, stacklevel=2)
     return os.path.join(DataPath, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
 
-def GetDayFolder(date, root='D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
+def GetDayFolder(date, root=r'D:\Dropbox (Lehigh University)\Sommer Lab Shared\Data'):
     return os.path.join(root, datetime.datetime.strptime(date, '%m/%d/%Y').strftime('%Y/%m-%Y/%d %b %Y'))
 
 
@@ -2289,8 +2289,8 @@ def plotImgAndFitResult(imgs, popts, bgs=[], imgs2=None,
                         uniformscale=0, addColorbar=1,
                         variableLog=None, variablesToDisplay=[], logTime=None, showTimestamp=False,
                         textLocationY=1, textVA='bottom', 
-                        xlabel=['pixels', 'position ($\mu$m)', 'position ($\mu$m)'],
-                        ylabel=['pixels', '1d density (atoms/$\mu$m)', ''],
+                        xlabel=['pixels', 'position (µm)', 'position (µm)'],
+                        ylabel=['pixels', '1d density (atoms/µm)', ''],
                         title=[], sharex='col', sharey='col',
                         rcParams={'font.size': 10, 'xtick.labelsize': 9, 'ytick.labelsize': 9}): 
     
@@ -2650,7 +2650,7 @@ def CalculateFromZyla(dayFolderPath, dataFolders, variableLog=None,
                                                       subtract_bg = subtract_bg, signal_feature = signal_feature, signal_width=signal_width,
                                                       vmax = vmax, vmin = vmin,
                                                       title="1D density", title2D="column density",
-                                                      xlabel1D="position ($\mu$m)", ylabel1D="1d density (atoms/$\mu$m)",                                                  
+                                                      xlabel1D="position (µm)", ylabel1D="1d density (atoms/µm)",                                                  
                                                       xscale_factor=1/lengthFactor, yscale_factor=lengthFactor)
         
         if do_plot and variableLog is not None:
@@ -3161,9 +3161,9 @@ def thermometry(params, images, tof_array, do_plot = False, data_folder = None):
             plt.savefig(data_folder+r'\\'+"temperature x.png", dpi = 500)
         #plot the widths vs. position along y direction
         plt.figure()
-        plt.title("Temperature Fit y, T = {} $\mu$K".format(popty[1]*1e6))
+        plt.title("Temperature Fit y, T = {} µK".format(popty[1]*1e6))
         plt.xlabel("Time of Flight (ms)")
-        plt.ylabel("Width of Atom Cloud ($\mu$m)")
+        plt.ylabel("Width of Atom Cloud (µm)")
         plt.scatter(1e3*tof_array, 1e6*widthsy)
         plt.plot(1e3*ploty_array, 1e6*temperature_model(ploty_array, *popty)) 
         if data_folder:
@@ -3206,10 +3206,10 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
         plt.rcParams.update({'font.size': 14})
         AxesAndTitleFont = 20
         if popt is not None:
-            plt.title("{0}: T = {1:.2f} $\mu$K".format(thermometry_axis, popt[1]*1e6), fontsize = AxesAndTitleFont)
+            plt.title("{0}: T = {1:.2f} µK".format(thermometry_axis, popt[1]*1e6), fontsize = AxesAndTitleFont)
             plt.plot(1e3*times_fit, 1e6*widths_fit, color = 'blue', zorder =1)
         plt.xlabel("Time of Flight (ms)", fontsize = AxesAndTitleFont)
-        plt.ylabel("Std. dev ($\mu$m)", fontsize = AxesAndTitleFont)
+        plt.ylabel("Std. dev (µm)", fontsize = AxesAndTitleFont)
         plt.scatter(tof_array/1e-3, widths/1e-6, color = 'red', zorder = 2)
         
         
@@ -3230,9 +3230,41 @@ def thermometry1D(params, columnDensities, tof_array, thermometry_axis="x",
 def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
                              atomNum='YatomNumber', sigma1='Xwidth', sigma2='Ywidth', sigma3='Ywidth',
                              do_plot=1, add_Text=1):
+    '''
+    Parameters
+    ----------
+    df : TYPE
+        DESCRIPTION.
+    *variables : strings
+        The variables changed during the measurement. Accept multiple variables. 
+    fitXVar : TYPE, optional
+        The x-axis for the plot. The default is 'TOF' for thermometry measurement.
+    fitYVar : TYPE, optional
+        DESCRIPTION. The default is 'Ywidth'.
+    atomNum : TYPE, optional
+        DESCRIPTION. The default is 'YatomNumber'.
+    sigma1 : TYPE, optional
+        The width of the atom clould along the 1st axis. The default is 'Xwidth'.
+    sigma2 : TYPE, optional        
+        The width of the atom clould along the 2nd axis. The default is 'Ywidth'.
+    sigma3 : TYPE, optional
+        The width of the atom clould along the 3rd axis. The default is 'Ywidth'.
+    do_plot : TYPE, optional
+        DESCRIPTION. The default is 1.
+    add_Text : TYPE, optional
+        DESCRIPTION. The default is 1.
+
+    Returns
+    -------
+    None.
+
+    '''
+        
     params = ExperimentParams( t_exp = 10e-6, picturesPerIteration= 4, cam_type = "zyla")
+    df = df.select_dtypes(include=np.number)
     
     dfmean = df.groupby(list(variables) + [fitXVar]).mean()
+    
     df1 = dfmean[fitYVar].unstack()    
 
     if do_plot:
@@ -3241,14 +3273,12 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
             runNo.append(len(df1.index.get_level_values(ii).unique()))
             
         runNo = np.prod( runNo )
-        rowNo = round(runNo**0.5 / 1.1)
-        if rowNo == 0:
-            rowNo = 1
-        colNo = int(np.ceil(runNo / rowNo))
-        if rowNo > colNo:
-            rowNo, colNo = colNo, rowNo
-        fig, axes = plt.subplots(rowNo, colNo, layout='constrained', squeeze = False,
-                                 sharex=True, sharey=True)#, figsize=(4,3))
+
+        arrange, sizes = PlotArangeAndSize(runNo)
+        fig, axes = plt.subplots(*arrange,
+                                 # figsize=sizes,
+                                 layout='constrained', squeeze = False,
+                                 sharex=True, sharey=True)
         axes = axes.flatten()
         
     T = []
@@ -3288,7 +3318,7 @@ def multiVariableThermometry(df, *variables, fitXVar='TOF', fitYVar='Ywidth',
     df1['PSD'] = PhaseSpaceDensity(Amean, s1, s2, s3, df1['T (K)'])
     df1['Size1'] = s1
     df1['Size2'] = s2
-   # plt.tight_layout()
+
     return df1
     
 def PhaseSpaceDensity(atomNum, sigma1, sigma2, sigma3, T):
@@ -3389,108 +3419,108 @@ def CircularMask(array, centerx = None, centery = None, radius = None):
 
     
 
-'''
+# '''
 
-#Gaussian_fit takes an array of the summed atom numbers. It outputs a gaussian width, a full fit report, and an x axis array
-def Gaussian_fit(images, params, slice_array, tof, units_of_tof, dataFolder='.'):
-    xposition = params.andor_pixel_size*np.linspace(0, len(slice_array),len(slice_array))
-    aguess = np.max(slice_array)
-    muguess = params.andor_pixel_size*np.where(slice_array == np.max(slice_array))[0][0]
-    w0guess = params.andor_pixel_size*len(slice_array)/4 #the standard dev. of the Gaussian
-    cguess = np.min(slice_array)
-    paramstemp = Parameters()
-    paramstemp.add_many(
-        ('a', aguess,True, None, None, None),
-        ('mu', muguess, True, None, None, None),
-        ('w0', w0guess, True, None, None, None),
-        ('c', cguess, True, None, None, None),
-        )
+# #Gaussian_fit takes an array of the summed atom numbers. It outputs a gaussian width, a full fit report, and an x axis array
+# def Gaussian_fit(images, params, slice_array, tof, units_of_tof, dataFolder='.'):
+#     xposition = params.andor_pixel_size*np.linspace(0, len(slice_array),len(slice_array))
+#     aguess = np.max(slice_array)
+#     muguess = params.andor_pixel_size*np.where(slice_array == np.max(slice_array))[0][0]
+#     w0guess = params.andor_pixel_size*len(slice_array)/4 #the standard dev. of the Gaussian
+#     cguess = np.min(slice_array)
+#     paramstemp = Parameters()
+#     paramstemp.add_many(
+#         ('a', aguess,True, None, None, None),
+#         ('mu', muguess, True, None, None, None),
+#         ('w0', w0guess, True, None, None, None),
+#         ('c', cguess, True, None, None, None),
+#         )
         
-    model = lmfit.Model(Gaussian)
-    result = model.fit(slice_array, x=xposition, params = paramstemp)
-    gwidth = abs(result.params['w0'].value)
-    return  gwidth, result, xposition
+#     model = lmfit.Model(Gaussian)
+#     result = model.fit(slice_array, x=xposition, params = paramstemp)
+#     gwidth = abs(result.params['w0'].value)
+#     return  gwidth, result, xposition
 
 
-#Here I call the Gaussian_fit function on all of the expanding cloud pictures to output widths for all of them.
-    half_of_pictures = int(params.number_of_pics/2)
-    gaussian_widths_x = np.zeros(half_of_pictures)
-    gaussian_widths_y = np.zeros(half_of_pictures)
-    num_atoms_vs_x, num_atoms_vs_y, atoms_max = temp(slice_array)
+# #Here I call the Gaussian_fit function on all of the expanding cloud pictures to output widths for all of them.
+#     half_of_pictures = int(params.number_of_pics/2)
+#     gaussian_widths_x = np.zeros(half_of_pictures)
+#     gaussian_widths_y = np.zeros(half_of_pictures)
+#     num_atoms_vs_x, num_atoms_vs_y, atoms_max = temp(slice_array)
  
-    for i in range(half_of_pictures):
-        fittemp_x = Gaussian_fit(num_atoms_vs_x[2*i+1,:])
-        fittemp_y = Gaussian_fit(num_atoms_vs_y[2*i+1,:])
-        gaussian_widths_x[i] = fittemp_x[0]
-        gaussian_widths_y[i] = fittemp_y[0]
+#     for i in range(half_of_pictures):
+#         fittemp_x = Gaussian_fit(num_atoms_vs_x[2*i+1,:])
+#         fittemp_y = Gaussian_fit(num_atoms_vs_y[2*i+1,:])
+#         gaussian_widths_x[i] = fittemp_x[0]
+#         gaussian_widths_y[i] = fittemp_y[0]
         
         
-        if params.ready_to_save == 'true':
+#         if params.ready_to_save == 'true':
         
-            #save Gaussian fit in x direction plot
-            fit0_x = Gaussian_fit(num_atoms_vs_x[2*i+1,:])
-            plt.figure()
-            plt.rcParams.update({'font.size':9})
-            plt.title('TOF = {}'.format(tof[i])+units_of_tof+' horizontal plot, standard dev. = {}m'.format(round(abs(fit0_x[0]), 5)))
-            plt.xlabel("Position (m)")
-            plt.ylabel("Number of atoms in MOT")
-            plt.plot(fit0_x[2], num_atoms_vs_x[2*i+1,:], 'g.', label='Signal')
-            plt.plot(fit0_x[2], fit0_x[1].best_fit, 'b', label='Fit')
-            plt.legend()
-            plt.tight_layout()
-            plt.savefig(dataFolder +r'\TOF = {}'.format(tof[i])+units_of_tof+' horizontal plot.png', dpi = 300)
-            plt.close()  
+#             #save Gaussian fit in x direction plot
+#             fit0_x = Gaussian_fit(num_atoms_vs_x[2*i+1,:])
+#             plt.figure()
+#             plt.rcParams.update({'font.size':9})
+#             plt.title('TOF = {}'.format(tof[i])+units_of_tof+' horizontal plot, standard dev. = {}m'.format(round(abs(fit0_x[0]), 5)))
+#             plt.xlabel("Position (m)")
+#             plt.ylabel("Number of atoms in MOT")
+#             plt.plot(fit0_x[2], num_atoms_vs_x[2*i+1,:], 'g.', label='Signal')
+#             plt.plot(fit0_x[2], fit0_x[1].best_fit, 'b', label='Fit')
+#             plt.legend()
+#             plt.tight_layout()
+#             plt.savefig(dataFolder +r'\TOF = {}'.format(tof[i])+units_of_tof+' horizontal plot.png', dpi = 300)
+#             plt.close()  
             
-            #save Gaussian fit in y direction plot
-            fit0_y = Gaussian_fit(num_atoms_vs_y[2*i+1,:])
-            plt.figure()
-            plt.title('TOF = {}'.format(tof[i])+units_of_tof+' vertical plot, standard dev. = {}m'.format(round(abs(fit0_y[0]), 5)))
-            plt.xlabel("Position (m)")
-            plt.ylabel("Number of atoms in MOT")
-            plt.plot(fit0_y[2], num_atoms_vs_y[2*i+1,:], 'g.', label='Signal')
-            plt.plot(fit0_y[2], fit0_y[1].best_fit, 'b', label='Fit')
-            plt.legend()
-            plt.tight_layout()
-            plt.savefig(dataFolder+r'\TOF = {}'.format(tof[i])+units_of_tof+' vertical plot.png', dpi = 300)
-            plt.close()
+#             #save Gaussian fit in y direction plot
+#             fit0_y = Gaussian_fit(num_atoms_vs_y[2*i+1,:])
+#             plt.figure()
+#             plt.title('TOF = {}'.format(tof[i])+units_of_tof+' vertical plot, standard dev. = {}m'.format(round(abs(fit0_y[0]), 5)))
+#             plt.xlabel("Position (m)")
+#             plt.ylabel("Number of atoms in MOT")
+#             plt.plot(fit0_y[2], num_atoms_vs_y[2*i+1,:], 'g.', label='Signal')
+#             plt.plot(fit0_y[2], fit0_y[1].best_fit, 'b', label='Fit')
+#             plt.legend()
+#             plt.tight_layout()
+#             plt.savefig(dataFolder+r'\TOF = {}'.format(tof[i])+units_of_tof+' vertical plot.png', dpi = 300)
+#             plt.close()
            
-            #save the picture from Andor
-            plt.figure()
-            plt.title("Signal inside red rectangle")
-            plt.imshow(images[2*i+1,params.ymin:params.ymax,params.xmin:params.xmax],cmap="gray", origin="lower",interpolation="nearest",vmin=np.min(images),vmax=np.max(images))
-            plt.savefig(dataFolder+r'\TOF = {}'.format(tof[i])+units_of_tof+' signal inside red rectangle.png', dpi = 300)
-            plt.close()
+#             #save the picture from Andor
+#             plt.figure()
+#             plt.title("Signal inside red rectangle")
+#             plt.imshow(images[2*i+1,params.ymin:params.ymax,params.xmin:params.xmax],cmap="gray", origin="lower",interpolation="nearest",vmin=np.min(images),vmax=np.max(images))
+#             plt.savefig(dataFolder+r'\TOF = {}'.format(tof[i])+units_of_tof+' signal inside red rectangle.png', dpi = 300)
+#             plt.close()
             
 
-    gaussian_widths_x = np.flip(gaussian_widths_x)
-    gaussian_widths_y = np.flip(gaussian_widths_y)
+#     gaussian_widths_x = np.flip(gaussian_widths_x)
+#     gaussian_widths_y = np.flip(gaussian_widths_y)
 
 
-#Here we import the relevant TOF file and combine it with the gaussian widths
-    widths_tof_x = np.zeros((len(gaussian_widths_x),2))
-    widths_tof_y = np.zeros((len(gaussian_widths_y),2))
+# #Here we import the relevant TOF file and combine it with the gaussian widths
+#     widths_tof_x = np.zeros((len(gaussian_widths_x),2))
+#     widths_tof_y = np.zeros((len(gaussian_widths_y),2))
 
-    for i in range(len(gaussian_widths_x)):
-         widths_tof_x[i] = (gaussian_widths_x[i], tof[i])
-         widths_tof_y[i] = (gaussian_widths_y[i], tof[i])
+#     for i in range(len(gaussian_widths_x)):
+#          widths_tof_x[i] = (gaussian_widths_x[i], tof[i])
+#          widths_tof_y[i] = (gaussian_widths_y[i], tof[i])
 
-# save the data in a csv file
-    if params.ready_to_save =='true':
-        csvfilename_x = dataFolder+r"\widths_vs_tof_x.csv"
-        csvfilename_y = dataFolder+r"\widths_vs_tof_y.csv"
-        np.savetxt(csvfilename_x, widths_tof_x, delimiter = ",") 
-        np.savetxt(csvfilename_y, widths_tof_y, delimiter = ",") 
+# # save the data in a csv file
+#     if params.ready_to_save =='true':
+#         csvfilename_x = dataFolder+r"\widths_vs_tof_x.csv"
+#         csvfilename_y = dataFolder+r"\widths_vs_tof_y.csv"
+#         np.savetxt(csvfilename_x, widths_tof_x, delimiter = ",") 
+#         np.savetxt(csvfilename_y, widths_tof_y, delimiter = ",") 
 
 
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
+# def find_nearest(array, value):
+#     array = np.asarray(array)
+#     idx = (np.abs(array - value)).argmin()
+#     return array[idx]
 
-def exponential(x, m, t, b):
-    return m * np.exp(-t * x) + b
+# def exponential(x, m, t, b):
+#     return m * np.exp(-t * x) + b
     
-'''
+# '''
 
 
 
